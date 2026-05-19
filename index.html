@@ -288,15 +288,11 @@
         let hudVisivel = false;
         let monstrosNoBanco = {};
 
-        // Controle dos dois slots da mesa de jogo
         let slotsDeVisao = {
             1: { ouvinte: null, idFicha: null, tipo: null, dados: {} },
             2: { ouvinte: null, idFicha: null, tipo: null, dados: {} }
         };
 
-        // ==========================================
-        // GERAÇÃO DINÂMICA DE HTML (SLOTS 1 e 2)
-        // ==========================================
         function gerarHtmlHeroi(numSlot) {
             let optionsAttrs = `<option value="">Atributo</option><option value="hp-max">HP Máx</option><option value="mana-max">Mana Máx</option><option value="for">FOR</option><option value="des">DES</option><option value="con">CON</option><option value="int">INT</option><option value="sab">SAB</option><option value="car">CAR</option><option value="per">PER</option>`;
             let eqHtml = '';
@@ -507,9 +503,6 @@
         document.getElementById('slot-2').innerHTML = gerarHtmlHeroi(2) + gerarHtmlMonstro(2);
 
 
-        // ==========================================
-        // LÓGICA DE LOGIN E INICIALIZAÇÃO
-        // ==========================================
         window.fazerLogin = function() {
             const digitado = document.getElementById('input-senha').value.trim().toLowerCase();
             if (usuarios[digitado]) {
@@ -562,9 +555,6 @@
             });
         }
 
-        // ==========================================
-        // GESTÃO DE TELAS (SLOTS)
-        // ==========================================
         function preencherDropdownsMestre() {
             if(usuarioAtual.cargo !== "Mestre") return;
             
@@ -619,9 +609,6 @@
             } else { return `slot${numSlot}-${campoDB}`; }
         }
 
-        // ==========================================
-        // CÁLCULOS DE NÍVEL E EXPERIÊNCIA
-        // ==========================================
         function getLevelData(expTotal) {
             let level = 1; let requiredForNext = 100; let exp = expTotal || 0;
             while(exp >= requiredForNext) {
@@ -630,9 +617,6 @@
             return { level, currentExp: exp, requiredForNext };
         }
 
-        // ==========================================
-        // MODAL DE EXP (MESTRE)
-        // ==========================================
         window.abrirModalExp = function() {
             document.getElementById('modal-exp').style.display = 'flex';
             document.querySelectorAll('.exp-target').forEach(cb => cb.checked = false);
@@ -663,9 +647,6 @@
             fecharModalExp();
         }
 
-        // ==========================================
-        // CARREGAMENTO DA FICHA E OUVINTES
-        // ==========================================
         function abrirFichaNoSlot(numSlot, tipo, idFicha) {
             if(!idFicha) return;
             limparSlot(numSlot);
@@ -684,7 +665,7 @@
             
             document.querySelectorAll(`.editavel-slot${numSlot}`).forEach(el => {
                 if(!el.classList.contains('mestre-unlocked')) { el.disabled = !temPermissao; } 
-                else { el.disabled = (usuarioAtual.cargo !== "Mestre"); } // HP Máx editável só pro mestre
+                else { el.disabled = (usuarioAtual.cargo !== "Mestre"); } 
                 if(el.type !== 'checkbox' && el.type !== 'radio' && el.type !== 'file') el.value = '';
             });
 
@@ -716,7 +697,6 @@
                 }
 
                 if(tipo === 'heroi') {
-                    // CALCULA MODIFICADORES DE HP E MANA
                     let hpMaxBase = Number(dados['hp-max']) || 20;
                     let manaMaxBase = Number(dados['mana-max']) || 20;
                     let con = Number(dados['con']) || 0;
@@ -730,7 +710,6 @@
                     if(elHpEfetivo) elHpEfetivo.innerText = hpEfetivo;
                     if(elManaEfetivo) elManaEfetivo.innerText = manaEfetivo;
 
-                    // LEVEL E EXPERIÊNCIA
                     let expTotal = Number(dados['expTotal']) || 0;
                     let levelData = getLevelData(expTotal);
                     let elLevel = document.getElementById(`slot${numSlot}-level-display`);
@@ -739,7 +718,6 @@
                     if(elLevel && numLevelSpan) {
                         let lastLevel = elLevel.dataset.currentLevel || 1;
                         if(levelData.level > lastLevel) {
-                            // ANIMAÇÃO ÉPICA DE LEVEL UP
                             elLevel.classList.add('epic-level-up');
                             setTimeout(() => elLevel.classList.remove('epic-level-up'), 3000);
                         }
@@ -757,7 +735,6 @@
                     expText.style.transform = `scale(${scale})`;
                     expText.style.textShadow = `0 0 ${glow}px rgba(255, 215, 0, 0.9), 1px 1px 2px black`;
 
-                    // CALCULA PONTOS DE ATRIBUTO LIVRES
                     let maxAtributos = 10 + (levelData.level - 1);
                     let ptsAtuais = 0;
                     ['for', 'des', 'con', 'int', 'sab', 'car', 'per'].forEach(a => ptsAtuais += Number(dados[a]) || 0);
@@ -769,7 +746,6 @@
                         spanPts.style.color = ptsLivres > 0 ? '#27ae60' : '#d95757';
                     }
 
-                    // EQUIPAMENTOS
                     for(let i=1; i<=5; i++) {
                         let isEquipado = dados[`item${i}-equipado`] || false;
                         let btn = document.getElementById(`slot${numSlot}-btn-equip-${i}`);
@@ -794,7 +770,6 @@
 
             slotsDeVisao[numSlot].ouvinte = novoOuvinte;
 
-            // LISTENERS DE INPUT (COM TRAVA DE PONTOS)
             document.querySelectorAll(`.editavel-slot${numSlot}`).forEach(campo => {
                 const novoCampo = campo.cloneNode(true);
                 campo.parentNode.replaceChild(novoCampo, campo);
@@ -808,7 +783,6 @@
                             if(chaveCompleta === `slot${numSlot}-monstro-nome`) chaveDoBanco = 'nome';
                         }
 
-                        // TRAVA DE ATRIBUTOS PARA O PLAYER
                         if (tipo === 'heroi' && ['for', 'des', 'con', 'int', 'sab', 'car', 'per'].includes(chaveDoBanco)) {
                             let novoValor = Number(e.target.value);
                             if (novoValor < 0) novoValor = 0;
@@ -825,10 +799,10 @@
                             });
 
                             if (sumOthers + novoValor > maxA && usuarioAtual.cargo !== "Mestre") {
-                                e.target.value = dadosAntigos[chaveDoBanco] || 0; // Reverte se ultrapassar
-                                return; // Impede salvar no banco
+                                e.target.value = dadosAntigos[chaveDoBanco] || 0; 
+                                return; 
                             }
-                            e.target.value = novoValor; // Força limites visuais de min/max
+                            e.target.value = novoValor; 
                         }
                         
                         update(ref(database, 'fichas/' + idFicha), { [chaveDoBanco]: e.target.value });
@@ -870,9 +844,6 @@
             }
         }
 
-        // ==========================================
-        // OUTRAS LÓGICAS (UPLOAD, ITENS, BUFFS)
-        // ==========================================
         window.processarUploadOtimizado = function(event, numSlot) {
             const file = event.target.files[0];
             if(!file) return;
@@ -995,7 +966,6 @@
             let hpAtual = Number(dados['hp-atual']) || 0;
             let manaAtual = Number(dados['mana-atual']) || 0;
             
-            // Pega o Efetivo se for herói, ou Base se monstro
             let hpMax = tipo === 'heroi' ? (Number(document.getElementById(`slot${numSlot}-hp-efetivo`).innerText) || 20) : (Number(dados['hp-max']) || 20);
             let manaMax = tipo === 'heroi' ? (Number(document.getElementById(`slot${numSlot}-mana-efetivo`).innerText) || 20) : (Number(dados['mana-max']) || 20);
             
@@ -1090,9 +1060,6 @@
             });
         }
 
-        // ==========================================
-        // SISTEMA DO MESTRE (MONSTROS E HUD GERAL)
-        // ==========================================
         window.invocarMonstro = function() {
             if(usuarioAtual.cargo !== "Mestre") return;
             const nomeDoMonstro = prompt("Nome do Monstro a ser criado:");
@@ -1116,30 +1083,29 @@
         }
 
         window.executarAtaque = async function(numSlot) {
-            const dano = Number(document.getElementById(`slot${numSlot}-ataque-dano`).value);
+            const inputDano = document.getElementById(`slot${numSlot}-ataque-dano`);
+            const dano = Number(inputDano.value);
+            
             if(!dano || dano <= 0) return alert("Insira um valor de dano válido!");
 
             const checkboxes = document.querySelectorAll(`.alvo-ataque-slot${numSlot}:checked`);
             if(checkboxes.length === 0) return alert("Selecione pelo menos um alvo para o ataque!");
 
             const alvos = Array.from(checkboxes).map(cb => cb.value);
-            const nomesAlvos = alvos.map(a => a.charAt(0).toUpperCase() + a.slice(1)).join(', ');
 
-            if(confirm(`A ameaça causará ${dano} de dano em: ${nomesAlvos}.\nConfirmar ataque?`)) {
-                for(let alvo of alvos) {
-                    const refFicha = ref(database, 'fichas/' + alvo);
-                    const snapshot = await get(refFicha);
-                    let dados = snapshot.val() || {};
-                    let hpAtual = Number(dados['hp-atual']) || 0;
-                    
-                    hpAtual -= dano;
-                    if(hpAtual < 0) hpAtual = 0;
-                    update(refFicha, { 'hp-atual': hpAtual });
-                }
-                alert("⚔️ Ataque desferido! A vida dos alvos foi reduzida.");
-                document.getElementById(`slot${numSlot}-ataque-dano`).value = '';
-                checkboxes.forEach(cb => cb.checked = false);
+            for(let alvo of alvos) {
+                const refFicha = ref(database, 'fichas/' + alvo);
+                const snapshot = await get(refFicha);
+                let dados = snapshot.val() || {};
+                let hpAtual = Number(dados['hp-atual']) || 0;
+                
+                hpAtual -= dano;
+                if(hpAtual < 0) hpAtual = 0;
+                update(refFicha, { 'hp-atual': hpAtual });
             }
+            
+            inputDano.value = '';
+            checkboxes.forEach(cb => cb.checked = false);
         };
 
         window.lancarMonstro = function() {
@@ -1243,7 +1209,7 @@
             let elManaMax = document.getElementById(`hud-${jogadorId}-mana-max`);
 
             if(elHpAtual && document.activeElement !== elHpAtual) elHpAtual.value = hpAtual;
-            if(elHpMax) elHpMax.innerText = hpMaxEfetivo; // O HUD agora mostra o valor real Efetivo (Modificado)
+            if(elHpMax) elHpMax.innerText = hpMaxEfetivo; 
             if(elManaAtual && document.activeElement !== elManaAtual) elManaAtual.value = manaAtual;
             if(elManaMax) elManaMax.innerText = manaMaxEfetivo;
 
