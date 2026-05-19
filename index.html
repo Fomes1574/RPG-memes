@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <title>RPG Memes</title>
+    <title>RPG Memes - Mesa do Mestre</title>
     <style>
         /* ESTÉTICA MEDIEVAL CLÁSSICA (Madeira, Couro e Ouro Velho) */
         body { 
@@ -17,11 +17,12 @@
         #tela-login { background: #1a100a; padding: 40px; border-radius: 4px; border: 3px double #8b6d43; text-align: center; box-shadow: 0 20px 50px rgba(0,0,0,0.9); width: 320px; margin-top: 15vh;}
         #tela-app { display: none; width: 100%; max-width: 1400px; }
         
-        .mesa-de-jogo { display: flex; gap: 25px; width: 100%; justify-content: center; flex-wrap: wrap; align-items: flex-start;}
+        .mesa-de-jogo { display: flex; gap: 25px; width: 100%; justify-content: center; flex-wrap: wrap; align-items: flex-start; padding-bottom: 50px;}
+        .slot-container { flex: 1; min-width: 400px; max-width: 600px; display: flex; justify-content: center;}
         
         /* FICHA DO PERSONAGEM */
-        .container { background: #1c130d; padding: 30px; border-radius: 2px; border: 3px double #8b6d43; box-shadow: 0 15px 40px rgba(0,0,0,0.9), inset 0 0 40px rgba(0,0,0,0.7); width: 100%; max-width: 600px; display: none; }
-        .container.monstro-theme { border-color: #6b1d1d; background: #1c0a0a; box-shadow: 0 15px 40px rgba(0,0,0,0.9), inset 0 0 50px rgba(20,0,0,0.9); max-width: 500px;}
+        .container { background: #1c130d; padding: 30px; border-radius: 2px; border: 3px double #8b6d43; box-shadow: 0 15px 40px rgba(0,0,0,0.9), inset 0 0 40px rgba(0,0,0,0.7); width: 100%; display: none; }
+        .container.monstro-theme { border-color: #6b1d1d; background: #1c0a0a; box-shadow: 0 15px 40px rgba(0,0,0,0.9), inset 0 0 50px rgba(20,0,0,0.9);}
         
         .nav-bar { background: #120a06; padding: 15px 25px; border-radius: 4px; border: 1px solid #5c3a21; margin-bottom: 25px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 8px 25px rgba(0,0,0,0.9); flex-wrap: wrap; gap: 15px;}
         .nav-info { font-size: 15px; color: #b89c72; text-shadow: 1px 1px 2px black;}
@@ -39,7 +40,7 @@
         .attr-box label { font-size: 11px; color: #b89c72; margin-bottom: 8px; font-weight: bold; text-align: center; cursor: help;}
         .attr-box input { font-size: 22px; padding: 5px 0; background: transparent; border: none; box-shadow: none; color: #fff; cursor: help; text-align: center;}
         
-        .section-title { border-bottom: 2px solid #5c3a21; padding-bottom: 5px; margin-top: 30px; color: #b89c72; text-transform: uppercase; font-weight: bold; font-size: 14px; letter-spacing: 2px; text-shadow: 2px 2px 2px #000; }
+        .section-title { border-bottom: 2px solid #5c3a21; padding-bottom: 5px; margin-top: 30px; color: #b89c72; text-transform: uppercase; font-weight: bold; font-size: 14px; letter-spacing: 2px; text-shadow: 2px 2px 2px #000; display: flex; justify-content: space-between; align-items: center;}
         .monstro-theme .section-title { border-bottom-color: #5c1818; color: #a84242; }
         
         label { display: block; font-size: 10px; color: #9c8464; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 1px; text-align: center;}
@@ -50,7 +51,8 @@
         input[type="number"] { font-weight: bold; text-align: center;}
         
         input:disabled, textarea:disabled, button:disabled { opacity: 0.6; cursor: not-allowed; border-color: #24140b; background-color: rgba(0,0,0,0.8); color: #6b5a48;}
-        
+        input.mestre-unlocked:disabled { color: #dcd0ba; opacity: 1; } /* Exceção visual para atributos que mestre edita, mas player vê */
+
         .foto-personagem { width: 140px; height: 140px; background-color: #050302; border: 2px solid #5c3a21; object-fit: cover; box-shadow: 0 5px 15px rgba(0,0,0,0.9); }
         .monstro-theme .foto-personagem { border-color: #5c1818; }
         
@@ -62,6 +64,8 @@
         /* BARRAS MÁGICAS E ALINHAMENTO */
         .fraction-input { display: flex; align-items: center; justify-content: center; gap: 8px; }
         .fraction-input span { color: #8b6d43; font-weight: bold; font-size: 20px; }
+        .fraction-input input { font-size: 18px; padding: 4px; }
+        
         .bar-bg { width: 100%; background-color: #0a0604; border-radius: 12px; height: 14px; margin-top: 8px; border: 1px solid #1a0f0a; box-shadow: inset 0 2px 5px rgba(0,0,0,0.9);}
         .bar-fill { position: relative; overflow: hidden; height: 100%; transition: width 0.5s ease-out; border-radius: 12px; }
         
@@ -76,7 +80,7 @@
         .mana-fill { background: linear-gradient(90deg, #18527a, #2980b9); box-shadow: 0 0 8px rgba(41, 128, 185, 0.4);} 
 
         /* BARRA DE EXPERIÊNCIA E LEVEL UP */
-        .level-display { font-size: 26px; font-weight: bold; color: #d4af37; text-align: center; text-shadow: 1px 1px 2px black; transition: 0.5s; }
+        .level-display { font-size: 22px; font-weight: bold; color: #d4af37; text-align: center; text-shadow: 1px 1px 2px black; transition: 0.5s; display: flex; align-items: center; justify-content: center; gap: 5px; }
         .level-up-fire { animation: burn 2.5s ease-out forwards; color: #fff !important; }
         @keyframes burn {
             0% { text-shadow: 0 0 10px #ff9900, 0 0 20px #ff3300, 0 0 30px #ff0000; transform: scale(1); }
@@ -91,7 +95,6 @@
             background: #fff; box-shadow: 0 0 15px 5px #fff, 0 0 20px 10px #ffd700; border-radius: 50%;
         }
 
-        /* ALERTA DE MORTE (BEM MAIS DISCRETO AGORA) */
         .caixa-status { padding: 10px; transition: 0.3s; border: 1px solid transparent; border-radius: 4px;}
         .alerta-morte { animation: pulso-morte-discreto 2s infinite alternate; }
         @keyframes pulso-morte-discreto {
@@ -120,11 +123,9 @@
         .btn-equipar { padding: 6px; font-size: 11px; margin: 0; }
         .btn-equipar.equipado { background: #1e7039; border-color: #27ae60; color: white; box-shadow: inset 0 0 5px rgba(0,0,0,0.5); }
         
-        /* CHECKBOXES DE ALVOS */
         .checkbox-alvo { display: flex; align-items: center; gap: 5px; color: #b89c72; font-size: 12px; font-weight: bold; cursor: pointer; text-transform: capitalize;}
         .checkbox-alvo input { width: 16px; height: 16px; cursor: pointer; margin: 0; box-shadow: none;}
 
-        /* BUFFS E EFEITOS */
         .buff-container { background: rgba(0,0,0,0.4); padding: 15px; border: 1px solid #3a2212; margin-top: 10px;}
         .buff-input-grid { display: grid; grid-template-columns: 1fr 60px 60px 80px 60px 60px 50px; gap: 6px; margin-bottom: 12px;}
         .buff-input-grid input, .buff-input-grid select { padding: 6px; font-size: 11px;}
@@ -141,33 +142,23 @@
         .btn-remover { background: transparent; border: none; color: #8c1c13; font-size: 14px; box-shadow: none; padding: 0 5px; cursor: pointer;}
         .btn-remover:hover:not(:disabled) { background: transparent; transform: scale(1.2); text-shadow: 0 0 5px red;}
 
-        .painel-mestre { display: none; gap: 10px; flex-wrap: wrap; background: rgba(0,0,0,0.7); padding: 10px; border: 1px dashed #6b1d1d;}
+        .btn-mini-acao { padding: 4px 6px; font-size: 12px; background: #1a0f0a; color: #8b6d43; border: 1px solid #3a2212; border-radius: 4px; margin: 0 2px; }
+        .btn-mini-acao:hover { background: #d4af37; color: #000; border-color: #ffd700; text-shadow: none; }
+
+        .painel-mestre { display: none; gap: 10px; flex-wrap: wrap; background: rgba(0,0,0,0.7); padding: 10px; border: 1px dashed #6b1d1d; align-items: center;}
         .btn-invocar { background: linear-gradient(to bottom, #6b4d1b, #4a3411) !important; border-color: #8b6d43 !important;}
         .btn-lancar { background: linear-gradient(to bottom, #1e5c2e, #11361a) !important; border-color: #27ae60 !important;}
         .btn-derrotado { background: linear-gradient(to bottom, #2b2b2b, #121212) !important; border-color: #4a4a4a !important; color: #888 !important;}
         .btn-deletar { background: linear-gradient(to bottom, #5c1818, #360e0e) !important; border-color: #8c1c13 !important;}
-        .btn-exp { background: linear-gradient(to bottom, #d4af37, #8b6d43) !important; border-color: #ffd700 !important; color: #1a100a !important; text-shadow: none !important;}
         
-        /* Estilos para o HUD do Mestre */
-        .hud-player input.hud-stat-field[type="number"] {
-            -webkit-appearance: number-input;
-            -moz-appearance: number-input;
-            appearance: number-input;
-            text-align: center;
-            background: rgba(0,0,0,0.5);
-            border: 1px solid #3a2212;
-            color: #dcd0ba;
-            padding: 2px;
-            font-size: 10px;
-            width: 40px;
-            border-radius: 2px;
-            margin-left: 2px;
-            margin-right: 2px;
-        }
-        .hud-player input.hud-stat-field[type="number"]::-webkit-inner-spin-button, 
-        .hud-player input.hud-stat-field[type="number"]::-webkit-outer-spin-button {
-            opacity: 1;
-        }
+        .mestre-only-inline { display: none; }
+        body.is-mestre .mestre-only-inline { display: inline-block; }
+        
+        body.is-jogador .esconder-jogador { display: none !important; }
+        
+        /* Hud fields number arrows */
+        input.hud-stat-field[type="number"] { -webkit-appearance: number-input; -moz-appearance: number-input; appearance: number-input; }
+        input.hud-stat-field[type="number"]::-webkit-inner-spin-button { opacity: 1; }
     </style>
 </head>
 <body>
@@ -194,243 +185,45 @@
             </div>
             
             <div style="display: flex; gap: 20px; align-items: center; flex-wrap: wrap;">
-                <div>
-                    <label style="display: inline-block; margin-bottom: 0;">Players:</label>
-                    <select id="seletor-heroi" onchange="selecionarHeroi()">
-                        <option value="" disabled selected>Escolha...</option>
-                        <option value="lais">Lais</option>
-                        <option value="gomes">Gomes</option>
-                        <option value="kamy">Kamy</option>
-                        <option value="arthur">Arthur</option>
-                    </select>
+                
+                <!-- Visão do Jogador (Apenas Tela 1) -->
+                <div id="seletor-jogador" style="display: none;">
+                    <label style="display: inline-block; margin-bottom: 0;">Seu Personagem:</label>
+                    <span id="nome-heroi-jogador" style="font-weight:bold; color:#d4af37; margin-left: 5px;"></span>
                 </div>
+
+                <!-- Visão do Mestre -->
                 <div id="painel-mestre" class="painel-mestre">
                     <div>
-                        <label style="display: inline-block; margin-bottom: 0; color: #d4af37;">Recompensa:</label>
-                        <button class="btn-exp" onclick="cederExp()">🌟 Ceder EXP</button>
+                        <label style="display: inline-block; margin-bottom: 0; color: #b89c72;">Visualizar Tela 1:</label>
+                        <select id="mestre-tela-1" onchange="mestreMudarVisao(1, this.value)">
+                            <option value="">Vazio...</option>
+                        </select>
                     </div>
+                    <div>
+                        <label style="display: inline-block; margin-bottom: 0; color: #b89c72;">Visualizar Tela 2:</label>
+                        <select id="mestre-tela-2" onchange="mestreMudarVisao(2, this.value)">
+                            <option value="">Vazio...</option>
+                        </select>
+                    </div>
+
                     <div style="border-left: 1px dashed #6b1d1d; margin-left: 5px; padding-left: 15px;">
                         <label style="display: inline-block; margin-bottom: 0; color: #a84242;">Gerenciar Ameaças:</label>
-                        <select id="seletor-monstro" onchange="selecionarMonstro()" style="border-color: #6b1d1d;">
+                        <select id="seletor-monstro" style="border-color: #6b1d1d;" onchange="selecionarMonstroMestre(this.value)">
                             <option value="" disabled selected>Nenhum...</option>
                         </select>
                     </div>
                     <button class="btn-invocar" onclick="invocarMonstro()">+ Invocar Monstro</button>
                     <button id="btn-lancar" class="btn-lancar" onclick="lancarMonstro()" style="display:none;">⚔️ Lançar Monstro</button>
                     <button id="btn-derrotado" class="btn-derrotado" onclick="monstroDerrotado()" style="display:none;">💀 Monstro Derrotado</button>
-                    <button id="btn-deletar" class="btn-deletar" onclick="deletarMonstro()" style="display:none;">🗑️ Deletar</button>
+                    <button id="btn-deletar" class="btn-deletar" onclick="deletarMonstro()" style="display:none;">🗑️ Deletar Permanentemente</button>
                 </div>
             </div>
         </div>
 
         <div class="mesa-de-jogo">
-            
-            <div class="container" id="container-heroi">
-                <div class="header-grid">
-                    <div style="display: flex; flex-direction: column;">
-                        <img id="img-foto-heroi" class="foto-personagem" src="" alt="Sem foto">
-                        <label class="btn-upload editavel-heroi-label">
-                            📁 Enviar do PC
-                            <input type="file" id="upload-foto-heroi" class="editavel-heroi" accept="image/png, image/jpeg, image/webp" style="display:none;" onchange="processarUploadOtimizado(event, 'heroi')">
-                        </label>
-                    </div>
-                    <div class="info-grid">
-                        <div style="display: flex; gap: 10px; grid-column: span 2; align-items: center; border-bottom: 1px dashed #3a2212; padding-bottom: 10px;">
-                            <div style="flex: 1;"><label>Nome do Herói</label><input type="text" id="heroi-nome" class="editavel-heroi"></div>
-                            <div style="width: 80px; text-align: center;">
-                                <label style="color:#d4af37; font-size: 12px;">NÍVEL</label>
-                                <div id="heroi-level-display" class="level-display" data-current-level="1">LV. 1</div>
-                            </div>
-                        </div>
-                        <div><label>Jogador</label><input type="text" id="heroi-jogador" class="editavel-heroi" readonly></div>
-                        <div><label>Linhagem / Raça</label><input type="text" id="heroi-raca" class="editavel-heroi"></div>
-                        <div><label>Vocação / Classe</label><input type="text" id="heroi-classe" class="editavel-heroi"></div>
-                        <div><label>Gênero</label><input type="text" id="heroi-genero" class="editavel-heroi"></div>
-                    </div>
-                </div>
-
-                <div class="section-title">Essência Vital</div>
-                <div class="status-grid">
-                    <div id="caixa-hp-heroi" class="caixa-status">
-                        <label style="color: #27ae60;">VITALIDADE (HP)</label>
-                        <div class="fraction-input">
-                            <input type="number" id="heroi-hp-atual" class="editavel-heroi" style="color: #27ae60;">
-                            <span>/</span>
-                            <span id="heroi-hp-efetivo" style="color: #27ae60; font-weight: bold; font-size: 20px; min-width: 40px; text-align: center;">20</span>
-                        </div>
-                        <div class="bar-bg"><div class="bar-fill hp-fill" id="bar-hp-heroi" style="width: 100%;"></div></div>
-                    </div>
-                    
-                    <div class="caixa-status">
-                        <label style="color: #2980b9;">FLUIDO ARCANO (MANA)</label>
-                        <div class="fraction-input">
-                            <input type="number" id="heroi-mana-atual" class="editavel-heroi" style="color: #2980b9;">
-                            <span>/</span>
-                            <span id="heroi-mana-efetivo" style="color: #2980b9; font-weight: bold; font-size: 20px; min-width: 40px; text-align: center;">20</span>
-                        </div>
-                        <div class="bar-bg"><div class="bar-fill mana-fill" id="bar-mana-heroi" style="width: 100%;"></div></div>
-                    </div>
-
-                    <div class="caixa-status" style="grid-column: span 2; padding: 0 10px;">
-                        <div style="display:flex; justify-content: space-between; align-items: flex-end; margin-bottom: 5px;">
-                            <label style="color: #ffd700; margin: 0; text-shadow: 1px 1px 2px black;">EXPERIÊNCIA</label>
-                            <div id="heroi-exp-text" class="exp-text">0 / 100</div>
-                        </div>
-                        <div class="bar-bg" style="height: 14px; position: relative;">
-                            <div class="bar-fill exp-fill" id="bar-exp-heroi" style="width: 0%;">
-                            </div>
-                        </div>
-                    </div>
-
-                    <div><label>Ação (AP)</label><input type="number" id="heroi-ap" class="editavel-heroi" style="color:#d99c57;"></div>
-                    <div><label>Moedas de Ouro</label><input type="number" id="heroi-ouro" class="editavel-heroi" style="color:#d4af37;"></div>
-                    <div style="grid-column: span 2;"><label>Condição Física</label><input type="text" id="heroi-condicao" class="editavel-heroi"></div>
-                </div>
-
-                <div class="section-title">Atributos Primordiais <span style="font-size: 10px; color: #a84242; text-transform: none;">(Máx: 10 Pontos Totais)</span></div>
-                <div class="atributos-grid">
-                    <div class="attr-box"><label>FOR</label><input type="number" id="heroi-for" class="editavel-heroi"></div>
-                    <div class="attr-box"><label>DES</label><input type="number" id="heroi-des" class="editavel-heroi"></div>
-                    <div class="attr-box"><label>CON</label><input type="number" id="heroi-con" class="editavel-heroi"></div>
-                    <div class="attr-box"><label>INT</label><input type="number" id="heroi-int" class="editavel-heroi"></div>
-                    <div class="attr-box"><label>SAB</label><input type="number" id="heroi-sab" class="editavel-heroi"></div>
-                    <div class="attr-box"><label>CAR</label><input type="number" id="heroi-car" class="editavel-heroi"></div>
-                    <div class="attr-box"><label>PER</label><input type="number" id="heroi-per" class="editavel-heroi"></div>
-                </div>
-
-                <div class="section-title">Itens Equipados (Máx 5)</div>
-                <div class="equipamentos-container" id="slots-heroi"></div>
-
-                <div class="section-title">Buff e Debuff</div>
-                <div class="buff-container">
-                    <div class="buff-input-grid">
-                        <input type="text" id="novo-buff-nome-heroi" class="editavel-heroi" placeholder="Nome Efeito" title="Nome do Buff/Debuff">
-                        <input type="number" id="novo-buff-hp-heroi" class="editavel-heroi" placeholder="HP/T" title="HP modificado por turno">
-                        <input type="number" id="novo-buff-mana-heroi" class="editavel-heroi" placeholder="MN/T" title="Mana modificada por turno">
-                        <select id="novo-buff-attr-heroi" class="editavel-heroi" title="Atributo afetado">
-                            <option value="">Nenhum</option>
-                            <option value="for">FOR</option>
-                            <option value="des">DES</option>
-                            <option value="con">CON</option>
-                            <option value="int">INT</option>
-                            <option value="sab">SAB</option>
-                            <option value="car">CAR</option>
-                            <option value="per">PER</option>
-                        </select>
-                        <input type="number" id="novo-buff-mod-heroi" class="editavel-heroi" placeholder="Mod Atr" title="Modificador do atributo">
-                        <input type="number" id="novo-buff-turnos-heroi" class="editavel-heroi" placeholder="Turnos">
-                        <button class="editavel-heroi" onclick="adicionarEfeito('heroi')" style="padding: 5px;">ADD</button>
-                    </div>
-                    <div id="lista-efeitos-heroi"></div>
-                    <button class="btn-turno editavel-heroi" onclick="passarTurno('heroi')">Avançar Turno (Herói)</button>
-                </div>
-
-                <div class="section-title">Anotações e Relatos</div>
-                <div class="info-grid">
-                    <div>
-                        <label>Aparência Física</label>
-                        <textarea id="heroi-aparencia" class="editavel-heroi" rows="3"></textarea>
-                    </div>
-                    <div>
-                        <label>Anotações do Viajante</label>
-                        <textarea id="heroi-extra" class="editavel-heroi" rows="3"></textarea>
-                    </div>
-                </div>
-            </div>
-
-            <div class="container monstro-theme" id="container-monstro">
-                <div class="header-grid" style="grid-template-columns: 100px 1fr;">
-                    <div style="display: flex; flex-direction: column;">
-                        <img id="img-foto-monstro" class="foto-personagem" src="" alt="Sem foto" style="width:100px; height:100px;">
-                        <label class="btn-upload editavel-monstro-label">
-                            📁 Upload
-                            <input type="file" id="upload-foto-monstro" class="editavel-monstro" accept="image/png, image/jpeg, image/webp" style="display:none;" onchange="processarUploadOtimizado(event, 'monstro')">
-                        </label>
-                    </div>
-                    <div style="display: flex; flex-direction: column; justify-content: center;">
-                        <label style="color:#a84242; font-size: 14px;">Ameaça</label>
-                        <input type="text" id="monstro-nome" class="editavel-monstro" style="font-size: 24px; font-weight: bold; margin-bottom: 10px;">
-                    </div>
-                </div>
-
-                <div class="section-title">Atributos de Combate</div>
-                <div class="status-grid" style="grid-template-columns: 1fr;">
-                    <div id="caixa-hp-monstro" class="caixa-status">
-                        <label style="color: #27ae60;">VITALIDADE (HP)</label>
-                        <div class="fraction-input">
-                            <input type="number" id="monstro-hp-atual" class="editavel-monstro" style="color: #27ae60;">
-                            <span>/</span>
-                            <input type="number" id="monstro-hp-max" class="editavel-monstro" style="color: #27ae60;">
-                        </div>
-                        <div class="bar-bg"><div class="bar-fill hp-fill" id="bar-hp-monstro" style="width: 100%;"></div></div>
-                    </div>
-                    <div class="caixa-status">
-                        <label style="color: #2980b9;">FLUIDO ARCANO (MANA)</label>
-                        <div class="fraction-input">
-                            <input type="number" id="monstro-mana-atual" class="editavel-monstro" style="color: #2980b9;">
-                            <span>/</span>
-                            <input type="number" id="monstro-mana-max" class="editavel-monstro" style="color: #2980b9;">
-                        </div>
-                        <div class="bar-bg"><div class="bar-fill mana-fill" id="bar-mana-monstro" style="width: 100%;"></div></div>
-                    </div>
-                    <div>
-                        <label>Ação (AP)</label>
-                        <input type="number" id="monstro-ap" class="editavel-monstro" style="color:#d99c57; width: 50%; margin: 0 auto; display: block;">
-                    </div>
-                </div>
-
-                <div class="section-title">Ação Ofensiva</div>
-                <div class="buff-container">
-                    <div style="display: flex; gap: 15px; align-items: flex-end; flex-wrap: wrap;">
-                        <div>
-                            <label style="color: #d95757;">Dano do Ataque</label>
-                            <input type="number" id="ataque-dano" class="editavel-monstro" placeholder="Valor" style="width: 80px;">
-                        </div>
-                        <div style="flex: 1;">
-                            <label style="color: #b89c72;">Alvos (Players)</label>
-                            <div id="lista-alvos-ataque" style="display: flex; gap: 15px; flex-wrap: wrap; background: rgba(0,0,0,0.5); padding: 10px; border: 1px solid #3a2212; border-radius: 4px; min-height: 20px; align-items: center;">
-                                </div>
-                        </div>
-                        <button class="editavel-monstro" onclick="executarAtaque()" style="background: linear-gradient(to bottom, #752020, #4a1111); border-color:#8c1c13; padding: 10px 20px;">ATACAR ⚔️</button>
-                    </div>
-                </div>
-                
-                <div class="section-title">Atributos</div>
-                <div class="atributos-grid">
-                    <div class="attr-box"><label>FOR</label><input type="number" id="monstro-for" class="editavel-monstro"></div>
-                    <div class="attr-box"><label>DES</label><input type="number" id="monstro-des" class="editavel-monstro"></div>
-                    <div class="attr-box"><label>CON</label><input type="number" id="monstro-con" class="editavel-monstro"></div>
-                    <div class="attr-box"><label>INT</label><input type="number" id="monstro-int" class="editavel-monstro"></div>
-                    <div class="attr-box"><label>SAB</label><input type="number" id="monstro-sab" class="editavel-monstro"></div>
-                    <div class="attr-box"><label>CAR</label><input type="number" id="monstro-car" class="editavel-monstro"></div>
-                    <div class="attr-box"><label>PER</label><input type="number" id="monstro-per" class="editavel-monstro"></div>
-                </div>
-
-                <div class="section-title">Buff e Debuff</div>
-                <div class="buff-container">
-                    <div class="buff-input-grid">
-                        <input type="text" id="novo-buff-nome-monstro" class="editavel-monstro" placeholder="Efeito">
-                        <input type="number" id="novo-buff-hp-monstro" class="editavel-monstro" placeholder="HP/T">
-                        <input type="number" id="novo-buff-mana-monstro" class="editavel-monstro" placeholder="MN/T">
-                        <select id="novo-buff-attr-monstro" class="editavel-monstro">
-                            <option value="">Nenhum</option>
-                            <option value="for">FOR</option>
-                            <option value="des">DES</option>
-                            <option value="con">CON</option>
-                            <option value="int">INT</option>
-                            <option value="sab">SAB</option>
-                            <option value="car">CAR</option>
-                            <option value="per">PER</option>
-                        </select>
-                        <input type="number" id="novo-buff-mod-monstro" class="editavel-monstro" placeholder="Mod Atr">
-                        <input type="number" id="novo-buff-turnos-monstro" class="editavel-monstro" placeholder="Turnos">
-                        <button class="editavel-monstro" onclick="adicionarEfeito('monstro')" style="padding: 5px; background: #360e0e; border-color:#8c1c13;">ADD</button>
-                    </div>
-                    <div id="lista-efeitos-monstro"></div>
-                    <button class="btn-turno editavel-monstro" onclick="passarTurno('monstro')" style="background: #360e0e; border-color:#8c1c13;">Avançar Turno (Ameaça)</button>
-                </div>
-            </div>
-
+            <div id="slot-1" class="slot-container"></div>
+            <div id="slot-2" class="slot-container"></div>
         </div>
     </div>
 
@@ -459,150 +252,233 @@
             "arthur": { nome: "Arthur", cargo: "Jogador", idFicha: "arthur" }
         };
 
-        let usuarioAtual = null; 
-        let idHeroiAberto = null;
-        let idMonstroAberto = null;
-        let ouvinteHeroi = null; 
-        let ouvinteMonstro = null; 
-        let hudVisivel = false;
-        let monstroEmCombateGlobal = null;
-
         const playersList = ['lais', 'gomes', 'kamy', 'arthur'];
 
+        let usuarioAtual = null; 
+        let monstroEmCombateGlobal = null;
+        let hudVisivel = false;
+        let monstrosNoBanco = {};
+
+        // Controle dos dois slots da mesa de jogo
+        let slotsDeVisao = {
+            1: { ouvinte: null, idFicha: null, tipo: null },
+            2: { ouvinte: null, idFicha: null, tipo: null }
+        };
+
         // ==========================================
-        // 1. INICIALIZADORES DA TELA E CÁLCULO DE LEVEL
+        // 1. GERAÇÃO DINÂMICA DE HTML (SLOTS 1 e 2)
         // ==========================================
-        
-        function getLevelData(expTotal) {
-            let level = 1;
-            let requiredForNext = 100; // Base: 100 para upar pro LV2
-            let exp = expTotal || 0;
-            
-            while(exp >= requiredForNext) {
-                exp -= requiredForNext;
-                level++;
-                requiredForNext *= 2; // Dobra a cada nível
-            }
-            return { level, currentExp: exp, requiredForNext };
-        }
-
-        function initHudGlobais() {
-            const listDiv = document.getElementById('hud-players-list');
-            if(!listDiv) return;
-            
-            let finalHTML = '';
-            playersList.forEach(p => {
-                const nome = p.toUpperCase();
-                finalHTML += `
-                    <div class="hud-player" id="hud-player-${p}">
-                        <div class="hud-name">${nome}</div>
-                        <div class="hud-stats-row">
-                            <span style="color:#27ae60; font-weight:bold; font-size:11px;">HP:</span>
-                            <div>
-                                <input type="number" id="hud-${p}-hp-atual" class="hud-input hud-stat-field" onchange="atualizarHudMestre('${p}', 'hp-atual', this.value)"> / 
-                                <input type="number" id="hud-${p}-hp-max" class="hud-input hud-stat-field" title="Base HP" onchange="atualizarHudMestre('${p}', 'hp-max', this.value)">
-                            </div>
-                        </div>
-                        <div class="hud-mini-bar-bg"><div class="hud-mini-bar-fill" id="hud-${p}-bar-hp" style="background:#27ae60; width:100%;"></div></div>
-                        <div class="hud-stats-row" style="margin-top: 5px;">
-                            <span style="color:#2980b9; font-weight:bold; font-size:11px;">MP:</span>
-                            <div>
-                                <input type="number" id="hud-${p}-mana-atual" class="hud-input hud-stat-field" onchange="atualizarHudMestre('${p}', 'mana-atual', this.value)"> / 
-                                <input type="number" id="hud-${p}-mana-max" class="hud-input hud-stat-field" title="Base Mana" onchange="atualizarHudMestre('${p}', 'mana-max', this.value)">
-                            </div>
-                        </div>
-                        <div class="hud-mini-bar-bg"><div class="hud-mini-bar-fill" id="hud-${p}-bar-mana" style="background:#2980b9; width:100%;"></div></div>
-                    </div>
-                `;
-            });
-            listDiv.innerHTML = finalHTML;
-        }
-
-        function renderizarAlvosAtaqueGlobais() {
-            const container = document.getElementById('lista-alvos-ataque');
-            if(!container) return;
-            let htmlStr = '';
-            playersList.forEach(p => {
-                htmlStr += `<label class="checkbox-alvo editavel-monstro-label"><input type="checkbox" value="${p}" class="alvo-ataque editavel-monstro"> ${p}</label>`;
-            });
-            container.innerHTML = htmlStr;
-        }
-
-        function renderizarSlotsEquipamento() {
-            const opcoesAtributo = `<option value="">Atributo</option><option value="hp-max">HP Máx</option><option value="mana-max">Mana Máx</option><option value="for">FOR</option><option value="des">DES</option><option value="con">CON</option><option value="int">INT</option><option value="sab">SAB</option><option value="car">CAR</option><option value="per">PER</option>`;
-            let slotsHtml = '';
-            for(let i=1; i<=5; i++) {
-                slotsHtml += `
+        function gerarHtmlHeroi(numSlot) {
+            let optionsAttrs = `<option value="">Atributo</option><option value="hp-max">HP Máx</option><option value="mana-max">Mana Máx</option><option value="for">FOR</option><option value="des">DES</option><option value="con">CON</option><option value="int">INT</option><option value="sab">SAB</option><option value="car">CAR</option><option value="per">PER</option>`;
+            let eqHtml = '';
+            for(let i=1; i<=5; i++){
+                eqHtml += `
                     <div class="equipamento-slot">
                         <span class="slot-num">${i}</span>
-                        <input type="text" id="heroi-item${i}-nome" class="editavel-heroi" placeholder="Nome do Item">
-                        <select id="heroi-item${i}-attr1" class="editavel-heroi">${opcoesAtributo}</select>
-                        <input type="number" id="heroi-item${i}-mod1" class="editavel-heroi" placeholder="+Mod">
-                        <select id="heroi-item${i}-attr2" class="editavel-heroi">${opcoesAtributo}</select>
-                        <input type="number" id="heroi-item${i}-mod2" class="editavel-heroi" placeholder="+Mod">
-                        <button id="btn-equip-heroi-${i}" onclick="toggleEquipar('heroi', ${i})" class="editavel-heroi btn-equipar">Equipar</button>
+                        <input type="text" id="slot${numSlot}-item${i}-nome" class="editavel-slot${numSlot}" placeholder="Nome do Item">
+                        <select id="slot${numSlot}-item${i}-attr1" class="editavel-slot${numSlot}">${optionsAttrs}</select>
+                        <input type="number" id="slot${numSlot}-item${i}-mod1" class="editavel-slot${numSlot}" placeholder="+Mod">
+                        <select id="slot${numSlot}-item${i}-attr2" class="editavel-slot${numSlot}">${optionsAttrs}</select>
+                        <input type="number" id="slot${numSlot}-item${i}-mod2" class="editavel-slot${numSlot}" placeholder="+Mod">
+                        <button id="slot${numSlot}-btn-equip-${i}" onclick="toggleEquipar(${numSlot}, ${i})" class="editavel-slot${numSlot} btn-equipar">Equipar</button>
+                    </div>`;
+            }
+
+            return `
+            <div class="container" id="container-slot${numSlot}-heroi">
+                <div class="header-grid">
+                    <div style="display: flex; flex-direction: column;">
+                        <img id="img-foto-slot${numSlot}" class="foto-personagem" src="" alt="Sem foto">
+                        <label class="btn-upload editavel-slot${numSlot}-label esconder-jogador">
+                            📁 Enviar do PC
+                            <input type="file" class="editavel-slot${numSlot}" accept="image/png, image/jpeg, image/webp" style="display:none;" onchange="processarUploadOtimizado(event, ${numSlot})">
+                        </label>
                     </div>
-                `;
-            }
-            document.getElementById('slots-heroi').innerHTML = slotsHtml;
-        }
+                    <div class="info-grid">
+                        <div style="display: flex; gap: 10px; grid-column: span 2; align-items: center; border-bottom: 1px dashed #3a2212; padding-bottom: 10px;">
+                            <div style="flex: 1;"><label>Nome do Herói</label><input type="text" id="slot${numSlot}-nome" class="editavel-slot${numSlot}"></div>
+                            <div style="width: 110px; text-align: center;">
+                                <label style="color:#d4af37; font-size: 12px;">NÍVEL</label>
+                                <div class="level-display" id="slot${numSlot}-level-display" data-current-level="1">
+                                    LV. <span id="slot${numSlot}-num-level">1</span>
+                                </div>
+                                <div class="mestre-only-inline">
+                                    <button class="btn-mini-acao" onclick="modificarNivelManual(${numSlot}, -1)">-</button>
+                                    <button class="btn-mini-acao" onclick="modificarNivelManual(${numSlot}, 1)">+</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div><label>Jogador</label><input type="text" id="slot${numSlot}-jogador" class="editavel-slot${numSlot}" readonly></div>
+                        <div><label>Linhagem / Raça</label><input type="text" id="slot${numSlot}-raca" class="editavel-slot${numSlot}"></div>
+                        <div><label>Vocação / Classe</label><input type="text" id="slot${numSlot}-classe" class="editavel-slot${numSlot}"></div>
+                        <div><label>Gênero</label><input type="text" id="slot${numSlot}-genero" class="editavel-slot${numSlot}"></div>
+                    </div>
+                </div>
 
-        initHudGlobais();
-        renderizarAlvosAtaqueGlobais();
-        renderizarSlotsEquipamento();
-
-        // ==========================================
-        // 2. COMPRESSÃO AGRESSIVA (CANVAS WEB P)
-        // ==========================================
-        window.processarUploadOtimizado = function(event, tipo) {
-            const file = event.target.files[0];
-            if(!file) return;
-
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const img = new Image();
-                img.onload = function() {
-                    const canvas = document.createElement('canvas');
-                    const MAX_SIZE = 150; 
-                    let width = img.width;
-                    let height = img.height;
-
-                    if (width > height) {
-                        if (width > MAX_SIZE) { height *= MAX_SIZE / width; width = MAX_SIZE; }
-                    } else {
-                        if (height > MAX_SIZE) { width *= MAX_SIZE / height; height = MAX_SIZE; }
-                    }
-
-                    canvas.width = width;
-                    canvas.height = height;
-                    const ctx = canvas.getContext('2d');
-                    ctx.drawImage(img, 0, 0, width, height);
-
-                    const dataUrlUltraLeve = canvas.toDataURL('image/webp', 0.6); 
+                <div class="section-title">Essência Vital</div>
+                <div class="status-grid">
+                    <div id="caixa-hp-slot${numSlot}" class="caixa-status">
+                        <label style="color: #27ae60;">VITALIDADE (HP)</label>
+                        <div class="fraction-input">
+                            <input type="number" id="slot${numSlot}-hp-atual" class="editavel-slot${numSlot}" style="color: #27ae60;">
+                            <span>/</span>
+                            <input type="number" id="slot${numSlot}-hp-max" class="editavel-slot${numSlot} mestre-unlocked" title="Vida Máxima (Padrão 20)" style="color: #27ae60; width:60px;">
+                        </div>
+                        <div class="bar-bg"><div class="bar-fill hp-fill" id="bar-hp-slot${numSlot}" style="width: 100%;"></div></div>
+                    </div>
                     
-                    const idAberto = tipo === 'heroi' ? idHeroiAberto : idMonstroAberto;
-                    if(idAberto) {
-                        update(ref(database, 'fotos/' + idAberto), { base64: dataUrlUltraLeve });
-                    }
-                }
-                img.src = e.target.result;
-            }
-            reader.readAsDataURL(file);
+                    <div class="caixa-status">
+                        <label style="color: #2980b9;">FLUIDO ARCANO (MANA)</label>
+                        <div class="fraction-input">
+                            <input type="number" id="slot${numSlot}-mana-atual" class="editavel-slot${numSlot}" style="color: #2980b9;">
+                            <span>/</span>
+                            <input type="number" id="slot${numSlot}-mana-max" class="editavel-slot${numSlot} mestre-unlocked" title="Mana Máxima (Padrão 20)" style="color: #2980b9; width:60px;">
+                        </div>
+                        <div class="bar-bg"><div class="bar-fill mana-fill" id="bar-mana-slot${numSlot}" style="width: 100%;"></div></div>
+                    </div>
+
+                    <div class="caixa-status" style="grid-column: span 2; padding: 0 10px;">
+                        <div style="display:flex; justify-content: space-between; align-items: flex-end; margin-bottom: 5px;">
+                            <div>
+                                <label style="color: #ffd700; margin: 0; text-shadow: 1px 1px 2px black; display:inline-block;">EXPERIÊNCIA</label>
+                                <div class="mestre-only-inline" style="margin-left: 10px;">
+                                    <button class="btn-mini-acao" onclick="modificarExpManual(${numSlot}, -50)">-50</button>
+                                    <button class="btn-mini-acao" onclick="modificarExpManual(${numSlot}, 50)">+50</button>
+                                </div>
+                            </div>
+                            <div id="slot${numSlot}-exp-text" class="exp-text">0 / 100</div>
+                        </div>
+                        <div class="bar-bg" style="height: 14px; position: relative;">
+                            <div class="bar-fill exp-fill" id="bar-exp-slot${numSlot}" style="width: 0%;"></div>
+                        </div>
+                    </div>
+
+                    <div><label>Ação (AP)</label><input type="number" id="slot${numSlot}-ap" class="editavel-slot${numSlot}" style="color:#d99c57;"></div>
+                    <div><label>Moedas de Ouro</label><input type="number" id="slot${numSlot}-ouro" class="editavel-slot${numSlot}" style="color:#d4af37;"></div>
+                    <div style="grid-column: span 2;"><label>Condição Física</label><input type="text" id="slot${numSlot}-condicao" class="editavel-slot${numSlot}"></div>
+                </div>
+
+                <div class="section-title">Atributos Primordiais <span style="font-size: 10px; color: #a84242; text-transform: none;">(Máx: 10 Pontos Totais)</span></div>
+                <div class="atributos-grid">
+                    <div class="attr-box"><label>FOR</label><input type="number" id="slot${numSlot}-for" class="editavel-slot${numSlot}"></div>
+                    <div class="attr-box"><label>DES</label><input type="number" id="slot${numSlot}-des" class="editavel-slot${numSlot}"></div>
+                    <div class="attr-box"><label>CON</label><input type="number" id="slot${numSlot}-con" class="editavel-slot${numSlot}"></div>
+                    <div class="attr-box"><label>INT</label><input type="number" id="slot${numSlot}-int" class="editavel-slot${numSlot}"></div>
+                    <div class="attr-box"><label>SAB</label><input type="number" id="slot${numSlot}-sab" class="editavel-slot${numSlot}"></div>
+                    <div class="attr-box"><label>CAR</label><input type="number" id="slot${numSlot}-car" class="editavel-slot${numSlot}"></div>
+                    <div class="attr-box"><label>PER</label><input type="number" id="slot${numSlot}-per" class="editavel-slot${numSlot}"></div>
+                </div>
+
+                <div class="section-title">Itens Equipados (Máx 5)</div>
+                <div class="equipamentos-container">${eqHtml}</div>
+
+                <div class="section-title">Buff e Debuff</div>
+                <div class="buff-container">
+                    <div class="buff-input-grid esconder-jogador">
+                        <input type="text" id="slot${numSlot}-novo-buff-nome" class="editavel-slot${numSlot}" placeholder="Nome">
+                        <input type="number" id="slot${numSlot}-novo-buff-hp" class="editavel-slot${numSlot}" placeholder="HP/T">
+                        <input type="number" id="slot${numSlot}-novo-buff-mana" class="editavel-slot${numSlot}" placeholder="MN/T">
+                        <select id="slot${numSlot}-novo-buff-attr" class="editavel-slot${numSlot}">
+                            <option value="">Nenhum</option>
+                            <option value="for">FOR</option><option value="des">DES</option><option value="con">CON</option><option value="int">INT</option><option value="sab">SAB</option><option value="car">CAR</option><option value="per">PER</option>
+                        </select>
+                        <input type="number" id="slot${numSlot}-novo-buff-mod" class="editavel-slot${numSlot}" placeholder="Mod">
+                        <input type="number" id="slot${numSlot}-novo-buff-turnos" class="editavel-slot${numSlot}" placeholder="Turnos">
+                        <button class="editavel-slot${numSlot}" onclick="adicionarEfeito(${numSlot})" style="padding: 5px;">ADD</button>
+                    </div>
+                    <div id="lista-efeitos-slot${numSlot}"></div>
+                    <button class="btn-turno editavel-slot${numSlot} esconder-jogador" onclick="passarTurno(${numSlot})">Avançar Turno (Herói)</button>
+                </div>
+
+                <div class="section-title">Anotações e Relatos</div>
+                <div class="info-grid">
+                    <div><label>Aparência Física</label><textarea id="slot${numSlot}-aparencia" class="editavel-slot${numSlot}" rows="3"></textarea></div>
+                    <div><label>Anotações do Viajante</label><textarea id="slot${numSlot}-extra" class="editavel-slot${numSlot}" rows="3"></textarea></div>
+                </div>
+            </div>`;
         }
 
-        onValue(ref(database, 'fotos'), (snapshot) => {
-            const fotosDB = snapshot.val() || {};
-            if(idHeroiAberto && fotosDB[idHeroiAberto]) {
-                document.getElementById('img-foto-heroi').src = fotosDB[idHeroiAberto].base64;
-            }
-            if(idMonstroAberto && fotosDB[idMonstroAberto]) {
-                document.getElementById('img-foto-monstro').src = fotosDB[idMonstroAberto].base64;
-            }
-        });
+        function gerarHtmlMonstro(numSlot) {
+            let alvosHtml = playersList.map(p => `<label class="checkbox-alvo"><input type="checkbox" value="${p}" class="alvo-ataque-slot${numSlot}"> ${p}</label>`).join('');
+            
+            return `
+            <div class="container monstro-theme" id="container-slot${numSlot}-monstro">
+                <div class="header-grid" style="grid-template-columns: 100px 1fr;">
+                    <div style="display: flex; flex-direction: column;">
+                        <img id="img-foto-monstro-slot${numSlot}" class="foto-personagem" src="" alt="Sem foto" style="width:100px; height:100px;">
+                        <label class="btn-upload editavel-slot${numSlot}-label esconder-jogador">📁 Upload<input type="file" class="editavel-slot${numSlot}" accept="image/png, image/jpeg, image/webp" style="display:none;" onchange="processarUploadOtimizado(event, ${numSlot})"></label>
+                    </div>
+                    <div style="display: flex; flex-direction: column; justify-content: center;">
+                        <label style="color:#a84242; font-size: 14px;">Ameaça</label>
+                        <input type="text" id="slot${numSlot}-monstro-nome" class="editavel-slot${numSlot}" style="font-size: 24px; font-weight: bold; margin-bottom: 10px;">
+                    </div>
+                </div>
+
+                <div class="section-title">Atributos de Combate</div>
+                <div class="status-grid" style="grid-template-columns: 1fr;">
+                    <div id="caixa-hp-monstro-slot${numSlot}" class="caixa-status">
+                        <label style="color: #27ae60;">VITALIDADE (HP)</label>
+                        <div class="fraction-input">
+                            <input type="number" id="slot${numSlot}-monstro-hp-atual" class="editavel-slot${numSlot}" style="color: #27ae60;"><span>/</span><input type="number" id="slot${numSlot}-monstro-hp-max" class="editavel-slot${numSlot} mestre-unlocked" style="color: #27ae60;">
+                        </div>
+                        <div class="bar-bg"><div class="bar-fill hp-fill" id="bar-hp-monstro-slot${numSlot}" style="width: 100%;"></div></div>
+                    </div>
+                    <div class="caixa-status">
+                        <label style="color: #2980b9;">FLUIDO ARCANO (MANA)</label>
+                        <div class="fraction-input">
+                            <input type="number" id="slot${numSlot}-monstro-mana-atual" class="editavel-slot${numSlot}" style="color: #2980b9;"><span>/</span><input type="number" id="slot${numSlot}-monstro-mana-max" class="editavel-slot${numSlot} mestre-unlocked" style="color: #2980b9;">
+                        </div>
+                        <div class="bar-bg"><div class="bar-fill mana-fill" id="bar-mana-monstro-slot${numSlot}" style="width: 100%;"></div></div>
+                    </div>
+                    <div><label>Ação (AP)</label><input type="number" id="slot${numSlot}-monstro-ap" class="editavel-slot${numSlot}" style="color:#d99c57; width: 50%; margin: 0 auto; display: block;"></div>
+                </div>
+
+                <div class="section-title esconder-jogador">Ação Ofensiva (Mestre)</div>
+                <div class="buff-container esconder-jogador">
+                    <div style="display: flex; gap: 15px; align-items: flex-end; flex-wrap: wrap;">
+                        <div><label style="color: #d95757;">Dano</label><input type="number" id="slot${numSlot}-ataque-dano" class="editavel-slot${numSlot}" placeholder="Valor" style="width: 80px;"></div>
+                        <div style="flex: 1;"><label style="color: #b89c72;">Alvos (Players)</label><div style="display: flex; gap: 15px; flex-wrap: wrap; background: rgba(0,0,0,0.5); padding: 10px; border: 1px solid #3a2212; border-radius: 4px; min-height: 20px; align-items: center;">${alvosHtml}</div></div>
+                        <button class="editavel-slot${numSlot}" onclick="executarAtaque(${numSlot})" style="background: linear-gradient(to bottom, #752020, #4a1111); border-color:#8c1c13; padding: 10px 20px;">ATACAR ⚔️</button>
+                    </div>
+                </div>
+                
+                <div class="section-title">Atributos</div>
+                <div class="atributos-grid">
+                    <div class="attr-box"><label>FOR</label><input type="number" id="slot${numSlot}-monstro-for" class="editavel-slot${numSlot}"></div>
+                    <div class="attr-box"><label>DES</label><input type="number" id="slot${numSlot}-monstro-des" class="editavel-slot${numSlot}"></div>
+                    <div class="attr-box"><label>CON</label><input type="number" id="slot${numSlot}-monstro-con" class="editavel-slot${numSlot}"></div>
+                    <div class="attr-box"><label>INT</label><input type="number" id="slot${numSlot}-monstro-int" class="editavel-slot${numSlot}"></div>
+                    <div class="attr-box"><label>SAB</label><input type="number" id="slot${numSlot}-monstro-sab" class="editavel-slot${numSlot}"></div>
+                    <div class="attr-box"><label>CAR</label><input type="number" id="slot${numSlot}-monstro-car" class="editavel-slot${numSlot}"></div>
+                    <div class="attr-box"><label>PER</label><input type="number" id="slot${numSlot}-monstro-per" class="editavel-slot${numSlot}"></div>
+                </div>
+
+                <div class="section-title">Buff e Debuff</div>
+                <div class="buff-container">
+                    <div class="buff-input-grid esconder-jogador">
+                        <input type="text" id="slot${numSlot}-novo-buff-nome-monstro" class="editavel-slot${numSlot}" placeholder="Efeito">
+                        <input type="number" id="slot${numSlot}-novo-buff-hp-monstro" class="editavel-slot${numSlot}" placeholder="HP/T">
+                        <input type="number" id="slot${numSlot}-novo-buff-mana-monstro" class="editavel-slot${numSlot}" placeholder="MN/T">
+                        <select id="slot${numSlot}-novo-buff-attr-monstro" class="editavel-slot${numSlot}">
+                            <option value="">Nenhum</option>
+                            <option value="for">FOR</option><option value="des">DES</option><option value="con">CON</option><option value="int">INT</option><option value="sab">SAB</option><option value="car">CAR</option><option value="per">PER</option>
+                        </select>
+                        <input type="number" id="slot${numSlot}-novo-buff-mod-monstro" class="editavel-slot${numSlot}" placeholder="Mod">
+                        <input type="number" id="slot${numSlot}-novo-buff-turnos-monstro" class="editavel-slot${numSlot}" placeholder="Turnos">
+                        <button class="editavel-slot${numSlot}" onclick="adicionarEfeito(${numSlot}, true)" style="padding: 5px; background: #360e0e; border-color:#8c1c13;">ADD</button>
+                    </div>
+                    <div id="lista-efeitos-monstro-slot${numSlot}"></div>
+                    <button class="btn-turno editavel-slot${numSlot} esconder-jogador" onclick="passarTurno(${numSlot})" style="background: #360e0e; border-color:#8c1c13;">Avançar Turno (Ameaça)</button>
+                </div>
+            </div>`;
+        }
+
+        document.getElementById('slot-1').innerHTML = gerarHtmlHeroi(1) + gerarHtmlMonstro(1);
+        document.getElementById('slot-2').innerHTML = gerarHtmlHeroi(2) + gerarHtmlMonstro(2);
 
 
         // ==========================================
-        // 3. LÓGICA DE LOGIN, MESTRE E JOGADOR
+        // LÓGICA DE LOGIN E INICIALIZAÇÃO GERAL
         // ==========================================
         window.fazerLogin = function() {
             const digitado = document.getElementById('input-senha').value.trim().toLowerCase();
@@ -613,144 +489,332 @@
                 
                 document.getElementById('usuario-logado').innerText = usuarioAtual.nome;
                 document.getElementById('badge-cargo').innerText = usuarioAtual.cargo;
+                document.body.classList.add(usuarioAtual.cargo === "Mestre" ? 'is-mestre' : 'is-jogador');
                 
                 if(usuarioAtual.cargo === "Mestre") {
                     document.getElementById('badge-cargo').style.borderColor = "#8c1c13";
                     document.getElementById('badge-cargo').style.color = "#a84242";
                     document.getElementById('painel-mestre').style.display = "flex";
                     document.getElementById('btn-toggle-hud').style.display = "block"; 
-
-                    get(ref(database, 'fichas')).then((snapshot) => {
-                        const dadosIniciais = snapshot.val() || {};
-                        playersList.forEach(p => preencherHUDJogadorVisualmente(p, dadosIniciais[p] || {}));
-                    });
+                    preencherDropdownsMestre();
+                    initHudGlobais();
+                } else {
+                    document.getElementById('seletor-jogador').style.display = "block";
+                    document.getElementById('nome-heroi-jogador').innerText = usuarioAtual.idFicha.toUpperCase();
+                    
+                    // Jogadores sempre visualizam seu próprio herói no slot 1.
+                    abrirFichaNoSlot(1, 'heroi', usuarioAtual.idFicha);
                 }
-
-                if (usuarioAtual.cargo === "Jogador") {
-                    document.getElementById('seletor-heroi').value = usuarioAtual.idFicha;
-                    selecionarHeroi(); 
-                }
+                
+                iniciarOuvintesGerais();
             } else {
                 document.getElementById('msg-erro').style.display = "block";
             }
         }
 
-        function preencherHUDJogadorVisualmente(jogadorId, dadosJogador) {
-            const hpAtual = Number(dadosJogador['hp-atual']) || 0;
-            const hpMax = Number(dadosJogador['hp-max']) || 20; // Default Base
-            const manaAtual = Number(dadosJogador['mana-atual']) || 0;
-            const manaMax = Number(dadosJogador['mana-max']) || 20; // Default Base
-            
-            // Note: Mestre HUD still edits Base values directly
-            let percHp = hpMax > 0 ? (hpAtual/hpMax)*100 : 0; 
-            let percMana = manaMax > 0 ? (manaAtual/manaMax)*100 : 0; 
-            if(percHp>100) percHp=100; if(percHp<0) percHp=0;
-            if(percMana>100) percMana=100; if(percMana<0) percMana=0;
-            
-            let elHpAtual = document.getElementById(`hud-${jogadorId}-hp-atual`);
-            let elHpMax = document.getElementById(`hud-${jogadorId}-hp-max`);
-            let elManaAtual = document.getElementById(`hud-${jogadorId}-mana-atual`);
-            let elManaMax = document.getElementById(`hud-${jogadorId}-mana-max`);
-            let barHp = document.getElementById(`hud-${jogadorId}-bar-hp`);
-            let barMana = document.getElementById(`hud-${jogadorId}-bar-mana`);
+        function iniciarOuvintesGerais() {
+            // Escuta a lista de monstros para popular os seletores do Mestre
+            onValue(ref(database, 'lista_monstros'), (snapshot) => {
+                monstrosNoBanco = snapshot.val() || {};
+                if(usuarioAtual.cargo === "Mestre") preencherDropdownsMestre();
+            });
 
-            if(elHpAtual && document.activeElement !== elHpAtual) elHpAtual.value = hpAtual;
-            if(elHpMax && document.activeElement !== elHpMax) elHpMax.value = hpMax;
-            if(elManaAtual && document.activeElement !== elManaAtual) elManaAtual.value = manaAtual;
-            if(elManaMax && document.activeElement !== elManaMax) elManaMax.value = manaMax;
+            // Escuta estado global de combate para lançar o monstro aos jogadores
+            onValue(ref(database, 'estado_combate/ativo'), (snapshot) => {
+                monstroEmCombateGlobal = snapshot.val(); 
 
-            if(barHp) barHp.style.width = percHp + '%';
-            if(barMana) barMana.style.width = percMana + '%';
-        }
-
-        onValue(ref(database, 'fichas'), (snapshot) => {
-            if(!usuarioAtual || usuarioAtual.cargo !== "Mestre") return;
-            const dados = snapshot.val() || {};
-            playersList.forEach(p => preencherHUDJogadorVisualmente(p, dados[p] || {}));
-        });
-
-        window.toggleHudMestre = function() {
-            hudVisivel = !hudVisivel;
-            const hud = document.getElementById('hud-mestre');
-            const btn = document.getElementById('btn-toggle-hud');
-            if(hudVisivel) {
-                hud.style.display = 'flex';
-                btn.style.left = '250px'; 
-                btn.innerText = "〰️";
-            } else {
-                hud.style.display = 'none';
-                btn.style.left = '15px';
-                btn.innerText = "👁️ Grupo";
-            }
-        }
-
-        window.atualizarHudMestre = function(jogadorId, campo, valor) {
-            if(valor === "") return;
-            update(ref(database, 'fichas/' + jogadorId), { [campo]: Number(valor) });
-        }
-
-
-        // ==========================================
-        // 4. ATIVIDADE DO JOGO, COMBATE E AMEAÇAS
-        // ==========================================
-        onValue(ref(database, 'estado_combate/ativo'), (snapshot) => {
-            monstroEmCombateGlobal = snapshot.val(); 
-
-            if (usuarioAtual && usuarioAtual.cargo === "Jogador") {
-                if (monstroEmCombateGlobal) {
-                    abrirFicha('monstro', monstroEmCombateGlobal);
-                } else {
-                    document.getElementById('container-monstro').style.display = 'none';
-                    if(ouvinteMonstro) { ouvinteMonstro(); ouvinteMonstro = null; }
+                if (usuarioAtual.cargo === "Jogador") {
+                    if (monstroEmCombateGlobal) {
+                        abrirFichaNoSlot(2, 'monstro', monstroEmCombateGlobal);
+                    } else {
+                        limparSlot(2);
+                    }
                 }
-            }
-            if (usuarioAtual && usuarioAtual.cargo === "Mestre") {
-                atualizarBotoesMestre();
-            }
-        });
-
-        onValue(ref(database, 'lista_monstros'), (snapshot) => {
-            if(!usuarioAtual || usuarioAtual.cargo !== "Mestre") return;
-            const monstros = snapshot.val() || {};
-            const seletor = document.getElementById('seletor-monstro');
-            const valAtual = seletor.value; 
-            
-            seletor.innerHTML = '<option value="" disabled selected>Nenhum...</option>';
-            for(let id in monstros) {
-                let opt = document.createElement('option');
-                opt.value = id;
-                opt.text = "💀 " + monstros[id].nome;
-                seletor.add(opt);
-            }
-            if (valAtual && document.querySelector(`#seletor-monstro option[value="${valAtual}"]`)) {
-                seletor.value = valAtual;
-            }
-        });
-
-        window.selecionarHeroi = function() {
-            const id = document.getElementById('seletor-heroi').value;
-            abrirFicha('heroi', id);
+                
+                if (usuarioAtual.cargo === "Mestre") {
+                    atualizarBotoesMestre();
+                }
+            });
         }
 
-        window.selecionarMonstro = function() {
-            const id = document.getElementById('seletor-monstro').value;
-            abrirFicha('monstro', id);
-            atualizarBotoesMestre();
+
+        // ==========================================
+        // GESTÃO DE TELAS (SLOTS) E RENDERIZAÇÃO
+        // ==========================================
+        
+        function preencherDropdownsMestre() {
+            if(usuarioAtual.cargo !== "Mestre") return;
+            
+            let htmlJogadores = `<optgroup label="Jogadores">` + playersList.map(p => `<option value="heroi-${p}">${p.toUpperCase()}</option>`).join('') + `</optgroup>`;
+            let htmlMonstros = `<optgroup label="Monstros">`;
+            for(let id in monstrosNoBanco) {
+                htmlMonstros += `<option value="monstro-${id}">💀 ${monstrosNoBanco[id].nome}</option>`;
+            }
+            htmlMonstros += `</optgroup>`;
+            
+            const opcoes = `<option value="">Vazio...</option>` + htmlJogadores + htmlMonstros;
+            
+            const sel1 = document.getElementById('mestre-tela-1');
+            const sel2 = document.getElementById('mestre-tela-2');
+            const sel3 = document.getElementById('seletor-monstro');
+            
+            let v1 = sel1.value, v2 = sel2.value, v3 = sel3.value;
+            
+            sel1.innerHTML = opcoes; sel1.value = v1;
+            sel2.innerHTML = opcoes; sel2.value = v2;
+            
+            let opcoesAmeaca = `<option value="" disabled selected>Nenhum...</option>`;
+            for(let id in monstrosNoBanco) {
+                opcoesAmeaca += `<option value="${id}">💀 ${monstrosNoBanco[id].nome}</option>`;
+            }
+            sel3.innerHTML = opcoesAmeaca; sel3.value = v3;
         }
 
-        function atualizarBarrasEAlerta(tipo) {
-            const hpAtual = Number(document.getElementById(`${tipo}-hp-atual`).value) || 0;
+        window.mestreMudarVisao = function(numSlot, valorComposto) {
+            if(!valorComposto) {
+                limparSlot(numSlot);
+                return;
+            }
+            const parts = valorComposto.split('-');
+            const tipo = parts[0]; 
+            const idFicha = parts.slice(1).join('-');
             
-            // O HP/Mana Máximo agora é Efetivo (Calculado para Heróis e Input para Monstros)
-            const hpMax = tipo === 'heroi' ? 
-                          (Number(document.getElementById(`heroi-hp-efetivo`).innerText) || 1) : 
-                          (Number(document.getElementById(`monstro-hp-max`).value) || 1);
+            abrirFichaNoSlot(numSlot, tipo, idFicha);
+        }
+
+        function limparSlot(numSlot) {
+            document.getElementById(`container-slot${numSlot}-heroi`).style.display = 'none';
+            document.getElementById(`container-slot${numSlot}-monstro`).style.display = 'none';
+            if (slotsDeVisao[numSlot].ouvinte) {
+                slotsDeVisao[numSlot].ouvinte(); // Remove listener antigo
+            }
+            slotsDeVisao[numSlot] = { ouvinte: null, idFicha: null, tipo: null };
+        }
+
+        function formatarIdElemento(numSlot, tipoFicha, campoDB) {
+            // Converte campo do banco para a chave do HTML
+            if(tipoFicha === 'monstro') {
+                if(campoDB === 'nome') return `slot${numSlot}-monstro-nome`;
+                return `slot${numSlot}-monstro-${campoDB}`;
+            } else {
+                return `slot${numSlot}-${campoDB}`;
+            }
+        }
+
+        function getLevelData(expTotal) {
+            let level = 1;
+            let requiredForNext = 100; 
+            let exp = expTotal || 0;
+            while(exp >= requiredForNext) {
+                exp -= requiredForNext;
+                level++;
+                requiredForNext *= 2; 
+            }
+            return { level, currentExp: exp, requiredForNext };
+        }
+
+        function getExpForLevel(level) {
+            if(level <= 1) return 0;
+            let exp = 0;
+            let req = 100;
+            for(let i = 1; i < level; i++) {
+                exp += req;
+                req *= 2;
+            }
+            return exp;
+        }
+
+        window.modificarNivelManual = async function(numSlot, delta) {
+            if(usuarioAtual.cargo !== "Mestre") return;
+            const slotData = slotsDeVisao[numSlot];
+            if(slotData.tipo !== 'heroi' || !slotData.idFicha) return;
+
+            const refFicha = ref(database, 'fichas/' + slotData.idFicha);
+            const snap = await get(refFicha);
+            let dados = snap.val() || {};
             
-            const manaAtual = Number(document.getElementById(`${tipo}-mana-atual`).value) || 0;
+            let expTotal = dados.expTotal || 0;
+            let currentLevel = getLevelData(expTotal).level;
+            let newLevel = Math.max(1, currentLevel + delta);
             
-            const manaMax = tipo === 'heroi' ? 
-                            (Number(document.getElementById(`heroi-mana-efetivo`).innerText) || 1) : 
-                            (Number(document.getElementById(`monstro-mana-max`).value) || 1);
+            let newExpTotal = getExpForLevel(newLevel);
+            update(refFicha, { expTotal: newExpTotal });
+        }
+
+        window.modificarExpManual = async function(numSlot, amount) {
+            if(usuarioAtual.cargo !== "Mestre") return;
+            const slotData = slotsDeVisao[numSlot];
+            if(slotData.tipo !== 'heroi' || !slotData.idFicha) return;
+
+            const refFicha = ref(database, 'fichas/' + slotData.idFicha);
+            const snap = await get(refFicha);
+            let dados = snap.val() || {};
+            
+            let expTotal = Math.max(0, (dados.expTotal || 0) + amount);
+            update(refFicha, { expTotal: expTotal });
+        }
+
+        function abrirFichaNoSlot(numSlot, tipo, idFicha) {
+            if(!idFicha) return;
+            limparSlot(numSlot);
+            
+            slotsDeVisao[numSlot].idFicha = idFicha;
+            slotsDeVisao[numSlot].tipo = tipo;
+
+            const contHeroi = document.getElementById(`container-slot${numSlot}-heroi`);
+            const contMonstro = document.getElementById(`container-slot${numSlot}-monstro`);
+            
+            if(tipo === 'heroi') {
+                contHeroi.style.display = 'block';
+                contMonstro.style.display = 'none';
+            } else {
+                contHeroi.style.display = 'none';
+                contMonstro.style.display = 'block';
+            }
+
+            // Permissões de edição no HTML visual
+            const temPermissao = (usuarioAtual.cargo === "Mestre") || (tipo === 'heroi' && usuarioAtual.idFicha === idFicha);
+            
+            document.querySelectorAll(`.editavel-slot${numSlot}`).forEach(el => {
+                if(!el.classList.contains('mestre-unlocked')) {
+                    el.disabled = !temPermissao;
+                } else {
+                    el.disabled = (usuarioAtual.cargo !== "Mestre");
+                }
+                
+                // Mestre limpa valores velhos para evitar ghosting
+                if(el.type !== 'checkbox' && el.type !== 'radio' && el.type !== 'file') el.value = '';
+            });
+
+            // Carrega a Foto 
+            get(ref(database, 'fotos/' + idFicha)).then(snap => {
+                const imgEl = tipo === 'heroi' ? document.getElementById(`img-foto-slot${numSlot}`) : document.getElementById(`img-foto-monstro-slot${numSlot}`);
+                if(snap.exists() && imgEl) imgEl.src = snap.val().base64;
+            });
+
+            const refFicha = ref(database, 'fichas/' + idFicha);
+            
+            // Define valores default se não existirem (Mestre fixando HP Max=20)
+            get(refFicha).then(snap => {
+                if(!snap.exists() && tipo === 'heroi') {
+                    update(refFicha, { 'hp-max': 20, 'mana-max': 20, nome: idFicha });
+                }
+            });
+
+            const novoOuvinte = onValue(refFicha, (snapshot) => {
+                const dados = snapshot.val() || {};
+
+                // Trava os 10 pontos de status pro jogador
+                let blockPoints = false;
+                if (tipo === 'heroi') {
+                    let ptsAtuais = 0;
+                    ['for', 'des', 'con', 'int', 'sab', 'car', 'per'].forEach(a => ptsAtuais += Number(dados[a]) || 0);
+                    if (ptsAtuais >= 10 && usuarioAtual.cargo === "Jogador") blockPoints = true;
+                }
+
+                // Preencher valores e aplicar bloqueios
+                for(let chave in dados) {
+                    if(chave === 'efeitos') continue;
+                    let idHTML = formatarIdElemento(numSlot, tipo, chave);
+                    let el = document.getElementById(idHTML);
+                    if(el) {
+                        if (['for', 'des', 'con', 'int', 'sab', 'car', 'per'].includes(chave)) {
+                            el.disabled = (usuarioAtual.cargo !== "Mestre" && (blockPoints || !temPermissao));
+                        }
+                        
+                        if(document.activeElement !== el) {
+                            el.value = dados[chave];
+                        }
+                    }
+                }
+
+                if(tipo === 'heroi') {
+                    // Level e EXP
+                    let expTotal = Number(dados['expTotal']) || 0;
+                    let levelData = getLevelData(expTotal);
+                    let elLevel = document.getElementById(`slot${numSlot}-level-display`);
+                    let numLevelSpan = document.getElementById(`slot${numSlot}-num-level`);
+                    
+                    if(elLevel && numLevelSpan) {
+                        let lastLevel = elLevel.dataset.currentLevel || 1;
+                        if(levelData.level > lastLevel) {
+                            elLevel.classList.add('level-up-fire');
+                            setTimeout(() => elLevel.classList.remove('level-up-fire'), 2500);
+                        }
+                        numLevelSpan.innerText = levelData.level;
+                        elLevel.dataset.currentLevel = levelData.level;
+                    }
+
+                    let percExp = (levelData.currentExp / levelData.requiredForNext) * 100;
+                    if(percExp > 100) percExp = 100;
+                    
+                    document.getElementById(`bar-exp-slot${numSlot}`).style.width = `${percExp}%`;
+                    let expText = document.getElementById(`slot${numSlot}-exp-text`);
+                    expText.innerText = `${levelData.currentExp} / ${levelData.requiredForNext}`;
+                    
+                    // Crescimento Prateado Dinâmico (Mantido)
+                    let scale = 1 + (percExp / 100) * 0.25;
+                    let glow = percExp / 6;
+                    expText.style.transform = `scale(${scale})`;
+                    expText.style.textShadow = `0 0 ${glow}px rgba(192, 192, 192, 0.9), 1px 1px 2px black`;
+
+                    // Botões de equipamento
+                    for(let i=1; i<=5; i++) {
+                        let isEquipado = dados[`item${i}-equipado`] || false;
+                        let btn = document.getElementById(`slot${numSlot}-btn-equip-${i}`);
+                        if(!btn) continue;
+                        
+                        if(isEquipado) {
+                            btn.innerText = "Deseq.";
+                            btn.classList.add("equipado");
+                            document.getElementById(`slot${numSlot}-item${i}-nome`).disabled = true;
+                            document.getElementById(`slot${numSlot}-item${i}-attr1`).disabled = true;
+                            document.getElementById(`slot${numSlot}-item${i}-mod1`).disabled = true;
+                            document.getElementById(`slot${numSlot}-item${i}-attr2`).disabled = true;
+                            document.getElementById(`slot${numSlot}-item${i}-mod2`).disabled = true;
+                        } else {
+                            btn.innerText = "Equip.";
+                            btn.classList.remove("equipado");
+                        }
+                    }
+                }
+
+                renderizarEfeitosNoSlot(numSlot, tipo, dados.efeitos || []);
+                atualizarBarrasEAlertaNoSlot(numSlot, tipo);
+                atualizarTooltipsAtributosNoSlot(numSlot, tipo, dados);
+            });
+
+            slotsDeVisao[numSlot].ouvinte = novoOuvinte;
+
+            // Associa os listeners de input dinamicamente para o slot recém aberto
+            document.querySelectorAll(`.editavel-slot${numSlot}`).forEach(campo => {
+                // Remove listeners antigos se houver
+                const novoCampo = campo.cloneNode(true);
+                campo.parentNode.replaceChild(novoCampo, campo);
+                
+                novoCampo.addEventListener('input', (e) => {
+                    if (!e.target.disabled) {
+                        let chaveCompleta = e.target.id;
+                        let chaveDoBanco = chaveCompleta.replace(`slot${numSlot}-`, '');
+                        if(tipo === 'monstro') {
+                            chaveDoBanco = chaveDoBanco.replace('monstro-', '');
+                            if(chaveCompleta === `slot${numSlot}-monstro-nome`) chaveDoBanco = 'nome';
+                        }
+                        
+                        update(ref(database, 'fichas/' + idFicha), { [chaveDoBanco]: e.target.value });
+                        if(chaveDoBanco.includes('hp') || chaveDoBanco.includes('mana')) atualizarBarrasEAlertaNoSlot(numSlot, tipo);
+                    }
+                });
+            });
+        }
+
+        function atualizarBarrasEAlertaNoSlot(numSlot, tipo) {
+            let prefixo = tipo === 'heroi' ? `slot${numSlot}` : `slot${numSlot}-monstro`;
+            
+            const hpAtual = Number(document.getElementById(`${prefixo}-hp-atual`).value) || 0;
+            const hpMax = Number(document.getElementById(`${prefixo}-hp-max`).value) || 1;
+            const manaAtual = Number(document.getElementById(`${prefixo}-mana-atual`).value) || 0;
+            const manaMax = Number(document.getElementById(`${prefixo}-mana-max`).value) || 1;
             
             let percHp = (hpAtual / hpMax) * 100;
             let percMana = (manaAtual / manaMax) * 100;
@@ -758,13 +822,17 @@
             if (percHp > 100) percHp = 100; if (percHp < 0) percHp = 0;
             if (percMana > 100) percMana = 100; if (percMana < 0) percMana = 0;
 
-            const barHpElement = document.getElementById(`bar-hp-${tipo}`);
-            const barManaElement = document.getElementById(`bar-mana-${tipo}`);
+            let barIdHp = tipo === 'heroi' ? `bar-hp-slot${numSlot}` : `bar-hp-monstro-slot${numSlot}`;
+            let barIdMana = tipo === 'heroi' ? `bar-mana-slot${numSlot}` : `bar-mana-monstro-slot${numSlot}`;
+            let caixaHpId = tipo === 'heroi' ? `caixa-hp-slot${numSlot}` : `caixa-hp-monstro-slot${numSlot}`;
+
+            const barHpElement = document.getElementById(barIdHp);
+            const barManaElement = document.getElementById(barIdMana);
 
             if (barHpElement) barHpElement.style.width = percHp + '%';
             if (barManaElement) barManaElement.style.width = percMana + '%';
 
-            const caixaHp = document.getElementById(`caixa-hp-${tipo}`);
+            const caixaHp = document.getElementById(caixaHpId);
             if(caixaHp) {
                 if (percHp <= 10 && hpMax > 0 && hpAtual > 0) {
                     caixaHp.classList.add('alerta-morte');
@@ -774,233 +842,51 @@
             }
         }
 
-        function atualizarTooltipsAtributos(tipo, dados) {
-            const atributos = ['for', 'des', 'con', 'int', 'sab', 'car', 'per'];
-            const isHeroi = (tipo === 'heroi');
-            
-            let modsItens = {for:0, des:0, con:0, int:0, sab:0, car:0, per:0};
-            if(isHeroi) {
-                for(let i=1; i<=5; i++) {
-                    if(dados[`item${i}-equipado`]) {
-                        let a1 = dados[`item${i}-attr1`];
-                        let m1 = Number(dados[`item${i}-mod1`]) || 0;
-                        if(modsItens[a1] !== undefined) modsItens[a1] += m1;
-                        
-                        let a2 = dados[`item${i}-attr2`];
-                        let m2 = Number(dados[`item${i}-mod2`]) || 0;
-                        if(modsItens[a2] !== undefined) modsItens[a2] += m2;
-                    }
-                }
-            }
-
-            let modsBuffs = {for:0, des:0, con:0, int:0, sab:0, car:0, per:0};
-            let efeitos = dados.efeitos || [];
-            efeitos.forEach(e => {
-                if(e.attrDestino && modsBuffs[e.attrDestino] !== undefined) {
-                    modsBuffs[e.attrDestino] += (Number(e.modAttr) || 0);
-                }
-            });
-
-            atributos.forEach(attr => {
-                let total = Number(dados[attr]) || 0;
-                let mItem = modsItens[attr] || 0;
-                let mBuff = modsBuffs[attr] || 0;
-                let base = total - mItem - mBuff;
-                
-                let inputEl = document.getElementById(`${tipo}-${attr}`);
-                let boxEl = inputEl ? inputEl.parentElement : null;
-                
-                if(boxEl) {
-                    let txt = `Nativo: ${base}\nItens: ${mItem > 0 ? '+'+mItem : mItem}\nEfeitos: ${mBuff > 0 ? '+'+mBuff : mBuff}`;
-                    boxEl.title = txt;
-                    inputEl.title = txt;
-                }
-            });
-        }
-
-        function abrirFicha(tipo, idAlvo) {
-            if (!idAlvo) return;
-            
-            const isHeroi = (tipo === 'heroi');
-            const container = isHeroi ? document.getElementById('container-heroi') : document.getElementById('container-monstro');
-            container.style.display = 'block';
-
-            if (isHeroi && ouvinteHeroi) { ouvinteHeroi(); }
-            if (!isHeroi && ouvinteMonstro) { ouvinteMonstro(); }
-
-            if (isHeroi) idHeroiAberto = idAlvo;
-            else idMonstroAberto = idAlvo;
-
-            document.querySelectorAll(`.editavel-${tipo}`).forEach(el => el.value = '');
-            document.getElementById(`img-foto-${tipo}`).src = '';
-            document.getElementById(`lista-efeitos-${tipo}`).innerHTML = '';
-            
-            const temPermissao = (usuarioAtual.cargo === "Mestre") || (isHeroi && usuarioAtual.idFicha === idAlvo);
-            
-            if(isHeroi) document.getElementById('heroi-jogador').value = idAlvo.toUpperCase();
-
-            // Puxar também a foto isolada se ela existir
-            get(ref(database, 'fotos/' + idAlvo)).then(snap => {
-                if(snap.exists()) document.getElementById(`img-foto-${tipo}`).src = snap.val().base64;
-            });
-
-            const refFicha = ref(database, 'fichas/' + idAlvo);
-            const novoOuvinte = onValue(refFicha, (snapshot) => {
-                const dados = snapshot.val() || {};
-
-                // Trava de Atributos (Apenas Heróis/Jogadores)
-                let blockPoints = false;
-                if (isHeroi) {
-                    let ptsAtuais = 0;
-                    ['for', 'des', 'con', 'int', 'sab', 'car', 'per'].forEach(a => ptsAtuais += Number(dados[a]) || 0);
-                    if (ptsAtuais >= 10 && usuarioAtual.cargo === "Jogador") blockPoints = true;
-                }
-
-                document.querySelectorAll(`.editavel-${tipo}`).forEach(campo => {
-                    const chave = campo.id.replace(`${tipo}-`, '');
-                    
-                    // Bloqueio de permissão e trava de status 10
-                    if (['for', 'des', 'con', 'int', 'sab', 'car', 'per'].includes(chave)) {
-                        campo.disabled = (usuarioAtual.cargo !== "Mestre" && (blockPoints || !temPermissao));
-                    } else {
-                        campo.disabled = !temPermissao;
-                    }
-
-                    if (document.activeElement !== campo && dados[chave] !== undefined) {
-                        campo.value = dados[chave];
-                    }
-                });
-
-                document.querySelectorAll(`.editavel-${tipo}-label`).forEach(lbl => { lbl.style.display = temPermissao ? 'block' : 'none'; });
-
-                if (isHeroi) {
-                    // Cálculo Dinâmico de HP e Mana Baseado na Constituição/Inteligência
-                    let con = Number(dados['con']) || 0;
-                    let int = Number(dados['int']) || 0;
-                    let baseHp = Number(dados['hp-max']) || 20; // Default Mestre 20
-                    let baseMana = Number(dados['mana-max']) || 20;
-
-                    let hpEfetivo = baseHp + (con * 3);
-                    let manaEfetivo = baseMana + (int * 3);
-
-                    document.getElementById('heroi-hp-efetivo').innerText = hpEfetivo;
-                    document.getElementById('heroi-mana-efetivo').innerText = manaEfetivo;
-
-                    // Tratamento Gráfico de EXP e Level Up
-                    let expTotal = Number(dados['expTotal']) || 0;
-                    let levelData = getLevelData(expTotal);
-                    let elLevel = document.getElementById('heroi-level-display');
-                    
-                    if(elLevel) {
-                        let lastLevel = elLevel.dataset.currentLevel || 1;
-                        if(levelData.level > lastLevel) {
-                            // Fogo do Level UP
-                            elLevel.classList.add('level-up-fire');
-                            setTimeout(() => elLevel.classList.remove('level-up-fire'), 2500);
-                        }
-                        elLevel.innerText = `LV. ${levelData.level}`;
-                        elLevel.dataset.currentLevel = levelData.level;
-                    }
-
-                    let percExp = (levelData.currentExp / levelData.requiredForNext) * 100;
-                    if(percExp > 100) percExp = 100;
-                    
-                    document.getElementById('bar-exp-heroi').style.width = `${percExp}%`;
-                    let expText = document.getElementById('heroi-exp-text');
-                    expText.innerText = `${levelData.currentExp} / ${levelData.requiredForNext}`;
-                    
-                    // Crescimento e Brilho Prateado Dinâmico
-                    let scale = 1 + (percExp / 100) * 0.25;
-                    let glow = percExp / 6;
-                    expText.style.transform = `scale(${scale})`;
-                    expText.style.textShadow = `0 0 ${glow}px rgba(192, 192, 192, 0.9), 1px 1px 2px black`;
-
-
-                    for(let i=1; i<=5; i++) {
-                        let isEquipado = dados[`item${i}-equipado`] || false;
-                        let btn = document.getElementById(`btn-equip-heroi-${i}`);
-                        if(!btn) continue;
-                        
-                        if(isEquipado) {
-                            btn.innerText = "Desequipar";
-                            btn.classList.add("equipado");
-                            document.getElementById(`heroi-item${i}-nome`).disabled = true;
-                            document.getElementById(`heroi-item${i}-attr1`).disabled = true;
-                            document.getElementById(`heroi-item${i}-mod1`).disabled = true;
-                            document.getElementById(`heroi-item${i}-attr2`).disabled = true;
-                            document.getElementById(`heroi-item${i}-mod2`).disabled = true;
-                        } else {
-                            btn.innerText = "Equipar";
-                            btn.classList.remove("equipado");
-                        }
-                    }
-                }
-
-                renderizarEfeitos(tipo, dados.efeitos || []);
-                atualizarBarrasEAlerta(tipo); 
-                atualizarTooltipsAtributos(tipo, dados);
-            });
-
-            if (isHeroi) ouvinteHeroi = novoOuvinte;
-            else ouvinteMonstro = novoOuvinte;
-        }
-
-        ['heroi', 'monstro'].forEach(tipo => {
-            document.querySelectorAll(`.editavel-${tipo}`).forEach(campo => {
-                campo.addEventListener('input', (e) => {
-                    const idAberto = tipo === 'heroi' ? idHeroiAberto : idMonstroAberto;
-                    if (!e.target.disabled && idAberto) {
-                        const chaveDoBanco = e.target.id.replace(`${tipo}-`, '');
-                        update(ref(database, 'fichas/' + idAberto), { [chaveDoBanco]: e.target.value });
-                        if(chaveDoBanco.includes('hp') || chaveDoBanco.includes('mana')) atualizarBarrasEAlerta(tipo);
-                    }
-                });
-            });
-        });
-
         // ==========================================
-        // 5. EQUIPAMENTOS, EXP, ATAQUE, BUFFS
+        // OUTRAS LÓGICAS ADAPTADAS AOS SLOTS
         // ==========================================
+        window.processarUploadOtimizado = function(event, numSlot) {
+            const file = event.target.files[0];
+            if(!file) return;
 
-        window.cederExp = async function() {
-            if(usuarioAtual.cargo !== "Mestre") return;
-            
-            const target = prompt("Para quem dar EXP?\nDigite o nome do jogador (ex: gomes) ou digite 'todos'");
-            if(!target || target.trim() === "") return;
-            
-            const amount = Number(prompt("Quantidade de Experiência:"));
-            if(!amount || amount <= 0) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = new Image();
+                img.onload = function() {
+                    const canvas = document.createElement('canvas');
+                    const MAX_SIZE = 150; 
+                    let width = img.width; let height = img.height;
+                    if (width > height) { if (width > MAX_SIZE) { height *= MAX_SIZE / width; width = MAX_SIZE; } } 
+                    else { if (height > MAX_SIZE) { width *= MAX_SIZE / height; height = MAX_SIZE; } }
+                    canvas.width = width; canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
 
-            const alvos = target.toLowerCase() === 'todos' ? playersList : [target.toLowerCase()];
-            
-            for(let p of alvos) {
-                if(!playersList.includes(p)) continue;
-                const refFicha = ref(database, 'fichas/' + p);
-                const snapshot = await get(refFicha);
-                let dados = snapshot.val() || {};
-                let expAtualDB = Number(dados.expTotal) || 0;
-                update(refFicha, { expTotal: expAtualDB + amount });
+                    const dataUrlUltraLeve = canvas.toDataURL('image/webp', 0.6); 
+                    const idFicha = slotsDeVisao[numSlot].idFicha;
+                    if(idFicha) update(ref(database, 'fotos/' + idFicha), { base64: dataUrlUltraLeve });
+                }
+                img.src = e.target.result;
             }
-            alert(`🌟 Sucesso! +${amount} EXP entregue.`);
+            reader.readAsDataURL(file);
         }
 
-        window.toggleEquipar = async function(tipo, slot) {
-            if(document.getElementById(`btn-equip-${tipo}-${slot}`).disabled) return;
+        window.toggleEquipar = async function(numSlot, slotEq) {
+            if(usuarioAtual.cargo !== "Mestre" && slotsDeVisao[numSlot].tipo !== 'heroi') return;
+            const idFicha = slotsDeVisao[numSlot].idFicha;
             
-            const idAberto = tipo === 'heroi' ? idHeroiAberto : idMonstroAberto;
-            const refFicha = ref(database, 'fichas/' + idAberto);
+            const refFicha = ref(database, 'fichas/' + idFicha);
             const snapshot = await get(refFicha);
             let dados = snapshot.val() || {};
 
-            const isEquipado = dados[`item${slot}-equipado`] || false;
-            const attr1 = dados[`item${slot}-attr1`];
-            const mod1 = Number(dados[`item${slot}-mod1`]) || 0;
-            const attr2 = dados[`item${slot}-attr2`];
-            const mod2 = Number(dados[`item${slot}-mod2`]) || 0;
+            const isEquipado = dados[`item${slotEq}-equipado`] || false;
+            const attr1 = dados[`item${slotEq}-attr1`];
+            const mod1 = Number(dados[`item${slotEq}-mod1`]) || 0;
+            const attr2 = dados[`item${slotEq}-attr2`];
+            const mod2 = Number(dados[`item${slotEq}-mod2`]) || 0;
 
             let pacoteAtualizacao = {};
-            pacoteAtualizacao[`item${slot}-equipado`] = !isEquipado;
-
+            pacoteAtualizacao[`item${slotEq}-equipado`] = !isEquipado;
             let multiplier = isEquipado ? -1 : 1; 
 
             if (attr1 && mod1 !== 0) {
@@ -1012,105 +898,26 @@
                 let atual = Number(dados[attr2]) || 0;
                 pacoteAtualizacao[attr2] = atual + (mod2 * multiplier);
             }
-
             update(refFicha, pacoteAtualizacao);
         }
 
-        window.invocarMonstro = function() {
-            const nomeDoMonstro = prompt("Nome do Monstro a ser criado:");
-            if (nomeDoMonstro && nomeDoMonstro.trim() !== "") {
-                const idUnico = "monstro_" + Date.now();
-                update(ref(database, 'lista_monstros/' + idUnico), { nome: nomeDoMonstro });
-                update(ref(database, 'fichas/' + idUnico), { 
-                    nome: nomeDoMonstro, 'hp-atual': 50, 'hp-max': 50, 'mana-atual': 20, 'mana-max': 20 
-                });
-                
-                document.getElementById('seletor-monstro').value = idUnico;
-                selecionarMonstro();
-            }
-        };
-
-        window.executarAtaque = async function() {
-            if(document.getElementById('ataque-dano').disabled) return; 
-
-            const dano = Number(document.getElementById('ataque-dano').value);
-            if(!dano || dano <= 0) return alert("Insira um valor de dano válido!");
-
-            const checkboxes = document.querySelectorAll('.alvo-ataque:checked');
-            if(checkboxes.length === 0) return alert("Selecione pelo menos um alvo para o ataque!");
-
-            const alvos = Array.from(checkboxes).map(cb => cb.value);
-            const nomesAlvos = alvos.map(a => a.charAt(0).toUpperCase() + a.slice(1)).join(', ');
-
-            if(confirm(`A ameaça causará ${dano} de dano em: ${nomesAlvos}.\nConfirmar ataque?`)) {
-                for(let alvo of alvos) {
-                    const refFicha = ref(database, 'fichas/' + alvo);
-                    const snapshot = await get(refFicha);
-                    let dados = snapshot.val() || {};
-                    let hpAtual = Number(dados['hp-atual']) || 0;
-                    
-                    hpAtual -= dano;
-                    if(hpAtual < 0) hpAtual = 0;
-
-                    update(refFicha, { 'hp-atual': hpAtual });
-                }
-                alert("⚔️ Ataque desferido! A vida dos alvos foi reduzida.");
-                document.getElementById('ataque-dano').value = '';
-                checkboxes.forEach(cb => cb.checked = false);
-            }
-        };
-
-        window.lancarMonstro = function() {
-            if(idMonstroAberto) update(ref(database, 'estado_combate'), { ativo: idMonstroAberto });
-        }
-        window.monstroDerrotado = function() {
-            remove(ref(database, 'estado_combate/ativo'));
-        }
-        window.deletarMonstro = function() {
-            if(!idMonstroAberto) return;
-            if(confirm("Tem certeza que deseja DELETAR esta ficha para sempre?")) {
-                if(monstroEmCombateGlobal === idMonstroAberto) monstroDerrotado(); 
-                remove(ref(database, 'fotos/' + idMonstroAberto));
-                remove(ref(database, 'lista_monstros/' + idMonstroAberto));
-                remove(ref(database, 'fichas/' + idMonstroAberto));
-                document.getElementById('container-monstro').style.display = 'none';
-                document.getElementById('seletor-monstro').value = "";
-                idMonstroAberto = null;
-                atualizarBotoesMestre();
-            }
-        }
-
-        function atualizarBotoesMestre() {
-            if(usuarioAtual.cargo !== "Mestre") return;
-            const btnLancar = document.getElementById('btn-lancar');
-            const btnDerrotado = document.getElementById('btn-derrotado');
-            const btnDeletar = document.getElementById('btn-deletar');
-            if(idMonstroAberto) {
-                btnDeletar.style.display = "inline-block";
-                if(monstroEmCombateGlobal === idMonstroAberto) {
-                    btnLancar.style.display = "none"; btnDerrotado.style.display = "inline-block";
-                } else {
-                    btnLancar.style.display = "inline-block"; btnDerrotado.style.display = "none";
-                }
-            } else {
-                btnLancar.style.display = "none"; btnDerrotado.style.display = "none"; btnDeletar.style.display = "none";
-            }
-        }
-
-        window.adicionarEfeito = async function(tipo) {
-            if(document.getElementById(`novo-buff-nome-${tipo}`).disabled) return; 
-
-            const nome = document.getElementById(`novo-buff-nome-${tipo}`).value;
-            const modHp = Number(document.getElementById(`novo-buff-hp-${tipo}`).value) || 0;
-            const modMana = Number(document.getElementById(`novo-buff-mana-${tipo}`).value) || 0;
-            const attrDestino = document.getElementById(`novo-buff-attr-${tipo}`).value;
-            const modAttr = Number(document.getElementById(`novo-buff-mod-${tipo}`).value) || 0;
-            const turnos = Number(document.getElementById(`novo-buff-turnos-${tipo}`).value);
+        window.adicionarEfeito = async function(numSlot, isMonstro) {
+            const idFicha = slotsDeVisao[numSlot].idFicha;
+            if(!idFicha) return;
+            
+            const p = isMonstro ? `slot${numSlot}-novo-buff-` : `slot${numSlot}-novo-buff-`;
+            const pos = isMonstro ? "-monstro" : "";
+            
+            const nome = document.getElementById(`${p}nome${pos}`).value;
+            const modHp = Number(document.getElementById(`${p}hp${pos}`).value) || 0;
+            const modMana = Number(document.getElementById(`${p}mana${pos}`).value) || 0;
+            const attrDestino = document.getElementById(`${p}attr${pos}`).value;
+            const modAttr = Number(document.getElementById(`${p}mod${pos}`).value) || 0;
+            const turnos = Number(document.getElementById(`${p}turnos${pos}`).value);
 
             if(!nome || turnos <= 0) return alert("Preencha o Nome e os Turnos do efeito!");
 
-            const idAberto = tipo === 'heroi' ? idHeroiAberto : idMonstroAberto;
-            const refFicha = ref(database, 'fichas/' + idAberto);
+            const refFicha = ref(database, 'fichas/' + idFicha);
             const snapshot = await get(refFicha);
             let dados = snapshot.val() || {};
             let efeitos = dados.efeitos || [];
@@ -1122,32 +929,46 @@
 
             efeitos.push({ idUnico: Date.now(), nome, modHp, modMana, attrDestino, modAttr, turnos });
             update(refFicha, { efeitos });
+            
+            // Limpar inputs localmente
+            document.getElementById(`${p}nome${pos}`).value = '';
+            document.getElementById(`${p}turnos${pos}`).value = '';
+        }
 
-            document.getElementById(`novo-buff-nome-${tipo}`).value = '';
-            document.getElementById(`novo-buff-hp-${tipo}`).value = '';
-            document.getElementById(`novo-buff-mana-${tipo}`).value = '';
-            document.getElementById(`novo-buff-attr-${tipo}`).value = '';
-            document.getElementById(`novo-buff-mod-${tipo}`).value = '';
-            document.getElementById(`novo-buff-turnos-${tipo}`).value = '';
-        };
+        window.removerEfeito = async function(numSlot, idEfeito) {
+            const idFicha = slotsDeVisao[numSlot].idFicha;
+            if(!idFicha) return;
+            const refFicha = ref(database, 'fichas/' + idFicha);
+            const snapshot = await get(refFicha);
+            let dados = snapshot.val() || {};
+            let efeitos = dados.efeitos || [];
 
-        window.passarTurno = async function(tipo) {
-            const idAberto = tipo === 'heroi' ? idHeroiAberto : idMonstroAberto;
-            const refFicha = ref(database, 'fichas/' + idAberto);
+            let efeitoRemovido = efeitos.find(e => e.idUnico === idEfeito);
+            let efeitosAtualizados = efeitos.filter(e => e.idUnico !== idEfeito);
+            let pacoteAtualizacao = { efeitos: efeitosAtualizados };
+
+            if (efeitoRemovido && efeitoRemovido.attrDestino && efeitoRemovido.modAttr !== 0) {
+                let valorCorrente = Number(dados[efeitoRemovido.attrDestino]) || 0;
+                pacoteAtualizacao[efeitoRemovido.attrDestino] = valorCorrente - efeitoRemovido.modAttr;
+            }
+
+            update(refFicha, pacoteAtualizacao);
+        }
+
+        window.passarTurno = async function(numSlot) {
+            const tipo = slotsDeVisao[numSlot].tipo;
+            const idFicha = slotsDeVisao[numSlot].idFicha;
+            if(!idFicha) return;
+
+            const refFicha = ref(database, 'fichas/' + idFicha);
             const snapshot = await get(refFicha);
             let dados = snapshot.val() || {};
             let efeitos = dados.efeitos || [];
 
             let hpAtual = Number(dados['hp-atual']) || 0;
             let manaAtual = Number(dados['mana-atual']) || 0;
-            
-            let hpMax = tipo === 'heroi' ? 
-                        Number(document.getElementById(`heroi-hp-efetivo`).innerText) : 
-                        (Number(dados['hp-max']) || 1);
-                        
-            let manaMax = tipo === 'heroi' ? 
-                          Number(document.getElementById(`heroi-mana-efetivo`).innerText) : 
-                          (Number(dados['mana-max']) || 1);
+            let hpMax = Number(dados['hp-max']) || 20;
+            let manaMax = Number(dados['mana-max']) || 20;
             
             let attrParaReverter = {};
 
@@ -1174,33 +995,14 @@
             }
 
             update(refFicha, pacoteAtualizacao);
-        };
-
-        window.removerEfeito = async function(tipo, idEfeito) {
-            const idAberto = tipo === 'heroi' ? idHeroiAberto : idMonstroAberto;
-            const refFicha = ref(database, 'fichas/' + idAberto);
-            const snapshot = await get(refFicha);
-            let dados = snapshot.val() || {};
-            let efeitos = dados.efeitos || [];
-
-            let efeitoRemovido = efeitos.find(e => e.idUnico === idEfeito);
-            let efeitosAtualizados = efeitos.filter(e => e.idUnico !== idEfeito);
-            let pacoteAtualizacao = { efeitos: efeitosAtualizados };
-
-            if (efeitoRemovido && efeitoRemovido.attrDestino && efeitoRemovido.modAttr !== 0) {
-                let valorCorrente = Number(dados[efeitoRemovido.attrDestino]) || 0;
-                pacoteAtualizacao[efeitoRemovido.attrDestino] = valorCorrente - efeitoRemovido.modAttr;
-            }
-
-            update(refFicha, pacoteAtualizacao);
         }
 
-        function renderizarEfeitos(tipo, efeitos) {
-            const listaDiv = document.getElementById(`lista-efeitos-${tipo}`);
+        function renderizarEfeitosNoSlot(numSlot, tipo, efeitos) {
+            const pos = tipo === 'monstro' ? "-monstro" : "";
+            const listaDiv = document.getElementById(`lista-efeitos${pos}-slot${numSlot}`);
+            if(!listaDiv) return;
             listaDiv.innerHTML = '';
             
-            const btnDesabilitado = document.getElementById(`novo-buff-nome-${tipo}`).disabled ? 'disabled' : '';
-
             efeitos.forEach(efeito => {
                 const isDebuff = (efeito.modHp < 0 || efeito.modMana < 0 || efeito.modAttr < 0);
                 let detalhes = [];
@@ -1216,12 +1018,231 @@
                         </div>
                         <div>
                             <span style="margin-right: 15px;">⏳ <b>${efeito.turnos}</b></span>
-                            <button class="btn-remover" onclick="removerEfeito('${tipo}', ${efeito.idUnico})" ${btnDesabilitado} title="Remover Efeito">🗑️</button>
+                            <button class="btn-remover esconder-jogador" onclick="removerEfeito(${numSlot}, ${efeito.idUnico})" title="Remover Efeito">🗑️</button>
                         </div>
                     </div>
                 `;
             });
         }
+
+        function atualizarTooltipsAtributosNoSlot(numSlot, tipo, dados) {
+            const atributos = ['for', 'des', 'con', 'int', 'sab', 'car', 'per'];
+            const prefixo = tipo === 'heroi' ? `slot${numSlot}` : `slot${numSlot}-monstro`;
+            
+            let modsItens = {for:0, des:0, con:0, int:0, sab:0, car:0, per:0};
+            if(tipo === 'heroi') {
+                for(let i=1; i<=5; i++) {
+                    if(dados[`item${i}-equipado`]) {
+                        let a1 = dados[`item${i}-attr1`]; let m1 = Number(dados[`item${i}-mod1`]) || 0;
+                        let a2 = dados[`item${i}-attr2`]; let m2 = Number(dados[`item${i}-mod2`]) || 0;
+                        if(modsItens[a1] !== undefined) modsItens[a1] += m1;
+                        if(modsItens[a2] !== undefined) modsItens[a2] += m2;
+                    }
+                }
+            }
+
+            let modsBuffs = {for:0, des:0, con:0, int:0, sab:0, car:0, per:0};
+            (dados.efeitos || []).forEach(e => {
+                if(e.attrDestino && modsBuffs[e.attrDestino] !== undefined) modsBuffs[e.attrDestino] += (Number(e.modAttr) || 0);
+            });
+
+            atributos.forEach(attr => {
+                let total = Number(dados[attr]) || 0;
+                let mItem = modsItens[attr] || 0;
+                let mBuff = modsBuffs[attr] || 0;
+                let base = total - mItem - mBuff;
+                
+                let inputEl = document.getElementById(`${prefixo}-${attr}`);
+                if(inputEl && inputEl.parentElement) {
+                    let txt = `Nativo: ${base}\nItens: ${mItem > 0 ? '+'+mItem : mItem}\nEfeitos: ${mBuff > 0 ? '+'+mBuff : mBuff}`;
+                    inputEl.parentElement.title = txt;
+                    inputEl.title = txt;
+                }
+            });
+        }
+
+        // ==========================================
+        // SISTEMA DO MESTRE: MONSTROS E HUD GERAL
+        // ==========================================
+
+        window.invocarMonstro = function() {
+            if(usuarioAtual.cargo !== "Mestre") return;
+            const nomeDoMonstro = prompt("Nome do Monstro a ser criado:");
+            if (nomeDoMonstro && nomeDoMonstro.trim() !== "") {
+                const idUnico = "monstro_" + Date.now();
+                update(ref(database, 'lista_monstros/' + idUnico), { nome: nomeDoMonstro });
+                update(ref(database, 'fichas/' + idUnico), { 
+                    nome: nomeDoMonstro, 'hp-atual': 50, 'hp-max': 50, 'mana-atual': 20, 'mana-max': 20 
+                });
+                
+                document.getElementById('seletor-monstro').value = idUnico;
+                selecionarMonstroMestre(idUnico);
+            }
+        };
+
+        window.selecionarMonstroMestre = function(idMonstro) {
+            // O mestre selecionou um monstro no painel de gerência
+            // Forçamos ele a aparecer no Slot 2 do mestre para visualização e edição rápida.
+            if(!idMonstro) return;
+            document.getElementById('mestre-tela-2').value = 'monstro-' + idMonstro;
+            abrirFichaNoSlot(2, 'monstro', idMonstro);
+            atualizarBotoesMestre();
+        }
+
+        window.executarAtaque = async function(numSlot) {
+            const dano = Number(document.getElementById(`slot${numSlot}-ataque-dano`).value);
+            if(!dano || dano <= 0) return alert("Insira um valor de dano válido!");
+
+            const checkboxes = document.querySelectorAll(`.alvo-ataque-slot${numSlot}:checked`);
+            if(checkboxes.length === 0) return alert("Selecione pelo menos um alvo para o ataque!");
+
+            const alvos = Array.from(checkboxes).map(cb => cb.value);
+            const nomesAlvos = alvos.map(a => a.charAt(0).toUpperCase() + a.slice(1)).join(', ');
+
+            if(confirm(`A ameaça causará ${dano} de dano em: ${nomesAlvos}.\nConfirmar ataque?`)) {
+                for(let alvo of alvos) {
+                    const refFicha = ref(database, 'fichas/' + alvo);
+                    const snapshot = await get(refFicha);
+                    let dados = snapshot.val() || {};
+                    let hpAtual = Number(dados['hp-atual']) || 0;
+                    
+                    hpAtual -= dano;
+                    if(hpAtual < 0) hpAtual = 0;
+                    update(refFicha, { 'hp-atual': hpAtual });
+                }
+                alert("⚔️ Ataque desferido! A vida dos alvos foi reduzida.");
+                document.getElementById(`slot${numSlot}-ataque-dano`).value = '';
+                checkboxes.forEach(cb => cb.checked = false);
+            }
+        };
+
+        window.lancarMonstro = function() {
+            const idAlvo = document.getElementById('seletor-monstro').value;
+            if(idAlvo) update(ref(database, 'estado_combate'), { ativo: idAlvo });
+        }
+        window.monstroDerrotado = function() {
+            remove(ref(database, 'estado_combate/ativo'));
+        }
+        window.deletarMonstro = function() {
+            const idAlvo = document.getElementById('seletor-monstro').value;
+            if(!idAlvo) return;
+            if(confirm("Tem certeza que deseja DELETAR esta ficha para sempre?")) {
+                if(monstroEmCombateGlobal === idAlvo) monstroDerrotado(); 
+                remove(ref(database, 'fotos/' + idAlvo));
+                remove(ref(database, 'lista_monstros/' + idAlvo));
+                remove(ref(database, 'fichas/' + idAlvo));
+                document.getElementById('seletor-monstro').value = "";
+                
+                // Se o monstro deletado estava em algum slot do mestre, limpa
+                if(slotsDeVisao[1].idFicha === idAlvo) limparSlot(1);
+                if(slotsDeVisao[2].idFicha === idAlvo) limparSlot(2);
+                
+                atualizarBotoesMestre();
+            }
+        }
+
+        function atualizarBotoesMestre() {
+            if(usuarioAtual.cargo !== "Mestre") return;
+            const btnLancar = document.getElementById('btn-lancar');
+            const btnDerrotado = document.getElementById('btn-derrotado');
+            const btnDeletar = document.getElementById('btn-deletar');
+            const idPainel = document.getElementById('seletor-monstro').value;
+            
+            if(idPainel) {
+                btnDeletar.style.display = "inline-block";
+                if(monstroEmCombateGlobal === idPainel) {
+                    btnLancar.style.display = "none"; btnDerrotado.style.display = "inline-block";
+                } else {
+                    btnLancar.style.display = "inline-block"; btnDerrotado.style.display = "none";
+                }
+            } else {
+                btnLancar.style.display = "none"; btnDerrotado.style.display = "none"; btnDeletar.style.display = "none";
+            }
+        }
+
+        function initHudGlobais() {
+            const listDiv = document.getElementById('hud-players-list');
+            if(!listDiv) return;
+            
+            let finalHTML = '';
+            playersList.forEach(p => {
+                finalHTML += `
+                    <div class="hud-player" id="hud-player-${p}">
+                        <div class="hud-name">${p.toUpperCase()}</div>
+                        <div class="hud-stats-row">
+                            <span style="color:#27ae60; font-weight:bold; font-size:11px;">HP:</span>
+                            <div>
+                                <input type="number" id="hud-${p}-hp-atual" class="hud-input hud-stat-field" onchange="atualizarHudMestre('${p}', 'hp-atual', this.value)"> / 
+                                <input type="number" id="hud-${p}-hp-max" class="hud-input hud-stat-field" title="Base HP" onchange="atualizarHudMestre('${p}', 'hp-max', this.value)">
+                            </div>
+                        </div>
+                        <div class="hud-mini-bar-bg"><div class="hud-mini-bar-fill" id="hud-${p}-bar-hp" style="background:#27ae60; width:100%;"></div></div>
+                        <div class="hud-stats-row" style="margin-top: 5px;">
+                            <span style="color:#2980b9; font-weight:bold; font-size:11px;">MP:</span>
+                            <div>
+                                <input type="number" id="hud-${p}-mana-atual" class="hud-input hud-stat-field" onchange="atualizarHudMestre('${p}', 'mana-atual', this.value)"> / 
+                                <input type="number" id="hud-${p}-mana-max" class="hud-input hud-stat-field" title="Base Mana" onchange="atualizarHudMestre('${p}', 'mana-max', this.value)">
+                            </div>
+                        </div>
+                        <div class="hud-mini-bar-bg"><div class="hud-mini-bar-fill" id="hud-${p}-bar-mana" style="background:#2980b9; width:100%;"></div></div>
+                    </div>`;
+            });
+            listDiv.innerHTML = finalHTML;
+            
+            onValue(ref(database, 'fichas'), (snapshot) => {
+                if(!usuarioAtual || usuarioAtual.cargo !== "Mestre") return;
+                const dados = snapshot.val() || {};
+                playersList.forEach(p => preencherHUDJogadorVisualmente(p, dados[p] || {}));
+            });
+        }
+
+        function preencherHUDJogadorVisualmente(jogadorId, dadosJogador) {
+            const hpAtual = Number(dadosJogador['hp-atual']) || 0;
+            const hpMax = Number(dadosJogador['hp-max']) || 20; 
+            const manaAtual = Number(dadosJogador['mana-atual']) || 0;
+            const manaMax = Number(dadosJogador['mana-max']) || 20; 
+            
+            let percHp = hpMax > 0 ? (hpAtual/hpMax)*100 : 0; 
+            let percMana = manaMax > 0 ? (manaAtual/manaMax)*100 : 0; 
+            if(percHp>100) percHp=100; if(percHp<0) percHp=0;
+            if(percMana>100) percMana=100; if(percMana<0) percMana=0;
+            
+            let elHpAtual = document.getElementById(`hud-${jogadorId}-hp-atual`);
+            let elHpMax = document.getElementById(`hud-${jogadorId}-hp-max`);
+            let elManaAtual = document.getElementById(`hud-${jogadorId}-mana-atual`);
+            let elManaMax = document.getElementById(`hud-${jogadorId}-mana-max`);
+
+            if(elHpAtual && document.activeElement !== elHpAtual) elHpAtual.value = hpAtual;
+            if(elHpMax && document.activeElement !== elHpMax) elHpMax.value = hpMax;
+            if(elManaAtual && document.activeElement !== elManaAtual) elManaAtual.value = manaAtual;
+            if(elManaMax && document.activeElement !== elManaMax) elManaMax.value = manaMax;
+
+            let barHp = document.getElementById(`hud-${jogadorId}-bar-hp`);
+            let barMana = document.getElementById(`hud-${jogadorId}-bar-mana`);
+            if(barHp) barHp.style.width = percHp + '%';
+            if(barMana) barMana.style.width = percMana + '%';
+        }
+
+        window.toggleHudMestre = function() {
+            hudVisivel = !hudVisivel;
+            const hud = document.getElementById('hud-mestre');
+            const btn = document.getElementById('btn-toggle-hud');
+            if(hudVisivel) {
+                hud.style.display = 'flex';
+                btn.style.left = '250px'; 
+                btn.innerText = "〰️";
+            } else {
+                hud.style.display = 'none';
+                btn.style.left = '15px';
+                btn.innerText = "👁️ Grupo";
+            }
+        }
+
+        window.atualizarHudMestre = function(jogadorId, campo, valor) {
+            if(valor === "") return;
+            update(ref(database, 'fichas/' + jogadorId), { [campo]: Number(valor) });
+        }
+
     </script>
 </body>
 </html>
