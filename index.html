@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <title>RPG Memes - Mesa do Mestre</title>
     <style>
-        /* ESTÉTICA MEDIEVAL CLÁSSICA (Madeira, Couro e Ouro Velho) */
+        /* ESTÉTICA MEDIEVAL CLÁSSICA */
         body { 
             font-family: 'Georgia', serif; 
             background: radial-gradient(circle at 50% 50%, #2e1d13 0%, #0c0704 100%);
@@ -17,8 +17,8 @@
         #tela-login { background: #1a100a; padding: 40px; border-radius: 4px; border: 3px double #8b6d43; text-align: center; box-shadow: 0 20px 50px rgba(0,0,0,0.9); width: 320px; margin-top: 15vh;}
         #tela-app { display: none; width: 100%; max-width: 1400px; }
         
-        .mesa-de-jogo { display: flex; gap: 25px; width: 100%; justify-content: center; flex-wrap: wrap; align-items: flex-start; padding-bottom: 50px;}
-        .slot-container { flex: 1; min-width: 400px; max-width: 600px; display: flex; justify-content: center;}
+        .mesa-de-jogo { display: flex; gap: 25px; width: 100%; justify-content: center; flex-wrap: wrap; align-items: flex-start; padding-bottom: 50px; transition: all 0.5s;}
+        .slot-container { flex: 1; min-width: 400px; max-width: 600px; display: flex; justify-content: center; transition: all 0.5s;}
         
         /* FICHA DO PERSONAGEM */
         .container { background: #1c130d; padding: 30px; border-radius: 2px; border: 3px double #8b6d43; box-shadow: 0 15px 40px rgba(0,0,0,0.9), inset 0 0 40px rgba(0,0,0,0.7); width: 100%; display: none; }
@@ -27,14 +27,17 @@
         .nav-bar { background: #120a06; padding: 15px 25px; border-radius: 4px; border: 1px solid #5c3a21; margin-bottom: 25px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 8px 25px rgba(0,0,0,0.9); flex-wrap: wrap; gap: 15px;}
         .nav-info { font-size: 15px; color: #b89c72; text-shadow: 1px 1px 2px black;}
         
-        select { background-color: #0a0503; color: #dcd0ba; border: 1px solid #8b6d43; padding: 8px 12px; border-radius: 2px; font-weight: bold; cursor: pointer; font-family: 'Georgia', serif; outline: none; text-align: center;}
+        select { background-color: #0a0503; color: #dcd0ba; border: 1px solid #8b6d43; padding: 8px 12px; border-radius: 2px; font-weight: bold; cursor: pointer; font-family: 'Georgia', serif; outline: none; text-align: left;}
         select:focus { border-color: #d4af37; background-color: #1a100a;}
         
+        .painel-mestre-box { display: flex; align-items: center; gap: 5px; border: 1px solid #3a2212; padding: 5px 10px; border-radius: 4px; background: rgba(0,0,0,0.5); }
+        .painel-mestre-box select { width: 120px; font-size: 11px; padding: 6px; }
+
         .header-grid { display: grid; grid-template-columns: 140px 1fr; gap: 20px; margin-bottom: 20px; }
         .info-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; align-items: center; }
         .status-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin: 15px 0; background: rgba(0,0,0,0.4); padding: 20px; border-radius: 8px; border: 1px solid #3a2212; box-shadow: inset 0 0 10px rgba(0,0,0,0.8);}
         
-        .atributos-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 10px; text-align: center; margin-top: 15px;}
+        .atributos-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 10px; text-align: center; margin-top: 10px;}
         .attr-box { background: rgba(0,0,0,0.6); border: 1px solid #5c3a21; padding: 10px 5px; box-shadow: inset 0 0 8px rgba(0,0,0,0.8); transition: 0.2s;}
         .attr-box:hover { border-color: #d4af37; background: rgba(20, 10, 5, 0.8); cursor: help;}
         .attr-box label { font-size: 11px; color: #b89c72; margin-bottom: 8px; font-weight: bold; text-align: center; cursor: help;}
@@ -51,7 +54,7 @@
         input[type="number"] { font-weight: bold; text-align: center;}
         
         input:disabled, textarea:disabled, button:disabled { opacity: 0.6; cursor: not-allowed; border-color: #24140b; background-color: rgba(0,0,0,0.8); color: #6b5a48;}
-        input.mestre-unlocked:disabled { color: #dcd0ba; opacity: 1; } /* Exceção visual para atributos que mestre edita, mas player vê */
+        input.mestre-unlocked:disabled { color: #dcd0ba; opacity: 1; } 
 
         .foto-personagem { width: 140px; height: 140px; background-color: #050302; border: 2px solid #5c3a21; object-fit: cover; box-shadow: 0 5px 15px rgba(0,0,0,0.9); }
         .monstro-theme .foto-personagem { border-color: #5c1818; }
@@ -69,30 +72,27 @@
         .bar-bg { width: 100%; background-color: #0a0604; border-radius: 12px; height: 14px; margin-top: 8px; border: 1px solid #1a0f0a; box-shadow: inset 0 2px 5px rgba(0,0,0,0.9);}
         .bar-fill { position: relative; overflow: hidden; height: 100%; transition: width 0.5s ease-out; border-radius: 12px; }
         
-        .bar-fill::after {
-            content: ''; position: absolute; top: 0; left: -100%; width: 50%; height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
-            animation: brilho-magico 2.5s infinite linear;
-        }
-        @keyframes brilho-magico { 0% { left: -100%; } 100% { left: 200%; } }
-
         .hp-fill { background: linear-gradient(90deg, #1e7039, #27ae60); box-shadow: 0 0 8px rgba(39, 174, 96, 0.4);} 
         .mana-fill { background: linear-gradient(90deg, #18527a, #2980b9); box-shadow: 0 0 8px rgba(41, 128, 185, 0.4);} 
 
-        /* BARRA DE EXPERIÊNCIA E LEVEL UP */
-        .level-display { font-size: 22px; font-weight: bold; color: #d4af37; text-align: center; text-shadow: 1px 1px 2px black; transition: 0.5s; display: flex; align-items: center; justify-content: center; gap: 5px; }
-        .level-up-fire { animation: burn 2.5s ease-out forwards; color: #fff !important; }
-        @keyframes burn {
-            0% { text-shadow: 0 0 10px #ff9900, 0 0 20px #ff3300, 0 0 30px #ff0000; transform: scale(1); }
-            50% { text-shadow: 0 -10px 20px #ffcc00, 0 -20px 30px #ff6600, 0 -40px 50px #cc0000; transform: scale(1.6); }
-            100% { text-shadow: 1px 1px 2px black; transform: scale(1); }
+        /* BARRA DE EXPERIÊNCIA DE OURO E LEVEL UP ÉPICO */
+        .level-display { font-size: 20px; font-weight: bold; color: #d4af37; text-align: center; text-shadow: 1px 1px 2px black; transition: 0.5s; display: flex; align-items: center; justify-content: center; gap: 5px; }
+        
+        .epic-level-up { animation: epic-level-up 3s cubic-bezier(0.25, 1, 0.5, 1) forwards !important; color: #ffffff !important; }
+        @keyframes epic-level-up {
+            0% { transform: scale(1); filter: brightness(1); text-shadow: 0 0 5px #ffaa00; }
+            20% { transform: scale(1.6); filter: brightness(2); text-shadow: 0 0 20px #ffaa00, 0 0 40px #ffaa00; }
+            50% { transform: scale(1.8); filter: brightness(3); text-shadow: 0 0 40px #fff, 0 0 80px #ffea00; }
+            80% { transform: scale(1.4); filter: brightness(2); text-shadow: 0 0 20px #ffaa00; }
+            100% { transform: scale(1); filter: brightness(1); text-shadow: 1px 1px 2px black; }
         }
 
         .exp-text { color: #C0C0C0; font-weight: bold; font-size: 11px; transition: all 0.5s ease; text-shadow: 1px 1px 2px black; margin-bottom: 2px;}
-        .exp-fill { background: linear-gradient(90deg, #b8860b, #ffd700); box-shadow: 0 0 10px rgba(255, 215, 0, 0.5); position: relative; overflow: visible;}
+        /* Ouro Derretido Brilhante */
+        .exp-fill { background: linear-gradient(90deg, #d4af37, #fceabb, #f8b500); box-shadow: 0 0 15px rgba(248, 181, 0, 0.8); position: relative; overflow: visible;}
         .exp-fill::after {
             content: ''; position: absolute; right: -5px; top: -2px; height: 16px; width: 16px;
-            background: #fff; box-shadow: 0 0 15px 5px #fff, 0 0 20px 10px #ffd700; border-radius: 50%;
+            background: #fff; box-shadow: 0 0 15px 5px #fff, 0 0 20px 10px #f8b500; border-radius: 50%;
         }
 
         .caixa-status { padding: 10px; transition: 0.3s; border: 1px solid transparent; border-radius: 4px;}
@@ -118,7 +118,7 @@
         
         /* SLOTS DE EQUIPAMENTO */
         .equipamento-slot { display: grid; grid-template-columns: 15px 2fr 1fr 60px 1fr 60px 85px; gap: 6px; align-items: center; background: rgba(0,0,0,0.5); padding: 10px; border: 1px solid #3a2212; margin-bottom: 8px;}
-        .equipamento-slot input, .equipamento-slot select { font-size: 11px; padding: 6px; text-align: center;}
+        .equipamento-slot input, .equipamento-slot select { font-size: 11px; padding: 6px; text-align: left;}
         .slot-num { font-weight: bold; color: #8b6d43; text-align: center; }
         .btn-equipar { padding: 6px; font-size: 11px; margin: 0; }
         .btn-equipar.equipado { background: #1e7039; border-color: #27ae60; color: white; box-shadow: inset 0 0 5px rgba(0,0,0,0.5); }
@@ -128,7 +128,7 @@
 
         .buff-container { background: rgba(0,0,0,0.4); padding: 15px; border: 1px solid #3a2212; margin-top: 10px;}
         .buff-input-grid { display: grid; grid-template-columns: 1fr 60px 60px 80px 60px 60px 50px; gap: 6px; margin-bottom: 12px;}
-        .buff-input-grid input, .buff-input-grid select { padding: 6px; font-size: 11px;}
+        .buff-input-grid input, .buff-input-grid select { padding: 6px; font-size: 11px; text-align: left;}
         
         .buff-item { display: flex; justify-content: space-between; align-items: center; background: #140c08; padding: 8px 12px; border: 1px solid #2e1d13; margin-bottom: 6px; border-left: 4px solid #1e7039; box-shadow: 0 3px 6px rgba(0,0,0,0.6);}
         .debuff-item { border-left-color: #8c1c13; }
@@ -144,6 +144,10 @@
 
         .btn-mini-acao { padding: 4px 6px; font-size: 12px; background: #1a0f0a; color: #8b6d43; border: 1px solid #3a2212; border-radius: 4px; margin: 0 2px; }
         .btn-mini-acao:hover { background: #d4af37; color: #000; border-color: #ffd700; text-shadow: none; }
+        .btn-limpar { background: transparent; border: 1px solid #8c1c13; color: #d95757; padding: 5px 8px; font-size: 10px; }
+        .btn-limpar:hover { background: #360e0e; }
+        
+        .btn-exp-master { background: linear-gradient(to bottom, #d4af37, #b8860b) !important; color: #000 !important; text-shadow: none !important; border-color: #fff !important; }
 
         .painel-mestre { display: none; gap: 10px; flex-wrap: wrap; background: rgba(0,0,0,0.7); padding: 10px; border: 1px dashed #6b1d1d; align-items: center;}
         .btn-invocar { background: linear-gradient(to bottom, #6b4d1b, #4a3411) !important; border-color: #8b6d43 !important;}
@@ -153,15 +157,32 @@
         
         .mestre-only-inline { display: none; }
         body.is-mestre .mestre-only-inline { display: inline-block; }
+        body.is-mestre .mestre-only-flex { display: flex; }
         
         body.is-jogador .esconder-jogador { display: none !important; }
         
-        /* Hud fields number arrows */
         input.hud-stat-field[type="number"] { -webkit-appearance: number-input; -moz-appearance: number-input; appearance: number-input; }
         input.hud-stat-field[type="number"]::-webkit-inner-spin-button { opacity: 1; }
     </style>
 </head>
 <body>
+
+    <div id="modal-exp" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 2000; justify-content: center; align-items: center; backdrop-filter: blur(5px);">
+        <div style="background: #1c130d; border: 3px double #d4af37; padding: 25px; border-radius: 8px; width: 300px; box-shadow: 0 0 30px #000, inset 0 0 20px rgba(0,0,0,0.8); text-align: center;">
+            <h3 style="color:#d4af37; margin-top:0; border-bottom: 1px dashed #5c3a21; padding-bottom: 10px;">✨ Distribuir EXP</h3>
+            <div style="text-align: left; margin: 15px 0; display: flex; flex-direction: column; gap: 8px;" id="modal-exp-checkboxes">
+                <label class="checkbox-alvo"><input type="checkbox" class="exp-target" value="lais"> Lais</label>
+                <label class="checkbox-alvo"><input type="checkbox" class="exp-target" value="gomes"> Gomes</label>
+                <label class="checkbox-alvo"><input type="checkbox" class="exp-target" value="kamy"> Kamy</label>
+                <label class="checkbox-alvo"><input type="checkbox" class="exp-target" value="arthur"> Arthur</label>
+            </div>
+            <input type="number" id="exp-amount-input" placeholder="Qtd. de Experiência (+ ou -)" style="margin-bottom: 15px;">
+            <div style="display: flex; gap: 10px;">
+                <button onclick="aplicarExpLote()" style="flex: 1; background: linear-gradient(to bottom, #d4af37, #8b6d43); color: #000;">Aplicar</button>
+                <button onclick="fecharModalExp()" style="flex: 1; border-color: #8c1c13; color: #d95757;">Cancelar</button>
+            </div>
+        </div>
+    </div>
 
     <button id="btn-toggle-hud" onclick="toggleHudMestre()">👁️ Grupo</button>
     <div id="hud-mestre">
@@ -186,44 +207,52 @@
             
             <div style="display: flex; gap: 20px; align-items: center; flex-wrap: wrap;">
                 
-                <!-- Visão do Jogador (Apenas Tela 1) -->
                 <div id="seletor-jogador" style="display: none;">
                     <label style="display: inline-block; margin-bottom: 0;">Seu Personagem:</label>
-                    <span id="nome-heroi-jogador" style="font-weight:bold; color:#d4af37; margin-left: 5px;"></span>
+                    <span id="nome-heroi-jogador" style="font-weight:bold; color:#d4af37; margin-left: 5px; font-size: 16px; text-transform: uppercase;"></span>
                 </div>
 
-                <!-- Visão do Mestre -->
                 <div id="painel-mestre" class="painel-mestre">
-                    <div>
-                        <label style="display: inline-block; margin-bottom: 0; color: #b89c72;">Visualizar Tela 1:</label>
-                        <select id="mestre-tela-1" onchange="mestreMudarVisao(1, this.value)">
-                            <option value="">Vazio...</option>
+                    <button class="btn-exp-master" onclick="abrirModalExp()">✨ Distribuir EXP</button>
+                    <div class="painel-mestre-box" style="margin-left: 10px; border-left: 1px dashed #6b1d1d; padding-left: 15px;">
+                        <label style="margin-bottom: 0; color: #b89c72;">TELA 1:</label>
+                        <select id="mestre-t1-player" onchange="mestreAbrir(1, 'heroi', this.value)">
+                            <option value="">👤 Jogadores...</option>
                         </select>
+                        <select id="mestre-t1-monstro" onchange="mestreAbrir(1, 'monstro', this.value)">
+                            <option value="">💀 Monstros...</option>
+                        </select>
+                        <button class="btn-limpar" onclick="mestreLimpar(1)" title="Fechar Tela 1">❌</button>
                     </div>
-                    <div>
-                        <label style="display: inline-block; margin-bottom: 0; color: #b89c72;">Visualizar Tela 2:</label>
-                        <select id="mestre-tela-2" onchange="mestreMudarVisao(2, this.value)">
-                            <option value="">Vazio...</option>
+
+                    <div class="painel-mestre-box">
+                        <label style="margin-bottom: 0; color: #b89c72;">TELA 2:</label>
+                        <select id="mestre-t2-player" onchange="mestreAbrir(2, 'heroi', this.value)">
+                            <option value="">👤 Jogadores...</option>
                         </select>
+                        <select id="mestre-t2-monstro" onchange="mestreAbrir(2, 'monstro', this.value)">
+                            <option value="">💀 Monstros...</option>
+                        </select>
+                        <button class="btn-limpar" onclick="mestreLimpar(2)" title="Fechar Tela 2">❌</button>
                     </div>
 
                     <div style="border-left: 1px dashed #6b1d1d; margin-left: 5px; padding-left: 15px;">
-                        <label style="display: inline-block; margin-bottom: 0; color: #a84242;">Gerenciar Ameaças:</label>
+                        <label style="display: inline-block; margin-bottom: 0; color: #a84242;">Ameaça Ativa:</label>
                         <select id="seletor-monstro" style="border-color: #6b1d1d;" onchange="selecionarMonstroMestre(this.value)">
                             <option value="" disabled selected>Nenhum...</option>
                         </select>
                     </div>
-                    <button class="btn-invocar" onclick="invocarMonstro()">+ Invocar Monstro</button>
-                    <button id="btn-lancar" class="btn-lancar" onclick="lancarMonstro()" style="display:none;">⚔️ Lançar Monstro</button>
+                    <button class="btn-invocar" onclick="invocarMonstro()">+ Criar Monstro</button>
+                    <button id="btn-lancar" class="btn-lancar" onclick="lancarMonstro()" style="display:none;">⚔️ Lançar aos Players</button>
                     <button id="btn-derrotado" class="btn-derrotado" onclick="monstroDerrotado()" style="display:none;">💀 Monstro Derrotado</button>
-                    <button id="btn-deletar" class="btn-deletar" onclick="deletarMonstro()" style="display:none;">🗑️ Deletar Permanentemente</button>
+                    <button id="btn-deletar" class="btn-deletar" onclick="deletarMonstro()" style="display:none;">🗑️ Deletar</button>
                 </div>
             </div>
         </div>
 
         <div class="mesa-de-jogo">
-            <div id="slot-1" class="slot-container"></div>
-            <div id="slot-2" class="slot-container"></div>
+            <div id="slot-1" class="slot-container" style="display: none;"></div>
+            <div id="slot-2" class="slot-container" style="display: none;"></div>
         </div>
     </div>
 
@@ -261,12 +290,12 @@
 
         // Controle dos dois slots da mesa de jogo
         let slotsDeVisao = {
-            1: { ouvinte: null, idFicha: null, tipo: null },
-            2: { ouvinte: null, idFicha: null, tipo: null }
+            1: { ouvinte: null, idFicha: null, tipo: null, dados: {} },
+            2: { ouvinte: null, idFicha: null, tipo: null, dados: {} }
         };
 
         // ==========================================
-        // 1. GERAÇÃO DINÂMICA DE HTML (SLOTS 1 e 2)
+        // GERAÇÃO DINÂMICA DE HTML (SLOTS 1 e 2)
         // ==========================================
         function gerarHtmlHeroi(numSlot) {
             let optionsAttrs = `<option value="">Atributo</option><option value="hp-max">HP Máx</option><option value="mana-max">Mana Máx</option><option value="for">FOR</option><option value="des">DES</option><option value="con">CON</option><option value="int">INT</option><option value="sab">SAB</option><option value="car">CAR</option><option value="per">PER</option>`;
@@ -297,14 +326,10 @@
                     <div class="info-grid">
                         <div style="display: flex; gap: 10px; grid-column: span 2; align-items: center; border-bottom: 1px dashed #3a2212; padding-bottom: 10px;">
                             <div style="flex: 1;"><label>Nome do Herói</label><input type="text" id="slot${numSlot}-nome" class="editavel-slot${numSlot}"></div>
-                            <div style="width: 110px; text-align: center;">
+                            <div style="width: 130px; text-align: center;">
                                 <label style="color:#d4af37; font-size: 12px;">NÍVEL</label>
                                 <div class="level-display" id="slot${numSlot}-level-display" data-current-level="1">
                                     LV. <span id="slot${numSlot}-num-level">1</span>
-                                </div>
-                                <div class="mestre-only-inline">
-                                    <button class="btn-mini-acao" onclick="modificarNivelManual(${numSlot}, -1)">-</button>
-                                    <button class="btn-mini-acao" onclick="modificarNivelManual(${numSlot}, 1)">+</button>
                                 </div>
                             </div>
                         </div>
@@ -322,7 +347,11 @@
                         <div class="fraction-input">
                             <input type="number" id="slot${numSlot}-hp-atual" class="editavel-slot${numSlot}" style="color: #27ae60;">
                             <span>/</span>
-                            <input type="number" id="slot${numSlot}-hp-max" class="editavel-slot${numSlot} mestre-unlocked" title="Vida Máxima (Padrão 20)" style="color: #27ae60; width:60px;">
+                            <span id="slot${numSlot}-hp-efetivo" style="color: #27ae60; font-size: 20px; font-weight: bold; width:40px; display:inline-block; text-align:left;">20</span>
+                        </div>
+                        <div class="mestre-only-flex" style="justify-content:center; align-items:center; margin-top:5px; gap:5px;">
+                            <label style="margin:0; color:#9c8464;">Base Máx (Mestre):</label>
+                            <input type="number" id="slot${numSlot}-hp-max" class="editavel-slot${numSlot} mestre-unlocked" title="Vida Base Máxima (Padrão 20)" style="width:50px; padding:2px; font-size:11px;">
                         </div>
                         <div class="bar-bg"><div class="bar-fill hp-fill" id="bar-hp-slot${numSlot}" style="width: 100%;"></div></div>
                     </div>
@@ -332,20 +361,18 @@
                         <div class="fraction-input">
                             <input type="number" id="slot${numSlot}-mana-atual" class="editavel-slot${numSlot}" style="color: #2980b9;">
                             <span>/</span>
-                            <input type="number" id="slot${numSlot}-mana-max" class="editavel-slot${numSlot} mestre-unlocked" title="Mana Máxima (Padrão 20)" style="color: #2980b9; width:60px;">
+                            <span id="slot${numSlot}-mana-efetivo" style="color: #2980b9; font-size: 20px; font-weight: bold; width:40px; display:inline-block; text-align:left;">20</span>
+                        </div>
+                        <div class="mestre-only-flex" style="justify-content:center; align-items:center; margin-top:5px; gap:5px;">
+                            <label style="margin:0; color:#9c8464;">Base Máx (Mestre):</label>
+                            <input type="number" id="slot${numSlot}-mana-max" class="editavel-slot${numSlot} mestre-unlocked" title="Mana Base Máxima (Padrão 20)" style="width:50px; padding:2px; font-size:11px;">
                         </div>
                         <div class="bar-bg"><div class="bar-fill mana-fill" id="bar-mana-slot${numSlot}" style="width: 100%;"></div></div>
                     </div>
 
                     <div class="caixa-status" style="grid-column: span 2; padding: 0 10px;">
                         <div style="display:flex; justify-content: space-between; align-items: flex-end; margin-bottom: 5px;">
-                            <div>
-                                <label style="color: #ffd700; margin: 0; text-shadow: 1px 1px 2px black; display:inline-block;">EXPERIÊNCIA</label>
-                                <div class="mestre-only-inline" style="margin-left: 10px;">
-                                    <button class="btn-mini-acao" onclick="modificarExpManual(${numSlot}, -50)">-50</button>
-                                    <button class="btn-mini-acao" onclick="modificarExpManual(${numSlot}, 50)">+50</button>
-                                </div>
-                            </div>
+                            <label style="color: #ffd700; margin: 0; text-shadow: 1px 1px 2px black;">EXPERIÊNCIA</label>
                             <div id="slot${numSlot}-exp-text" class="exp-text">0 / 100</div>
                         </div>
                         <div class="bar-bg" style="height: 14px; position: relative;">
@@ -358,7 +385,10 @@
                     <div style="grid-column: span 2;"><label>Condição Física</label><input type="text" id="slot${numSlot}-condicao" class="editavel-slot${numSlot}"></div>
                 </div>
 
-                <div class="section-title">Atributos Primordiais <span style="font-size: 10px; color: #a84242; text-transform: none;">(Máx: 10 Pontos Totais)</span></div>
+                <div class="section-title">
+                    Atributos Primordiais
+                    <span id="slot${numSlot}-pts-livres" style="font-size: 11px; color: #ffd700; font-weight: bold;">(0 Livres)</span>
+                </div>
                 <div class="atributos-grid">
                     <div class="attr-box"><label>FOR</label><input type="number" id="slot${numSlot}-for" class="editavel-slot${numSlot}"></div>
                     <div class="attr-box"><label>DES</label><input type="number" id="slot${numSlot}-des" class="editavel-slot${numSlot}"></div>
@@ -478,7 +508,7 @@
 
 
         // ==========================================
-        // LÓGICA DE LOGIN E INICIALIZAÇÃO GERAL
+        // LÓGICA DE LOGIN E INICIALIZAÇÃO
         // ==========================================
         window.fazerLogin = function() {
             const digitado = document.getElementById('input-senha').value.trim().toLowerCase();
@@ -500,9 +530,7 @@
                     initHudGlobais();
                 } else {
                     document.getElementById('seletor-jogador').style.display = "block";
-                    document.getElementById('nome-heroi-jogador').innerText = usuarioAtual.idFicha.toUpperCase();
-                    
-                    // Jogadores sempre visualizam seu próprio herói no slot 1.
+                    document.getElementById('nome-heroi-jogador').innerText = usuarioAtual.nome;
                     abrirFichaNoSlot(1, 'heroi', usuarioAtual.idFicha);
                 }
                 
@@ -513,13 +541,11 @@
         }
 
         function iniciarOuvintesGerais() {
-            // Escuta a lista de monstros para popular os seletores do Mestre
             onValue(ref(database, 'lista_monstros'), (snapshot) => {
                 monstrosNoBanco = snapshot.val() || {};
                 if(usuarioAtual.cargo === "Mestre") preencherDropdownsMestre();
             });
 
-            // Escuta estado global de combate para lançar o monstro aos jogadores
             onValue(ref(database, 'estado_combate/ativo'), (snapshot) => {
                 monstroEmCombateGlobal = snapshot.val(); 
 
@@ -530,163 +556,138 @@
                         limparSlot(2);
                     }
                 }
-                
                 if (usuarioAtual.cargo === "Mestre") {
                     atualizarBotoesMestre();
                 }
             });
         }
 
-
         // ==========================================
-        // GESTÃO DE TELAS (SLOTS) E RENDERIZAÇÃO
+        // GESTÃO DE TELAS (SLOTS)
         // ==========================================
-        
         function preencherDropdownsMestre() {
             if(usuarioAtual.cargo !== "Mestre") return;
             
-            let htmlJogadores = `<optgroup label="Jogadores">` + playersList.map(p => `<option value="heroi-${p}">${p.toUpperCase()}</option>`).join('') + `</optgroup>`;
-            let htmlMonstros = `<optgroup label="Monstros">`;
-            for(let id in monstrosNoBanco) {
-                htmlMonstros += `<option value="monstro-${id}">💀 ${monstrosNoBanco[id].nome}</option>`;
-            }
-            htmlMonstros += `</optgroup>`;
+            let htmlJogadores = `<option value="">👤 Jogadores...</option>` + playersList.map(p => `<option value="${p}">${p.toUpperCase()}</option>`).join('');
+            let htmlMonstros = `<option value="">💀 Monstros...</option>`;
+            for(let id in monstrosNoBanco) { htmlMonstros += `<option value="${id}">${monstrosNoBanco[id].nome}</option>`; }
             
-            const opcoes = `<option value="">Vazio...</option>` + htmlJogadores + htmlMonstros;
+            const selT1P = document.getElementById('mestre-t1-player');
+            const selT1M = document.getElementById('mestre-t1-monstro');
+            let vT1P = selT1P.value, vT1M = selT1M.value;
+            selT1P.innerHTML = htmlJogadores; selT1P.value = vT1P;
+            selT1M.innerHTML = htmlMonstros; selT1M.value = vT1M;
             
-            const sel1 = document.getElementById('mestre-tela-1');
-            const sel2 = document.getElementById('mestre-tela-2');
-            const sel3 = document.getElementById('seletor-monstro');
-            
-            let v1 = sel1.value, v2 = sel2.value, v3 = sel3.value;
-            
-            sel1.innerHTML = opcoes; sel1.value = v1;
-            sel2.innerHTML = opcoes; sel2.value = v2;
-            
+            const selT2P = document.getElementById('mestre-t2-player');
+            const selT2M = document.getElementById('mestre-t2-monstro');
+            let vT2P = selT2P.value, vT2M = selT2M.value;
+            selT2P.innerHTML = htmlJogadores; selT2P.value = vT2P;
+            selT2M.innerHTML = htmlMonstros; selT2M.value = vT2M;
+
+            const selAmeaca = document.getElementById('seletor-monstro');
+            let vAmeaca = selAmeaca.value;
             let opcoesAmeaca = `<option value="" disabled selected>Nenhum...</option>`;
-            for(let id in monstrosNoBanco) {
-                opcoesAmeaca += `<option value="${id}">💀 ${monstrosNoBanco[id].nome}</option>`;
-            }
-            sel3.innerHTML = opcoesAmeaca; sel3.value = v3;
+            for(let id in monstrosNoBanco) { opcoesAmeaca += `<option value="${id}">💀 ${monstrosNoBanco[id].nome}</option>`; }
+            selAmeaca.innerHTML = opcoesAmeaca; selAmeaca.value = vAmeaca;
         }
 
-        window.mestreMudarVisao = function(numSlot, valorComposto) {
-            if(!valorComposto) {
-                limparSlot(numSlot);
-                return;
-            }
-            const parts = valorComposto.split('-');
-            const tipo = parts[0]; 
-            const idFicha = parts.slice(1).join('-');
-            
-            abrirFichaNoSlot(numSlot, tipo, idFicha);
+        window.mestreAbrir = function(numSlot, tipo, valor) {
+            if(!valor) return;
+            if(tipo === 'heroi') document.getElementById(`mestre-t${numSlot}-monstro`).value = '';
+            else document.getElementById(`mestre-t${numSlot}-player`).value = '';
+            abrirFichaNoSlot(numSlot, tipo, valor);
+        }
+
+        window.mestreLimpar = function(numSlot) {
+            document.getElementById(`mestre-t${numSlot}-player`).value = '';
+            document.getElementById(`mestre-t${numSlot}-monstro`).value = '';
+            limparSlot(numSlot);
         }
 
         function limparSlot(numSlot) {
+            document.getElementById(`slot-${numSlot}`).style.display = 'none';
             document.getElementById(`container-slot${numSlot}-heroi`).style.display = 'none';
             document.getElementById(`container-slot${numSlot}-monstro`).style.display = 'none';
-            if (slotsDeVisao[numSlot].ouvinte) {
-                slotsDeVisao[numSlot].ouvinte(); // Remove listener antigo
-            }
-            slotsDeVisao[numSlot] = { ouvinte: null, idFicha: null, tipo: null };
+            if (slotsDeVisao[numSlot].ouvinte) { slotsDeVisao[numSlot].ouvinte(); }
+            slotsDeVisao[numSlot] = { ouvinte: null, idFicha: null, tipo: null, dados: {} };
         }
 
         function formatarIdElemento(numSlot, tipoFicha, campoDB) {
-            // Converte campo do banco para a chave do HTML
             if(tipoFicha === 'monstro') {
                 if(campoDB === 'nome') return `slot${numSlot}-monstro-nome`;
                 return `slot${numSlot}-monstro-${campoDB}`;
-            } else {
-                return `slot${numSlot}-${campoDB}`;
-            }
+            } else { return `slot${numSlot}-${campoDB}`; }
         }
 
+        // ==========================================
+        // CÁLCULOS DE NÍVEL E EXPERIÊNCIA
+        // ==========================================
         function getLevelData(expTotal) {
-            let level = 1;
-            let requiredForNext = 100; 
-            let exp = expTotal || 0;
+            let level = 1; let requiredForNext = 100; let exp = expTotal || 0;
             while(exp >= requiredForNext) {
-                exp -= requiredForNext;
-                level++;
-                requiredForNext *= 2; 
+                exp -= requiredForNext; level++; requiredForNext *= 2; 
             }
             return { level, currentExp: exp, requiredForNext };
         }
 
-        function getExpForLevel(level) {
-            if(level <= 1) return 0;
-            let exp = 0;
-            let req = 100;
-            for(let i = 1; i < level; i++) {
-                exp += req;
-                req *= 2;
+        // ==========================================
+        // MODAL DE EXP (MESTRE)
+        // ==========================================
+        window.abrirModalExp = function() {
+            document.getElementById('modal-exp').style.display = 'flex';
+            document.querySelectorAll('.exp-target').forEach(cb => cb.checked = false);
+            document.getElementById('exp-amount-input').value = '';
+        }
+
+        window.fecharModalExp = function() {
+            document.getElementById('modal-exp').style.display = 'none';
+        }
+
+        window.aplicarExpLote = async function() {
+            if(usuarioAtual.cargo !== "Mestre") return;
+            const amount = Number(document.getElementById('exp-amount-input').value);
+            if(!amount) return alert("Insira um valor numérico válido!");
+
+            const selecionados = Array.from(document.querySelectorAll('.exp-target:checked')).map(cb => cb.value);
+            if(selecionados.length === 0) return alert("Selecione pelo menos um jogador!");
+
+            for(let p of selecionados) {
+                const refFicha = ref(database, 'fichas/' + p);
+                const snap = await get(refFicha);
+                let dados = snap.val() || {};
+                let expAtualDB = Number(dados.expTotal) || 0;
+                let novaExp = expAtualDB + amount;
+                if(novaExp < 0) novaExp = 0;
+                update(refFicha, { expTotal: novaExp });
             }
-            return exp;
+            fecharModalExp();
         }
 
-        window.modificarNivelManual = async function(numSlot, delta) {
-            if(usuarioAtual.cargo !== "Mestre") return;
-            const slotData = slotsDeVisao[numSlot];
-            if(slotData.tipo !== 'heroi' || !slotData.idFicha) return;
-
-            const refFicha = ref(database, 'fichas/' + slotData.idFicha);
-            const snap = await get(refFicha);
-            let dados = snap.val() || {};
-            
-            let expTotal = dados.expTotal || 0;
-            let currentLevel = getLevelData(expTotal).level;
-            let newLevel = Math.max(1, currentLevel + delta);
-            
-            let newExpTotal = getExpForLevel(newLevel);
-            update(refFicha, { expTotal: newExpTotal });
-        }
-
-        window.modificarExpManual = async function(numSlot, amount) {
-            if(usuarioAtual.cargo !== "Mestre") return;
-            const slotData = slotsDeVisao[numSlot];
-            if(slotData.tipo !== 'heroi' || !slotData.idFicha) return;
-
-            const refFicha = ref(database, 'fichas/' + slotData.idFicha);
-            const snap = await get(refFicha);
-            let dados = snap.val() || {};
-            
-            let expTotal = Math.max(0, (dados.expTotal || 0) + amount);
-            update(refFicha, { expTotal: expTotal });
-        }
-
+        // ==========================================
+        // CARREGAMENTO DA FICHA E OUVINTES
+        // ==========================================
         function abrirFichaNoSlot(numSlot, tipo, idFicha) {
             if(!idFicha) return;
             limparSlot(numSlot);
             
+            document.getElementById(`slot-${numSlot}`).style.display = 'flex';
             slotsDeVisao[numSlot].idFicha = idFicha;
             slotsDeVisao[numSlot].tipo = tipo;
 
             const contHeroi = document.getElementById(`container-slot${numSlot}-heroi`);
             const contMonstro = document.getElementById(`container-slot${numSlot}-monstro`);
             
-            if(tipo === 'heroi') {
-                contHeroi.style.display = 'block';
-                contMonstro.style.display = 'none';
-            } else {
-                contHeroi.style.display = 'none';
-                contMonstro.style.display = 'block';
-            }
+            if(tipo === 'heroi') { contHeroi.style.display = 'block'; contMonstro.style.display = 'none'; } 
+            else { contHeroi.style.display = 'none'; contMonstro.style.display = 'block'; }
 
-            // Permissões de edição no HTML visual
             const temPermissao = (usuarioAtual.cargo === "Mestre") || (tipo === 'heroi' && usuarioAtual.idFicha === idFicha);
             
             document.querySelectorAll(`.editavel-slot${numSlot}`).forEach(el => {
-                if(!el.classList.contains('mestre-unlocked')) {
-                    el.disabled = !temPermissao;
-                } else {
-                    el.disabled = (usuarioAtual.cargo !== "Mestre");
-                }
-                
-                // Mestre limpa valores velhos para evitar ghosting
+                if(!el.classList.contains('mestre-unlocked')) { el.disabled = !temPermissao; } 
+                else { el.disabled = (usuarioAtual.cargo !== "Mestre"); } // HP Máx editável só pro mestre
                 if(el.type !== 'checkbox' && el.type !== 'radio' && el.type !== 'file') el.value = '';
             });
 
-            // Carrega a Foto 
             get(ref(database, 'fotos/' + idFicha)).then(snap => {
                 const imgEl = tipo === 'heroi' ? document.getElementById(`img-foto-slot${numSlot}`) : document.getElementById(`img-foto-monstro-slot${numSlot}`);
                 if(snap.exists() && imgEl) imgEl.src = snap.val().base64;
@@ -694,42 +695,42 @@
 
             const refFicha = ref(database, 'fichas/' + idFicha);
             
-            // Define valores default se não existirem (Mestre fixando HP Max=20)
             get(refFicha).then(snap => {
-                if(!snap.exists() && tipo === 'heroi') {
-                    update(refFicha, { 'hp-max': 20, 'mana-max': 20, nome: idFicha });
+                if(!snap.exists() && tipo === 'heroi') update(refFicha, { 'hp-max': 20, 'mana-max': 20, nome: idFicha });
+                else if(snap.exists() && tipo === 'heroi') {
+                    let d = snap.val();
+                    if(d['hp-max'] === undefined) update(refFicha, { 'hp-max': 20 });
+                    if(d['mana-max'] === undefined) update(refFicha, { 'mana-max': 20 });
                 }
             });
 
             const novoOuvinte = onValue(refFicha, (snapshot) => {
                 const dados = snapshot.val() || {};
+                slotsDeVisao[numSlot].dados = dados;
 
-                // Trava os 10 pontos de status pro jogador
-                let blockPoints = false;
-                if (tipo === 'heroi') {
-                    let ptsAtuais = 0;
-                    ['for', 'des', 'con', 'int', 'sab', 'car', 'per'].forEach(a => ptsAtuais += Number(dados[a]) || 0);
-                    if (ptsAtuais >= 10 && usuarioAtual.cargo === "Jogador") blockPoints = true;
-                }
-
-                // Preencher valores e aplicar bloqueios
                 for(let chave in dados) {
                     if(chave === 'efeitos') continue;
                     let idHTML = formatarIdElemento(numSlot, tipo, chave);
                     let el = document.getElementById(idHTML);
-                    if(el) {
-                        if (['for', 'des', 'con', 'int', 'sab', 'car', 'per'].includes(chave)) {
-                            el.disabled = (usuarioAtual.cargo !== "Mestre" && (blockPoints || !temPermissao));
-                        }
-                        
-                        if(document.activeElement !== el) {
-                            el.value = dados[chave];
-                        }
-                    }
+                    if(el && document.activeElement !== el) el.value = dados[chave];
                 }
 
                 if(tipo === 'heroi') {
-                    // Level e EXP
+                    // CALCULA MODIFICADORES DE HP E MANA
+                    let hpMaxBase = Number(dados['hp-max']) || 20;
+                    let manaMaxBase = Number(dados['mana-max']) || 20;
+                    let con = Number(dados['con']) || 0;
+                    let int = Number(dados['int']) || 0;
+
+                    let hpEfetivo = hpMaxBase + (con * 3);
+                    let manaEfetivo = manaMaxBase + (int * 2);
+
+                    let elHpEfetivo = document.getElementById(`slot${numSlot}-hp-efetivo`);
+                    let elManaEfetivo = document.getElementById(`slot${numSlot}-mana-efetivo`);
+                    if(elHpEfetivo) elHpEfetivo.innerText = hpEfetivo;
+                    if(elManaEfetivo) elManaEfetivo.innerText = manaEfetivo;
+
+                    // LEVEL E EXPERIÊNCIA
                     let expTotal = Number(dados['expTotal']) || 0;
                     let levelData = getLevelData(expTotal);
                     let elLevel = document.getElementById(`slot${numSlot}-level-display`);
@@ -738,8 +739,9 @@
                     if(elLevel && numLevelSpan) {
                         let lastLevel = elLevel.dataset.currentLevel || 1;
                         if(levelData.level > lastLevel) {
-                            elLevel.classList.add('level-up-fire');
-                            setTimeout(() => elLevel.classList.remove('level-up-fire'), 2500);
+                            // ANIMAÇÃO ÉPICA DE LEVEL UP
+                            elLevel.classList.add('epic-level-up');
+                            setTimeout(() => elLevel.classList.remove('epic-level-up'), 3000);
                         }
                         numLevelSpan.innerText = levelData.level;
                         elLevel.dataset.currentLevel = levelData.level;
@@ -747,34 +749,40 @@
 
                     let percExp = (levelData.currentExp / levelData.requiredForNext) * 100;
                     if(percExp > 100) percExp = 100;
-                    
                     document.getElementById(`bar-exp-slot${numSlot}`).style.width = `${percExp}%`;
+                    
                     let expText = document.getElementById(`slot${numSlot}-exp-text`);
                     expText.innerText = `${levelData.currentExp} / ${levelData.requiredForNext}`;
-                    
-                    // Crescimento Prateado Dinâmico (Mantido)
-                    let scale = 1 + (percExp / 100) * 0.25;
-                    let glow = percExp / 6;
+                    let scale = 1 + (percExp / 100) * 0.25; let glow = percExp / 6;
                     expText.style.transform = `scale(${scale})`;
-                    expText.style.textShadow = `0 0 ${glow}px rgba(192, 192, 192, 0.9), 1px 1px 2px black`;
+                    expText.style.textShadow = `0 0 ${glow}px rgba(255, 215, 0, 0.9), 1px 1px 2px black`;
 
-                    // Botões de equipamento
+                    // CALCULA PONTOS DE ATRIBUTO LIVRES
+                    let maxAtributos = 10 + (levelData.level - 1);
+                    let ptsAtuais = 0;
+                    ['for', 'des', 'con', 'int', 'sab', 'car', 'per'].forEach(a => ptsAtuais += Number(dados[a]) || 0);
+                    let ptsLivres = maxAtributos - ptsAtuais;
+
+                    let spanPts = document.getElementById(`slot${numSlot}-pts-livres`);
+                    if(spanPts) {
+                        spanPts.innerText = `(${ptsLivres} Pontos Disponíveis de ${maxAtributos})`;
+                        spanPts.style.color = ptsLivres > 0 ? '#27ae60' : '#d95757';
+                    }
+
+                    // EQUIPAMENTOS
                     for(let i=1; i<=5; i++) {
                         let isEquipado = dados[`item${i}-equipado`] || false;
                         let btn = document.getElementById(`slot${numSlot}-btn-equip-${i}`);
                         if(!btn) continue;
-                        
                         if(isEquipado) {
-                            btn.innerText = "Deseq.";
-                            btn.classList.add("equipado");
+                            btn.innerText = "Deseq."; btn.classList.add("equipado");
                             document.getElementById(`slot${numSlot}-item${i}-nome`).disabled = true;
                             document.getElementById(`slot${numSlot}-item${i}-attr1`).disabled = true;
                             document.getElementById(`slot${numSlot}-item${i}-mod1`).disabled = true;
                             document.getElementById(`slot${numSlot}-item${i}-attr2`).disabled = true;
                             document.getElementById(`slot${numSlot}-item${i}-mod2`).disabled = true;
                         } else {
-                            btn.innerText = "Equip.";
-                            btn.classList.remove("equipado");
+                            btn.innerText = "Equip."; btn.classList.remove("equipado");
                         }
                     }
                 }
@@ -786,9 +794,8 @@
 
             slotsDeVisao[numSlot].ouvinte = novoOuvinte;
 
-            // Associa os listeners de input dinamicamente para o slot recém aberto
+            // LISTENERS DE INPUT (COM TRAVA DE PONTOS)
             document.querySelectorAll(`.editavel-slot${numSlot}`).forEach(campo => {
-                // Remove listeners antigos se houver
                 const novoCampo = campo.cloneNode(true);
                 campo.parentNode.replaceChild(novoCampo, campo);
                 
@@ -799,6 +806,29 @@
                         if(tipo === 'monstro') {
                             chaveDoBanco = chaveDoBanco.replace('monstro-', '');
                             if(chaveCompleta === `slot${numSlot}-monstro-nome`) chaveDoBanco = 'nome';
+                        }
+
+                        // TRAVA DE ATRIBUTOS PARA O PLAYER
+                        if (tipo === 'heroi' && ['for', 'des', 'con', 'int', 'sab', 'car', 'per'].includes(chaveDoBanco)) {
+                            let novoValor = Number(e.target.value);
+                            if (novoValor < 0) novoValor = 0;
+                            if (novoValor > 20) novoValor = 20;
+
+                            let dadosAntigos = slotsDeVisao[numSlot].dados || {};
+                            let expT = Number(dadosAntigos['expTotal']) || 0;
+                            let lvl = getLevelData(expT).level;
+                            let maxA = 10 + (lvl - 1);
+
+                            let sumOthers = 0;
+                            ['for', 'des', 'con', 'int', 'sab', 'car', 'per'].forEach(a => {
+                                if(a !== chaveDoBanco) sumOthers += Number(dadosAntigos[a]) || 0;
+                            });
+
+                            if (sumOthers + novoValor > maxA && usuarioAtual.cargo !== "Mestre") {
+                                e.target.value = dadosAntigos[chaveDoBanco] || 0; // Reverte se ultrapassar
+                                return; // Impede salvar no banco
+                            }
+                            e.target.value = novoValor; // Força limites visuais de min/max
                         }
                         
                         update(ref(database, 'fichas/' + idFicha), { [chaveDoBanco]: e.target.value });
@@ -812,9 +842,10 @@
             let prefixo = tipo === 'heroi' ? `slot${numSlot}` : `slot${numSlot}-monstro`;
             
             const hpAtual = Number(document.getElementById(`${prefixo}-hp-atual`).value) || 0;
-            const hpMax = Number(document.getElementById(`${prefixo}-hp-max`).value) || 1;
+            const hpMax = tipo === 'heroi' ? (Number(document.getElementById(`slot${numSlot}-hp-efetivo`).innerText) || 20) : (Number(document.getElementById(`${prefixo}-hp-max`).value) || 20);
+            
             const manaAtual = Number(document.getElementById(`${prefixo}-mana-atual`).value) || 0;
-            const manaMax = Number(document.getElementById(`${prefixo}-mana-max`).value) || 1;
+            const manaMax = tipo === 'heroi' ? (Number(document.getElementById(`slot${numSlot}-mana-efetivo`).innerText) || 20) : (Number(document.getElementById(`${prefixo}-mana-max`).value) || 20);
             
             let percHp = (hpAtual / hpMax) * 100;
             let percMana = (manaAtual / manaMax) * 100;
@@ -834,16 +865,13 @@
 
             const caixaHp = document.getElementById(caixaHpId);
             if(caixaHp) {
-                if (percHp <= 10 && hpMax > 0 && hpAtual > 0) {
-                    caixaHp.classList.add('alerta-morte');
-                } else {
-                    caixaHp.classList.remove('alerta-morte');
-                }
+                if (percHp <= 10 && hpMax > 0 && hpAtual > 0) { caixaHp.classList.add('alerta-morte'); } 
+                else { caixaHp.classList.remove('alerta-morte'); }
             }
         }
 
         // ==========================================
-        // OUTRAS LÓGICAS ADAPTADAS AOS SLOTS
+        // OUTRAS LÓGICAS (UPLOAD, ITENS, BUFFS)
         // ==========================================
         window.processarUploadOtimizado = function(event, numSlot) {
             const file = event.target.files[0];
@@ -905,7 +933,7 @@
             const idFicha = slotsDeVisao[numSlot].idFicha;
             if(!idFicha) return;
             
-            const p = isMonstro ? `slot${numSlot}-novo-buff-` : `slot${numSlot}-novo-buff-`;
+            const p = `slot${numSlot}-novo-buff-`;
             const pos = isMonstro ? "-monstro" : "";
             
             const nome = document.getElementById(`${p}nome${pos}`).value;
@@ -930,7 +958,6 @@
             efeitos.push({ idUnico: Date.now(), nome, modHp, modMana, attrDestino, modAttr, turnos });
             update(refFicha, { efeitos });
             
-            // Limpar inputs localmente
             document.getElementById(`${p}nome${pos}`).value = '';
             document.getElementById(`${p}turnos${pos}`).value = '';
         }
@@ -967,8 +994,10 @@
 
             let hpAtual = Number(dados['hp-atual']) || 0;
             let manaAtual = Number(dados['mana-atual']) || 0;
-            let hpMax = Number(dados['hp-max']) || 20;
-            let manaMax = Number(dados['mana-max']) || 20;
+            
+            // Pega o Efetivo se for herói, ou Base se monstro
+            let hpMax = tipo === 'heroi' ? (Number(document.getElementById(`slot${numSlot}-hp-efetivo`).innerText) || 20) : (Number(dados['hp-max']) || 20);
+            let manaMax = tipo === 'heroi' ? (Number(document.getElementById(`slot${numSlot}-mana-efetivo`).innerText) || 20) : (Number(dados['mana-max']) || 20);
             
             let attrParaReverter = {};
 
@@ -1062,9 +1091,8 @@
         }
 
         // ==========================================
-        // SISTEMA DO MESTRE: MONSTROS E HUD GERAL
+        // SISTEMA DO MESTRE (MONSTROS E HUD GERAL)
         // ==========================================
-
         window.invocarMonstro = function() {
             if(usuarioAtual.cargo !== "Mestre") return;
             const nomeDoMonstro = prompt("Nome do Monstro a ser criado:");
@@ -1081,11 +1109,9 @@
         };
 
         window.selecionarMonstroMestre = function(idMonstro) {
-            // O mestre selecionou um monstro no painel de gerência
-            // Forçamos ele a aparecer no Slot 2 do mestre para visualização e edição rápida.
             if(!idMonstro) return;
-            document.getElementById('mestre-tela-2').value = 'monstro-' + idMonstro;
-            abrirFichaNoSlot(2, 'monstro', idMonstro);
+            document.getElementById('mestre-t2-monstro').value = idMonstro;
+            mestreAbrir(2, 'monstro', idMonstro);
             atualizarBotoesMestre();
         }
 
@@ -1133,7 +1159,6 @@
                 remove(ref(database, 'fichas/' + idAlvo));
                 document.getElementById('seletor-monstro').value = "";
                 
-                // Se o monstro deletado estava em algum slot do mestre, limpa
                 if(slotsDeVisao[1].idFicha === idAlvo) limparSlot(1);
                 if(slotsDeVisao[2].idFicha === idAlvo) limparSlot(2);
                 
@@ -1173,7 +1198,7 @@
                             <span style="color:#27ae60; font-weight:bold; font-size:11px;">HP:</span>
                             <div>
                                 <input type="number" id="hud-${p}-hp-atual" class="hud-input hud-stat-field" onchange="atualizarHudMestre('${p}', 'hp-atual', this.value)"> / 
-                                <input type="number" id="hud-${p}-hp-max" class="hud-input hud-stat-field" title="Base HP" onchange="atualizarHudMestre('${p}', 'hp-max', this.value)">
+                                <span id="hud-${p}-hp-max" style="font-weight:bold; font-size:11px; display:inline-block; width:25px; text-align:left;">20</span>
                             </div>
                         </div>
                         <div class="hud-mini-bar-bg"><div class="hud-mini-bar-fill" id="hud-${p}-bar-hp" style="background:#27ae60; width:100%;"></div></div>
@@ -1181,7 +1206,7 @@
                             <span style="color:#2980b9; font-weight:bold; font-size:11px;">MP:</span>
                             <div>
                                 <input type="number" id="hud-${p}-mana-atual" class="hud-input hud-stat-field" onchange="atualizarHudMestre('${p}', 'mana-atual', this.value)"> / 
-                                <input type="number" id="hud-${p}-mana-max" class="hud-input hud-stat-field" title="Base Mana" onchange="atualizarHudMestre('${p}', 'mana-max', this.value)">
+                                <span id="hud-${p}-mana-max" style="font-weight:bold; font-size:11px; display:inline-block; width:25px; text-align:left;">20</span>
                             </div>
                         </div>
                         <div class="hud-mini-bar-bg"><div class="hud-mini-bar-fill" id="hud-${p}-bar-mana" style="background:#2980b9; width:100%;"></div></div>
@@ -1198,12 +1223,17 @@
 
         function preencherHUDJogadorVisualmente(jogadorId, dadosJogador) {
             const hpAtual = Number(dadosJogador['hp-atual']) || 0;
-            const hpMax = Number(dadosJogador['hp-max']) || 20; 
+            const hpMaxBase = dadosJogador['hp-max'] !== undefined ? Number(dadosJogador['hp-max']) : 20; 
+            const con = Number(dadosJogador['con']) || 0;
+            const hpMaxEfetivo = hpMaxBase + (con * 3);
+
             const manaAtual = Number(dadosJogador['mana-atual']) || 0;
-            const manaMax = Number(dadosJogador['mana-max']) || 20; 
+            const manaMaxBase = dadosJogador['mana-max'] !== undefined ? Number(dadosJogador['mana-max']) : 20; 
+            const int = Number(dadosJogador['int']) || 0;
+            const manaMaxEfetivo = manaMaxBase + (int * 2);
             
-            let percHp = hpMax > 0 ? (hpAtual/hpMax)*100 : 0; 
-            let percMana = manaMax > 0 ? (manaAtual/manaMax)*100 : 0; 
+            let percHp = hpMaxEfetivo > 0 ? (hpAtual/hpMaxEfetivo)*100 : 0; 
+            let percMana = manaMaxEfetivo > 0 ? (manaAtual/manaMaxEfetivo)*100 : 0; 
             if(percHp>100) percHp=100; if(percHp<0) percHp=0;
             if(percMana>100) percMana=100; if(percMana<0) percMana=0;
             
@@ -1213,9 +1243,9 @@
             let elManaMax = document.getElementById(`hud-${jogadorId}-mana-max`);
 
             if(elHpAtual && document.activeElement !== elHpAtual) elHpAtual.value = hpAtual;
-            if(elHpMax && document.activeElement !== elHpMax) elHpMax.value = hpMax;
+            if(elHpMax) elHpMax.innerText = hpMaxEfetivo; // O HUD agora mostra o valor real Efetivo (Modificado)
             if(elManaAtual && document.activeElement !== elManaAtual) elManaAtual.value = manaAtual;
-            if(elManaMax && document.activeElement !== elManaMax) elManaMax.value = manaMax;
+            if(elManaMax) elManaMax.innerText = manaMaxEfetivo;
 
             let barHp = document.getElementById(`hud-${jogadorId}-bar-hp`);
             let barMana = document.getElementById(`hud-${jogadorId}-bar-mana`);
