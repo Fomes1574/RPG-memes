@@ -74,6 +74,14 @@
         
         .hp-fill { background: linear-gradient(90deg, #1e7039, #27ae60); box-shadow: 0 0 8px rgba(39, 174, 96, 0.4);} 
         .mana-fill { background: linear-gradient(90deg, #18527a, #2980b9); box-shadow: 0 0 8px rgba(41, 128, 185, 0.4);} 
+        
+        /* FEIXE BRILHOSO DAS BARRAS */
+        .bar-fill::after {
+            content: ''; position: absolute; top: 0; left: -100%; width: 50%; height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            animation: brilho-magico 2.5s infinite linear;
+        }
+        @keyframes brilho-magico { 0% { left: -100%; } 100% { left: 200%; } }
 
         /* BARRA DE EXPERIÊNCIA DE OURO E LEVEL UP ÉPICO */
         .level-display { font-size: 20px; font-weight: bold; color: #d4af37; text-align: center; text-shadow: 1px 1px 2px black; transition: 0.5s; display: flex; align-items: center; justify-content: center; gap: 5px; }
@@ -94,8 +102,9 @@
             background: #fff; box-shadow: 0 0 15px 5px #fff, 0 0 20px 10px #f8b500; border-radius: 50%;
         }
 
+        /* ALERTA PISCANTE DE VIDA BAIXA (HERÓIS, MONSTROS E HORDAS) */
         .caixa-status { padding: 10px; transition: 0.3s; border: 1px solid transparent; border-radius: 4px;}
-        .alerta-morte { animation: pulso-morte-discreto 2s infinite alternate; }
+        .alerta-morte { animation: pulso-morte-discreto 1.5s infinite alternate !important; }
         @keyframes pulso-morte-discreto {
             0% { box-shadow: 0 0 5px rgba(139, 0, 0, 0.1), inset 0 0 5px rgba(139, 0, 0, 0.1); border-color: rgba(139, 0, 0, 0.2); }
             100% { box-shadow: 0 0 12px rgba(180, 0, 0, 0.4), inset 0 0 10px rgba(180, 0, 0, 0.3); border-color: rgba(139, 0, 0, 0.5); }
@@ -163,7 +172,7 @@
         input.hud-stat-field[type="number"], .horda-compact-input { -webkit-appearance: number-input; -moz-appearance: number-input; appearance: number-input; }
         input.hud-stat-field[type="number"]::-webkit-inner-spin-button, .horda-compact-input::-webkit-inner-spin-button { opacity: 1; }
         
-        /* ESTILOS DA HORDA */
+        /* ESTILOS DA HORDA E BARRAS INTERNAS */
         .horda-member-card { background: #140c08; border: 2px solid #5c1818; padding: 15px; border-radius: 4px; margin-bottom: 15px; box-shadow: inset 0 0 15px rgba(0,0,0,0.8); }
         .horda-compact-input { background: rgba(0,0,0,0.5); border: 1px solid #3a2212; color: #dcd0ba; text-align: center; }
         .horda-compact-input:focus { border-color: #d4af37; outline: none; }
@@ -350,7 +359,7 @@
                 <div class="section-title">Essência Vital</div>
                 <div class="status-grid">
                     <div id="caixa-hp-slot${numSlot}" class="caixa-status">
-                        <label style="color: #27ae60;">VITALIDADE (HP)</label>
+                        <label style="color: #27ae60; text-align: center;">HP</label>
                         <div class="fraction-input">
                             <input type="number" id="slot${numSlot}-hp-atual" class="editavel-slot${numSlot}" style="color: #27ae60;"><span>/</span><span id="slot${numSlot}-hp-efetivo" style="color: #27ae60; font-size: 20px; font-weight: bold; width:40px; display:inline-block; text-align:left;">20</span>
                         </div>
@@ -362,7 +371,7 @@
                     </div>
                     
                     <div class="caixa-status">
-                        <label style="color: #2980b9;">FLUIDO ARCANO (MANA)</label>
+                        <label style="color: #2980b9; text-align: center;">MANA</label>
                         <div class="fraction-input">
                             <input type="number" id="slot${numSlot}-mana-atual" class="editavel-slot${numSlot}" style="color: #2980b9;"><span>/</span><span id="slot${numSlot}-mana-efetivo" style="color: #2980b9; font-size: 20px; font-weight: bold; width:40px; display:inline-block; text-align:left;">20</span>
                         </div>
@@ -444,14 +453,14 @@
                 <div class="section-title">Atributos de Combate</div>
                 <div class="status-grid" style="grid-template-columns: 1fr;">
                     <div id="caixa-hp-monstro-slot${numSlot}" class="caixa-status">
-                        <label style="color: #27ae60;">VITALIDADE (HP)</label>
+                        <label style="color: #27ae60; text-align: center;">HP</label>
                         <div class="fraction-input">
                             <input type="number" id="slot${numSlot}-monstro-hp-atual" class="editavel-slot${numSlot}" style="color: #27ae60;"><span>/</span><input type="number" id="slot${numSlot}-monstro-hp-max" class="editavel-slot${numSlot} mestre-unlocked" style="color: #27ae60;">
                         </div>
                         <div class="bar-bg"><div class="bar-fill hp-fill" id="bar-hp-monstro-slot${numSlot}" style="width: 100%;"></div></div>
                     </div>
                     <div class="caixa-status">
-                        <label style="color: #2980b9;">FLUIDO ARCANO (MANA)</label>
+                        <label style="color: #2980b9; text-align: center;">MANA</label>
                         <div class="fraction-input">
                             <input type="number" id="slot${numSlot}-monstro-mana-atual" class="editavel-slot${numSlot}" style="color: #2980b9;"><span>/</span><input type="number" id="slot${numSlot}-monstro-mana-max" class="editavel-slot${numSlot} mestre-unlocked" style="color: #2980b9;">
                         </div>
@@ -503,7 +512,7 @@
             </div>`;
         }
 
-        // CONTAINER VAZIO DA HORDA (PREENCHIDO DINAMICAMENTE)
+        // CONTAINER VAZIO DA HORDA
         function gerarHtmlContainerHorda(numSlot) {
             return `<div class="container monstro-theme" id="container-slot${numSlot}-horda" style="border-color:#8b6d43;"></div>`;
         }
@@ -603,7 +612,11 @@
             
             document.getElementById('optgroup-monstros').innerHTML = optMonstros;
             document.getElementById('optgroup-hordas').innerHTML = optHordas;
-            selAmeaca.value = vAmeaca;
+            
+            // Restaura o valor do select se ainda existir nas options
+            if (vAmeaca && (monstrosNoBanco[vAmeaca] || hordasNoBanco[vAmeaca])) {
+                selAmeaca.value = vAmeaca;
+            }
         }
 
         window.mestreAbrir = function(numSlot, tipo, valor) {
@@ -651,20 +664,44 @@
             
             for(let mId in membros) {
                 let m = membros[mId];
+                
+                let hpAtual = Number(m['hp-atual']) || 0;
+                let hpMax = Number(m['hp-max']) || 1;
+                let manaAtual = Number(m['mana-atual']) || 0;
+                let manaMax = Number(m['mana-max']) || 1;
+                
+                let percHp = (hpAtual / hpMax) * 100;
+                let percMana = (manaAtual / manaMax) * 100;
+                if(percHp > 100) percHp = 100; if(percHp < 0) percHp = 0;
+                if(percMana > 100) percMana = 100; if(percMana < 0) percMana = 0;
+                
+                let isAlertaMorte = (percHp <= 10 && hpMax > 0 && hpAtual > 0) ? 'alerta-morte' : '';
+
                 h += `
                 <div class="horda-member-card">
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 10px; border-bottom: 1px dashed #5c1818; padding-bottom: 5px;">
                         <h4 style="color:#a84242; margin:0; text-transform: uppercase;">${m.nome}</h4>
-                        <div style="display:flex; gap:15px;">
-                            <div style="color:#27ae60; font-size:11px; font-weight:bold;">HP: 
-                                <input type="number" id="horda-${mId}-hp-atual" class="horda-compact-input editavel-slot${numSlot}" value="${m['hp-atual']}" style="width:40px; color:#27ae60; padding:2px;"> / 
-                                <input type="number" id="horda-${mId}-hp-max" class="horda-compact-input mestre-unlocked" value="${m['hp-max']}" style="width:40px; color:#27ae60; padding:2px;" disabled>
+                        
+                        <div style="display:flex; gap:15px; width: 200px;">
+                            <div id="caixa-hp-horda-${mId}" class="caixa-status ${isAlertaMorte}" style="padding: 2px; flex: 1;">
+                                <div style="color:#27ae60; font-size:11px; font-weight:bold; display: flex; justify-content: center; align-items: center; gap: 4px;">
+                                    HP: 
+                                    <input type="number" id="horda-${mId}-hp-atual" class="horda-compact-input editavel-slot${numSlot}" value="${hpAtual}" style="width:30px; color:#27ae60; padding:2px;"> / 
+                                    <input type="number" id="horda-${mId}-hp-max" class="horda-compact-input mestre-unlocked" value="${hpMax}" style="width:30px; color:#27ae60; padding:2px;" disabled>
+                                </div>
+                                <div class="bar-bg" style="height: 6px; margin-top: 4px;"><div class="bar-fill hp-fill" id="bar-hp-horda-${mId}" style="width: ${percHp}%;"></div></div>
                             </div>
-                            <div style="color:#2980b9; font-size:11px; font-weight:bold;">MP: 
-                                <input type="number" id="horda-${mId}-mana-atual" class="horda-compact-input editavel-slot${numSlot}" value="${m['mana-atual']}" style="width:40px; color:#2980b9; padding:2px;"> / 
-                                <input type="number" id="horda-${mId}-mana-max" class="horda-compact-input mestre-unlocked" value="${m['mana-max']}" style="width:40px; color:#2980b9; padding:2px;" disabled>
+                            
+                            <div id="caixa-mana-horda-${mId}" class="caixa-status" style="padding: 2px; flex: 1;">
+                                <div style="color:#2980b9; font-size:11px; font-weight:bold; display: flex; justify-content: center; align-items: center; gap: 4px;">
+                                    MP: 
+                                    <input type="number" id="horda-${mId}-mana-atual" class="horda-compact-input editavel-slot${numSlot}" value="${manaAtual}" style="width:30px; color:#2980b9; padding:2px;"> / 
+                                    <input type="number" id="horda-${mId}-mana-max" class="horda-compact-input mestre-unlocked" value="${manaMax}" style="width:30px; color:#2980b9; padding:2px;" disabled>
+                                </div>
+                                <div class="bar-bg" style="height: 6px; margin-top: 4px;"><div class="bar-fill mana-fill" id="bar-mana-horda-${mId}" style="width: ${percMana}%;"></div></div>
                             </div>
                         </div>
+                        
                     </div>
                     <div class="atributos-grid" style="grid-template-columns: repeat(7, 1fr); gap: 5px; margin-top: 5px;">
                         <div class="attr-box" style="padding: 5px;"><label style="font-size:9px;">FOR</label><input type="number" id="horda-${mId}-for" class="horda-compact-input editavel-slot${numSlot}" value="${m.for || 0}" style="font-size:14px; width:100%; box-sizing:border-box;"></div>
@@ -717,6 +754,12 @@
             // Seleciona e abre a horda automaticamente no Slot 2 do mestre
             document.getElementById('mestre-t2-horda').value = hordaId;
             mestreAbrir(2, 'horda', hordaId);
+            
+            // Força a atualização do menu central "Ameaça Ativa" para reconhecer a nova horda a tempo para deleção
+            setTimeout(() => {
+                document.getElementById('seletor-ameaca').value = hordaId;
+                selecionarAmeacaMestre(hordaId);
+            }, 500); 
         }
 
         window.atacarMembroHorda = async function(membroId) {
@@ -740,7 +783,6 @@
             inputDano.value = '';
             checkboxes.forEach(cb => cb.checked = false);
         };
-
 
         // ==========================================
         // CÁLCULOS DE NÍVEL E EXPERIÊNCIA
@@ -832,19 +874,17 @@
                 slotsDeVisao[numSlot].dados = dados;
 
                 if (tipo === 'horda') {
-                    // Renderiza a Horda apenas se o número de chaves mudar, para não perder o foco ao digitar
                     let chavesMembros = Object.keys(dados.membros || {}).join(',');
                     if (contHorda.dataset.chaves !== chavesMembros) {
                         contHorda.innerHTML = renderizarHtmlHordaDinamico(idFicha, dados.membros, numSlot);
                         contHorda.dataset.chaves = chavesMembros;
                         
-                        // Associa os eventos de input criados dinamicamente
                         document.querySelectorAll(`.horda-compact-input.editavel-slot${numSlot}`).forEach(input => {
                             if(!input.classList.contains('mestre-unlocked')) { input.disabled = !temPermissao; }
                             
-                            input.addEventListener('change', (e) => {
+                            input.addEventListener('input', (e) => {
                                 if(!e.target.disabled) {
-                                    let parts = e.target.id.split('-'); // ex: horda - m_1 - hp - atual
+                                    let parts = e.target.id.split('-'); 
                                     let mId = parts[1];
                                     let campo = parts.slice(2).join('-');
                                     update(ref(database, `hordas/${idFicha}/membros/${mId}`), { [campo]: Number(e.target.value) });
@@ -852,24 +892,46 @@
                             });
                         });
                     } else {
-                        // Apenas atualiza os valores se não estiver focado
+                        // Atualização das Barras e Valores em Tempo Real
                         for(let mId in dados.membros) {
-                            for(let campo in dados.membros[mId]) {
+                            let mData = dados.membros[mId];
+                            
+                            for(let campo in mData) {
                                 let el = document.getElementById(`horda-${mId}-${campo}`);
                                 if(el && document.activeElement !== el) {
-                                    el.value = dados.membros[mId][campo];
+                                    el.value = mData[campo];
                                 }
+                            }
+                            
+                            let hpAtual = Number(mData['hp-atual']) || 0;
+                            let hpMax = Number(mData['hp-max']) || 1;
+                            let manaAtual = Number(mData['mana-atual']) || 0;
+                            let manaMax = Number(mData['mana-max']) || 1;
+                            
+                            let percHp = (hpAtual / hpMax) * 100;
+                            let percMana = (manaAtual / manaMax) * 100;
+                            if(percHp > 100) percHp = 100; if(percHp < 0) percHp = 0;
+                            if(percMana > 100) percMana = 100; if(percMana < 0) percMana = 0;
+                            
+                            let barHp = document.getElementById(`bar-hp-horda-${mId}`);
+                            let barMana = document.getElementById(`bar-mana-horda-${mId}`);
+                            if(barHp) barHp.style.width = percHp + '%';
+                            if(barMana) barMana.style.width = percMana + '%';
+                            
+                            let caixaHp = document.getElementById(`caixa-hp-horda-${mId}`);
+                            if(caixaHp) {
+                                if(percHp <= 10 && hpMax > 0 && hpAtual > 0) caixaHp.classList.add('alerta-morte');
+                                else caixaHp.classList.remove('alerta-morte');
                             }
                         }
                     }
-                    // Adiciona a classe esconder-jogador onde precisa
                     if(usuarioAtual.cargo === 'Jogador') {
                         document.querySelectorAll('.esconder-jogador').forEach(el => el.style.display = 'none');
                     }
-                    return; // Encerra lógica para Hordas aqui
+                    return; 
                 }
 
-                // Lógica de Renderização Normal (Heróis e Monstros Únicos)
+                // Renderização Normal (Heróis e Monstros)
                 for(let chave in dados) {
                     if(chave === 'efeitos') continue;
                     let idHTML = formatarIdElemento(numSlot, tipo, chave);
@@ -952,7 +1014,7 @@
             slotsDeVisao[numSlot].ouvinte = novoOuvinte;
 
             document.querySelectorAll(`.editavel-slot${numSlot}`).forEach(campo => {
-                if(campo.classList.contains('horda-compact-input')) return; // Horda tem listener separado
+                if(campo.classList.contains('horda-compact-input')) return; 
                 const novoCampo = campo.cloneNode(true);
                 campo.parentNode.replaceChild(novoCampo, campo);
                 
