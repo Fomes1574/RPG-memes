@@ -72,10 +72,10 @@
         .bar-bg { width: 100%; background-color: #0a0604; border-radius: 12px; height: 14px; margin-top: 8px; border: 1px solid #1a0f0a; box-shadow: inset 0 2px 5px rgba(0,0,0,0.9);}
         .bar-fill { position: relative; overflow: hidden; height: 100%; transition: width 0.5s ease-out; border-radius: 12px; }
         
-        .hp-fill { background: linear-gradient(90deg, #1e7039, #27ae60); box-shadow: 0 0 8px rgba(39, 174, 96, 0.4);} 
-        .mana-fill { background: linear-gradient(90deg, #18527a, #2980b9); box-shadow: 0 0 8px rgba(41, 128, 185, 0.4);} 
-        
-        /* FEIXE BRILHOSO DAS BARRAS */
+        .hp-fill { background: linear-gradient(90deg, #1e7039, #2ecc71, #27ae60); box-shadow: 0 0 12px rgba(46, 204, 113, 0.4);} 
+        .mana-fill { background: linear-gradient(90deg, #18527a, #3498db, #2980b9); box-shadow: 0 0 12px rgba(52, 152, 219, 0.4);} 
+
+        /* FEIXE BRILHOSO DAS BARRAS BASE */
         .bar-fill::after {
             content: ''; position: absolute; top: 0; left: -100%; width: 50%; height: 100%;
             background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
@@ -97,9 +97,18 @@
 
         .exp-text { color: #C0C0C0; font-weight: bold; font-size: 11px; transition: all 0.5s ease; text-shadow: 1px 1px 2px black; margin-bottom: 2px;}
         .exp-fill { background: linear-gradient(90deg, #d4af37, #fceabb, #f8b500); box-shadow: 0 0 15px rgba(248, 181, 0, 0.8); position: relative; overflow: visible;}
+        
+        /* BOLA DE EXP FIXA E DINÂMICA */
         .exp-fill::after {
             content: ''; position: absolute; right: -5px; top: -2px; height: 16px; width: 16px;
-            background: #fff; box-shadow: 0 0 15px 5px #fff, 0 0 20px 10px #f8b500; border-radius: 50%;
+            background: #fff; 
+            border-radius: 50%;
+            animation: none; /* Sobrescreve a animação de corrida */
+            left: auto; /* Trava ela no Right */
+            /* Variável CSS (--glow) para controlar a intensidade pelo JS, iniciando fraca (0.2) */
+            box-shadow: 0 0 15px 5px rgba(255,255,255, var(--glow, 0.2)), 0 0 20px 10px rgba(248, 181, 0, var(--glow, 0.2));
+            opacity: var(--glow, 0.2);
+            transition: opacity 0.5s ease;
         }
 
         /* ALERTA PISCANTE DE VIDA BAIXA (HERÓIS, MONSTROS E HORDAS) */
@@ -682,12 +691,12 @@
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 10px; border-bottom: 1px dashed #5c1818; padding-bottom: 5px;">
                         <h4 style="color:#a84242; margin:0; text-transform: uppercase;">${m.nome}</h4>
                         
-                        <div style="display:flex; gap:15px; width: 200px;">
+                        <div style="display:flex; gap:10px; width: 240px; margin-right: 10px; justify-content: flex-end;">
                             <div id="caixa-hp-horda-${mId}" class="caixa-status ${isAlertaMorte}" style="padding: 2px; flex: 1;">
                                 <div style="color:#27ae60; font-size:11px; font-weight:bold; display: flex; justify-content: center; align-items: center; gap: 4px;">
                                     HP: 
-                                    <input type="number" id="horda-${mId}-hp-atual" class="horda-compact-input editavel-slot${numSlot}" value="${hpAtual}" style="width:30px; color:#27ae60; padding:2px;"> / 
-                                    <input type="number" id="horda-${mId}-hp-max" class="horda-compact-input mestre-unlocked" value="${hpMax}" style="width:30px; color:#27ae60; padding:2px;" disabled>
+                                    <input type="number" id="horda-${mId}-hp-atual" class="horda-compact-input editavel-slot${numSlot}" value="${hpAtual}" style="width:42px; color:#27ae60; padding:2px;"> / 
+                                    <input type="number" id="horda-${mId}-hp-max" class="horda-compact-input mestre-unlocked" value="${hpMax}" style="width:42px; color:#27ae60; padding:2px;" disabled>
                                 </div>
                                 <div class="bar-bg" style="height: 6px; margin-top: 4px;"><div class="bar-fill hp-fill" id="bar-hp-horda-${mId}" style="width: ${percHp}%;"></div></div>
                             </div>
@@ -695,8 +704,8 @@
                             <div id="caixa-mana-horda-${mId}" class="caixa-status" style="padding: 2px; flex: 1;">
                                 <div style="color:#2980b9; font-size:11px; font-weight:bold; display: flex; justify-content: center; align-items: center; gap: 4px;">
                                     MP: 
-                                    <input type="number" id="horda-${mId}-mana-atual" class="horda-compact-input editavel-slot${numSlot}" value="${manaAtual}" style="width:30px; color:#2980b9; padding:2px;"> / 
-                                    <input type="number" id="horda-${mId}-mana-max" class="horda-compact-input mestre-unlocked" value="${manaMax}" style="width:30px; color:#2980b9; padding:2px;" disabled>
+                                    <input type="number" id="horda-${mId}-mana-atual" class="horda-compact-input editavel-slot${numSlot}" value="${manaAtual}" style="width:42px; color:#2980b9; padding:2px;"> / 
+                                    <input type="number" id="horda-${mId}-mana-max" class="horda-compact-input mestre-unlocked" value="${manaMax}" style="width:42px; color:#2980b9; padding:2px;" disabled>
                                 </div>
                                 <div class="bar-bg" style="height: 6px; margin-top: 4px;"><div class="bar-fill mana-fill" id="bar-mana-horda-${mId}" style="width: ${percMana}%;"></div></div>
                             </div>
@@ -968,9 +977,24 @@
                         elLevel.dataset.currentLevel = levelData.level;
                     }
 
+                    // --- NOVO: NOME DINÂMICO NO HEADER DO JOGADOR ---
+                    if (usuarioAtual.cargo === "Jogador" && usuarioAtual.idFicha === idFicha) {
+                        let spanHeroi = document.getElementById('nome-heroi-jogador');
+                        if (spanHeroi) {
+                            spanHeroi.innerText = dados['nome'] || usuarioAtual.nome; 
+                        }
+                    }
+
+                    // --- NOVO: BRILHO DINÂMICO DA BOLA DE EXP ---
                     let percExp = (levelData.currentExp / levelData.requiredForNext) * 100;
                     if(percExp > 100) percExp = 100;
-                    document.getElementById(`bar-exp-slot${numSlot}`).style.width = `${percExp}%`;
+                    
+                    let barExp = document.getElementById(`bar-exp-slot${numSlot}`);
+                    if(barExp) {
+                        barExp.style.width = `${percExp}%`;
+                        let glowIntensity = 0.1 + (percExp / 100) * 0.9;
+                        barExp.style.setProperty('--glow', glowIntensity);
+                    }
                     
                     let expText = document.getElementById(`slot${numSlot}-exp-text`);
                     expText.innerText = `${levelData.currentExp} / ${levelData.requiredForNext}`;
