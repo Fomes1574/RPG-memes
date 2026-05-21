@@ -98,18 +98,19 @@
         .exp-text { color: #C0C0C0; font-weight: bold; font-size: 11px; transition: all 0.5s ease; text-shadow: 1px 1px 2px black; margin-bottom: 2px;}
         .exp-fill { background: linear-gradient(90deg, #d4af37, #fceabb, #f8b500); box-shadow: 0 0 15px rgba(248, 181, 0, 0.8); position: relative; overflow: visible;}
         
-        /* BOLA BRILHANTE FIXA E RELUZENTE NO FINAL */
+        /* BOLA BRILHANTE FIXA E RELUZENTE NO FINAL SUTIL */
+        :root {
+            --brilho-xp-escala: 0;
+        }
+
         .exp-fill::after {
-            content: ''; position: absolute; left: 100%; top: -2px; height: 16px; width: 16px;
+            content: ''; position: absolute; left: 100%; top: -2px; height: 10px; width: 10px;
             background: #fff; border-radius: 50%; transform: translateX(-50%);
             box-shadow:
                 0 0 5px 2px #fff,
-                0 0 15px 5px #f8b500,
-                0 0 30px calc(var(--brilho-xp-escala, 1) * 1px) #fff;
-            animation: brilho-exp-piscando 1.5s infinite alternate;
+                0 0 calc(var(--brilho-xp-escala) * 5px) 1px #fceabb,
+                0 0 calc(10px + var(--brilho-xp-escala) * 10px) calc(var(--brilho-xp-escala) * 2px) rgba(255, 255, 255, calc(0.2 + var(--brilho-xp-escala) * 0.6));
         }
-
-        @keyframes brilho-exp-piscando { 0% { opacity: 0.7; transform: translateX(-50%) scale(1); } 100% { opacity: 1; transform: translateX(-50%) scale(1.1); } }
 
         /* ALERTA PISCANTE DE VIDA BAIXA (HERÓIS, MONSTROS E HORDAS) */
         .caixa-status { padding: 10px; transition: 0.3s; border: 1px solid transparent; border-radius: 4px;}
@@ -191,7 +192,7 @@
         .horda-compact-input:focus { border-color: #d4af37; outline: none; }
     </style>
 </head>
-<body style="--brilho-xp-escala: 1;">
+<body>
 
     <div id="modal-exp" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 2000; justify-content: center; align-items: center; backdrop-filter: blur(5px);">
         <div style="background: #1c130d; border: 3px double #d4af37; padding: 25px; border-radius: 8px; width: 300px; box-shadow: 0 0 30px #000, inset 0 0 20px rgba(0,0,0,0.8); text-align: center;">
@@ -280,6 +281,7 @@
                     <button id="btn-lancar" class="btn-lancar" onclick="lancarAmeaca()" style="display:none;">⚔️ Lançar aos Players</button>
                     <button id="btn-derrotado" class="btn-derrotado" onclick="ameacaDerrotada()" style="display:none;">💀 Ameaça Derrotada</button>
                     <button id="btn-deletar" class="btn-deletar" onclick="deletarAmeaca()" style="display:none;">🗑️ Deletar</button>
+                    <button id="btn-global-turno" class="btn-mini-acao" onclick="avancarTurnoGlobal()" style="margin-left: 10px;">⚔️ Avançar Rodada Global</button>
                 </div>
             </div>
         </div>
@@ -426,17 +428,16 @@
 
                 <div class="section-title">Buff e Debuff</div>
                 <div class="buff-container">
-                    <div class="buff-input-grid esconder-jogador">
-                        <input type="text" id="slot${numSlot}-novo-buff-nome" class="editavel-slot${numSlot}" placeholder="Nome">
-                        <input type="number" id="slot${numSlot}-novo-buff-hp" class="editavel-slot${numSlot}" placeholder="HP/T">
-                        <input type="number" id="slot${numSlot}-novo-buff-mana" class="editavel-slot${numSlot}" placeholder="MN/T">
-                        <select id="slot${numSlot}-novo-buff-attr" class="editavel-slot${numSlot}"><option value="">Nenhum</option><option value="for">FOR</option><option value="des">DES</option><option value="con">CON</option><option value="int">INT</option><option value="sab">SAB</option><option value="car">CAR</option><option value="per">PER</option></select>
-                        <input type="number" id="slot${numSlot}-novo-buff-mod" class="editavel-slot${numSlot}" placeholder="Mod">
-                        <input type="number" id="slot${numSlot}-novo-buff-turnos" class="editavel-slot${numSlot}" placeholder="Turnos">
-                        <button class="editavel-slot${numSlot}" onclick="adicionarEfeito(${numSlot})" style="padding: 5px;">ADD</button>
+                    <div class="buff-input-grid">
+                        <input type="text" id="slot${numSlot}-novo-buff-nome" class="buff-input" placeholder="Nome">
+                        <input type="number" id="slot${numSlot}-novo-buff-hp" class="buff-input" placeholder="HP/T">
+                        <input type="number" id="slot${numSlot}-novo-buff-mana" class="buff-input" placeholder="MN/T">
+                        <select id="slot${numSlot}-novo-buff-attr" class="buff-input"><option value="">Nenhum</option><option value="for">FOR</option><option value="des">DES</option><option value="con">CON</option><option value="int">INT</option><option value="sab">SAB</option><option value="car">CAR</option><option value="per">PER</option></select>
+                        <input type="number" id="slot${numSlot}-novo-buff-mod" class="buff-input" placeholder="Mod">
+                        <input type="number" id="slot${numSlot}-novo-buff-turnos" class="buff-input" placeholder="Turnos">
+                        <button class="btn-add-buff" onclick="adicionarEfeito(${numSlot})" style="padding: 5px;">ADD</button>
                     </div>
                     <div id="lista-efeitos-slot${numSlot}"></div>
-                    <button class="btn-turno editavel-slot${numSlot} esconder-jogador" onclick="passarTurno(${numSlot})">Avançar Turno (Herói)</button>
                 </div>
 
                 <div class="section-title">Anotações e Relatos</div>
@@ -505,16 +506,15 @@
                 <div class="section-title">Buff e Debuff</div>
                 <div class="buff-container">
                     <div class="buff-input-grid esconder-jogador">
-                        <input type="text" id="slot${numSlot}-novo-buff-nome-monstro" class="editavel-slot${numSlot}" placeholder="Efeito">
-                        <input type="number" id="slot${numSlot}-novo-buff-hp-monstro" class="editavel-slot${numSlot}" placeholder="HP/T">
-                        <input type="number" id="slot${numSlot}-novo-buff-mana-monstro" class="editavel-slot${numSlot}" placeholder="MN/T">
-                        <select id="slot${numSlot}-novo-buff-attr-monstro" class="editavel-slot${numSlot}"><option value="">Nenhum</option><option value="for">FOR</option><option value="des">DES</option><option value="con">CON</option><option value="int">INT</option><option value="sab">SAB</option><option value="car">CAR</option><option value="per">PER</option></select>
-                        <input type="number" id="slot${numSlot}-novo-buff-mod-monstro" class="editavel-slot${numSlot}" placeholder="Mod">
-                        <input type="number" id="slot${numSlot}-novo-buff-turnos-monstro" class="editavel-slot${numSlot}" placeholder="Turnos">
-                        <button class="editavel-slot${numSlot}" onclick="adicionarEfeito(${numSlot}, true)" style="padding: 5px; background: #360e0e; border-color:#8c1c13;">ADD</button>
+                        <input type="text" id="slot${numSlot}-novo-buff-nome-monstro" class="buff-input" placeholder="Efeito">
+                        <input type="number" id="slot${numSlot}-novo-buff-hp-monstro" class="buff-input" placeholder="HP/T">
+                        <input type="number" id="slot${numSlot}-novo-buff-mana-monstro" class="buff-input" placeholder="MN/T">
+                        <select id="slot${numSlot}-novo-buff-attr-monstro" class="buff-input"><option value="">Nenhum</option><option value="for">FOR</option><option value="des">DES</option><option value="con">CON</option><option value="int">INT</option><option value="sab">SAB</option><option value="car">CAR</option><option value="per">PER</option></select>
+                        <input type="number" id="slot${numSlot}-novo-buff-mod-monstro" class="buff-input" placeholder="Mod">
+                        <input type="number" id="slot${numSlot}-novo-buff-turnos-monstro" class="buff-input" placeholder="Turnos">
+                        <button class="btn-add-buff" onclick="adicionarEfeito(${numSlot}, true)" style="padding: 5px; background: #360e0e; border-color:#8c1c13;">ADD</button>
                     </div>
                     <div id="lista-efeitos-monstro-slot${numSlot}"></div>
-                    <button class="btn-turno editavel-slot${numSlot} esconder-jogador" onclick="passarTurno(${numSlot})" style="background: #360e0e; border-color:#8c1c13;">Avançar Turno (Ameaça)</button>
                 </div>
                 
                 <div class="section-title esconder-jogador" style="margin-top:40px; border-color:#b8860b; color:#d4af37;">Gerar Horda</div>
@@ -594,6 +594,11 @@
                 if (usuarioAtual.cargo === "Mestre") {
                     atualizarBotoesMestre();
                 }
+            });
+            
+            // Ouvinte do Comando Global de Turno
+            onValue(ref(database, 'estado_combate/comandoGlobal'), (snapshot) => {
+                processarComandoGlobal(snapshot.val());
             });
         }
 
@@ -836,6 +841,131 @@
         }
 
         // ==========================================
+        // LÓGICA DE TURNO E REGENERAÇÃO
+        // ==========================================
+        window.avancarTurnoGlobal = function() {
+            update(ref(database, 'estado_combate'), { comandoGlobal: 'avancarTurnoGlobal_' + Date.now() });
+        }
+
+        function processarComandoGlobal(comando) {
+            if (comando && comando.startsWith('avancarTurnoGlobal_')) {
+                
+                // 1. Processar própria ficha (Jogador logado)
+                if (usuarioAtual.cargo === "Jogador") {
+                    const usuarioRef = ref(database, 'fichas/' + usuarioAtual.idFicha);
+                    get(usuarioRef).then((snapshot) => {
+                        const dados = snapshot.val();
+                        if (dados) {
+                            const dadosAtualizados = processarTurnoLocal(dados, 'heroi');
+                            update(usuarioRef, dadosAtualizados);
+                        }
+                    });
+                }
+
+                // 2. Mestre processa monstros e hordas ativas
+                if (usuarioAtual.cargo === "Mestre") {
+                    const promisesAmeacas = [];
+                    
+                    // Monstros Individuais
+                    get(ref(database, 'lista_monstros')).then((snapshot) => {
+                        const listaMonstros = snapshot.val();
+                        if (listaMonstros) {
+                            for (const monstroId in listaMonstros) {
+                                const monstroRef = ref(database, 'fichas/' + monstroId);
+                                promisesAmeacas.push(
+                                    get(monstroRef).then((monstroSnapshot) => {
+                                        const monstroDados = monstroSnapshot.val();
+                                        if (monstroDados) {
+                                            const monstroDadosAtualizados = processarTurnoLocal(monstroDados, 'monstro');
+                                            return update(monstroRef, monstroDadosAtualizados);
+                                        }
+                                    })
+                                );
+                            }
+                        }
+                    });
+
+                    // Hordas
+                    get(ref(database, 'hordas')).then((snapshot) => {
+                        const listaHordas = snapshot.val();
+                        if (listaHordas) {
+                            for (const hordaId in listaHordas) {
+                                const hordaRef = ref(database, 'hordas/' + hordaId);
+                                promisesAmeacas.push(
+                                    get(hordaRef).then((hordaSnapshot) => {
+                                        const hordaDados = hordaSnapshot.val();
+                                        if (hordaDados && hordaDados.membros) {
+                                            const membrosAtualizados = {};
+                                            for(let mId in hordaDados.membros) {
+                                                 // Hordas ainda não tem buffs complexos implementados na visualização, 
+                                                 // mas podemos processar a regeneração natural base.
+                                                 membrosAtualizados[mId] = processarTurnoLocal(hordaDados.membros[mId], 'horda_membro');
+                                            }
+                                            return update(hordaRef, { membros: membrosAtualizados });
+                                        }
+                                    })
+                                );
+                            }
+                        }
+                    });
+                }
+            }
+        }
+
+        function processarTurnoLocal(dados, tipo) {
+            const sab = parseInt(dados.sab) || 0;
+            const con = parseInt(dados.con) || 0;
+            
+            const hpRegen = sab > 0 ? Math.max(1, Math.floor(sab / 2)) : 0;
+            const manaRegen = con > 0 ? Math.max(1, Math.floor(con / 2)) : 0;
+            
+            let hpAtual = parseInt(dados['hp-atual']) || 0;
+            let manaAtual = parseInt(dados['mana-atual']) || 0;
+
+            const hpMaxBase = parseInt(dados['hp-max']) || 20;
+            const manaMaxBase = parseInt(dados['mana-max']) || 20;
+            
+            const hpMaxEfetivo = tipo === 'heroi' ? hpMaxBase + (con * 3) : hpMaxBase; 
+            const manaMaxEfetivo = tipo === 'heroi' ? manaMaxBase + (int * 2) : manaMaxBase;
+
+            hpAtual = Math.min(hpMaxEfetivo, hpAtual + hpRegen);
+            manaAtual = Math.min(manaMaxEfetivo, manaAtual + manaRegen);
+
+            const efeitos = dados.efeitos || [];
+            const efeitosRestantes = [];
+
+            efeitos.forEach((efeito) => {
+                hpAtual = Math.min(hpMaxEfetivo, hpAtual + (parseInt(efeito.modHp) || 0));
+                manaAtual = Math.min(manaMaxEfetivo, manaAtual + (parseInt(efeito.modMana) || 0));
+
+                const turnos = parseInt(efeito.turnos) || 0;
+                if (turnos > 0) {
+                    const turnosRestantes = turnos - 1;
+                    efeito.turnos = turnosRestantes;
+                    if (turnosRestantes > 0) {
+                        efeitosRestantes.push(efeito);
+                    }
+                }
+            });
+
+            // Para hordas, precisamos manter os atributos
+            if(tipo === 'horda_membro') {
+                return {
+                     ...dados,
+                    'hp-atual': hpAtual,
+                    'mana-atual': manaAtual
+                };
+            }
+
+            return {
+                'hp-atual': hpAtual,
+                'mana-atual': manaAtual,
+                efeitos: efeitosRestantes,
+            };
+        }
+
+
+        // ==========================================
         // CARREGAMENTO DA FICHA E OUVINTES
         // ==========================================
         function abrirFichaNoSlot(numSlot, tipo, idFicha) {
@@ -857,6 +987,17 @@
             const temPermissao = (usuarioAtual.cargo === "Mestre") || (tipo === 'heroi' && usuarioAtual.idFicha === idFicha);
             
             if(tipo !== 'horda') {
+                const containerFicha = document.getElementById(`container-slot${numSlot}-${tipo}`);
+                
+                // Configuração inicial das permissões de Buffs
+                if (usuarioAtual.cargo === "Mestre" || (tipo === 'heroi' && usuarioAtual.idFicha === idFicha)) {
+                    containerFicha.querySelectorAll('.buff-input').forEach(el => el.disabled = false);
+                    containerFicha.querySelectorAll('.btn-add-buff').forEach(el => el.style.display = 'inline-block');
+                } else {
+                    containerFicha.querySelectorAll('.buff-input').forEach(el => el.disabled = true);
+                    containerFicha.querySelectorAll('.btn-add-buff').forEach(el => el.style.display = 'none');
+                }
+
                 document.querySelectorAll(`.editavel-slot${numSlot}`).forEach(el => {
                     if(!el.classList.contains('mestre-unlocked')) { el.disabled = !temPermissao; } 
                     else { el.disabled = (usuarioAtual.cargo !== "Mestre"); } 
@@ -986,13 +1127,10 @@
                     
                     let expText = document.getElementById(`slot${numSlot}-exp-text`);
                     expText.innerText = `${levelData.currentExp} / ${levelData.requiredForNext}`;
-                    let glow = percExp / 6;
-                    expText.style.textShadow = `0 0 ${glow}px rgba(255, 215, 0, 0.9), 1px 1px 2px black`;
                     
-                    // Lógica para Brilho Reluzente Dourado que cresce com XP
-                    let glowValue = 5 + (percExp / 100) * 25;
+                    // Ajuste da variável para o brilho do XP (valor entre 0 e 1)
                     const elContainer = document.getElementById(`container-slot${numSlot}-heroi`);
-                    if(elContainer) elContainer.style.setProperty('--brilho-xp-escala', glowValue.toString());
+                    if(elContainer) elContainer.style.setProperty('--brilho-xp-escala', (percExp / 100).toString());
 
                     let maxAtributos = 10 + (levelData.level - 1);
                     let ptsAtuais = 0;
@@ -1213,49 +1351,6 @@
             update(refFicha, pacoteAtualizacao);
         }
 
-        window.passarTurno = async function(numSlot) {
-            const tipo = slotsDeVisao[numSlot].tipo;
-            const idFicha = slotsDeVisao[numSlot].idFicha;
-            if(!idFicha) return;
-
-            const refFicha = ref(database, 'fichas/' + idFicha);
-            const snapshot = await get(refFicha);
-            let dados = snapshot.val() || {};
-            let efeitos = dados.efeitos || [];
-
-            let hpAtual = Number(dados['hp-atual']) || 0;
-            let manaAtual = Number(dados['mana-atual']) || 0;
-            
-            let hpMax = tipo === 'heroi' ? (Number(document.getElementById(`slot${numSlot}-hp-efetivo`).innerText) || 20) : (Number(dados['hp-max']) || 20);
-            let manaMax = tipo === 'heroi' ? (Number(document.getElementById(`slot${numSlot}-mana-efetivo`).innerText) || 20) : (Number(dados['mana-max']) || 20);
-            
-            let attrParaReverter = {};
-
-            let efeitosAtualizados = efeitos.map(e => {
-                hpAtual += e.modHp;
-                manaAtual += e.modMana;
-                e.turnos -= 1;
-                
-                if (e.turnos <= 0 && e.attrDestino && e.modAttr !== 0) {
-                    if(!attrParaReverter[e.attrDestino]) attrParaReverter[e.attrDestino] = 0;
-                    attrParaReverter[e.attrDestino] += e.modAttr; 
-                }
-                return e;
-            }).filter(e => e.turnos > 0);
-
-            if(hpAtual > hpMax) hpAtual = hpMax;
-            if(manaAtual > manaMax) manaAtual = manaMax;
-
-            let pacoteAtualizacao = { efeitos: efeitosAtualizados, 'hp-atual': hpAtual, 'mana-atual': manaAtual };
-
-            for (let attr in attrParaReverter) {
-                let valorCorrente = Number(dados[attr]) || 0;
-                pacoteAtualizacao[attr] = valorCorrente - attrParaReverter[attr];
-            }
-
-            update(refFicha, pacoteAtualizacao);
-        }
-
         function renderizarEfeitosNoSlot(numSlot, tipo, efeitos) {
             const pos = tipo === 'monstro' ? "-monstro" : "";
             const listaDiv = document.getElementById(`lista-efeitos${pos}-slot${numSlot}`);
@@ -1277,10 +1372,16 @@
                         </div>
                         <div>
                             <span style="margin-right: 15px;">⏳ <b>${efeito.turnos}</b></span>
-                            <button class="btn-remover esconder-jogador" onclick="removerEfeito(${numSlot}, ${efeito.idUnico})" title="Remover Efeito">🗑️</button>
+                            <button class="btn-remover" onclick="removerEfeito(${numSlot}, ${efeito.idUnico})" title="Remover Efeito">🗑️</button>
                         </div>
                     </div>
                 `;
+            });
+            
+            // Controle de visibilidade do botão remover
+            const temPermissao = (usuarioAtual.cargo === "Mestre") || (tipo === 'heroi' && usuarioAtual.idFicha === slotsDeVisao[numSlot].idFicha);
+            listaDiv.querySelectorAll('.btn-remover').forEach(btn => {
+                btn.style.display = temPermissao ? 'inline-block' : 'none';
             });
         }
 
