@@ -158,8 +158,6 @@
         button { background: linear-gradient(to bottom, #3a2212, #1c1008); color: #dcd0ba; border: 1px solid #8b6d43; padding: 10px 15px; border-radius: 2px; cursor: pointer; font-weight: bold; font-family: 'Georgia', serif; text-transform: uppercase; font-size: 11px; letter-spacing: 1px; transition: 0.2s; text-shadow: 1px 1px 2px black; box-shadow: 0 4px 8px rgba(0,0,0,0.8), inset 0 1px 1px rgba(255,255,255,0.1);}
         button:hover:not(:disabled) { background: linear-gradient(to bottom, #4a2e1b, #2b1a0f); transform: translateY(-1px);}
         
-        .btn-turno { background: linear-gradient(to bottom, #5c3a21, #3a2212); width: 100%; margin-top: 10px; padding: 12px; border-color: #8b6d43;}
-        .btn-turno:hover:not(:disabled) { background: linear-gradient(to bottom, #7a4f2e, #4a2e1b); }
         .btn-remover { background: transparent; border: none; color: #8c1c13; font-size: 14px; box-shadow: none; padding: 0 5px; cursor: pointer;}
         .btn-remover:hover:not(:disabled) { background: transparent; transform: scale(1.2); text-shadow: 0 0 5px red;}
 
@@ -277,6 +275,7 @@
                         </select>
                     </div>
                     <button class="btn-invocar" onclick="invocarMonstro()">+ Criar Monstro</button>
+                    <button class="btn-turno-global" onclick="avancarTurnoGlobal()" style="background: linear-gradient(to bottom, #1e5c2e, #11361a); border-color: #27ae60; color: #fff; text-shadow: 1px 1px 2px black;">⏳ Passar Turno Global</button>
                     <button id="btn-lancar" class="btn-lancar" onclick="lancarAmeaca()" style="display:none;">⚔️ Lançar aos Players</button>
                     <button id="btn-derrotado" class="btn-derrotado" onclick="ameacaDerrotada()" style="display:none;">💀 Ameaça Derrotada</button>
                     <button id="btn-deletar" class="btn-deletar" onclick="deletarAmeaca()" style="display:none;">🗑️ Deletar</button>
@@ -436,7 +435,6 @@
                         <button class="editavel-slot${numSlot}" onclick="adicionarEfeito(${numSlot})" style="padding: 5px;">ADD</button>
                     </div>
                     <div id="lista-efeitos-slot${numSlot}"></div>
-                    <button class="btn-turno editavel-slot${numSlot} esconder-jogador" onclick="passarTurno(${numSlot})">Avançar Turno (Herói)</button>
                 </div>
 
                 <div class="section-title">Anotações e Relatos</div>
@@ -514,7 +512,6 @@
                         <button class="editavel-slot${numSlot}" onclick="adicionarEfeito(${numSlot}, true)" style="padding: 5px; background: #360e0e; border-color:#8c1c13;">ADD</button>
                     </div>
                     <div id="lista-efeitos-monstro-slot${numSlot}"></div>
-                    <button class="btn-turno editavel-slot${numSlot} esconder-jogador" onclick="passarTurno(${numSlot})" style="background: #360e0e; border-color:#8c1c13;">Avançar Turno (Ameaça)</button>
                 </div>
                 
                 <div class="section-title esconder-jogador" style="margin-top:40px; border-color:#b8860b; color:#d4af37;">Gerar Horda</div>
@@ -856,11 +853,18 @@
 
             const temPermissao = (usuarioAtual.cargo === "Mestre") || (tipo === 'heroi' && usuarioAtual.idFicha === idFicha);
             
+            if(tipo === 'heroi') {
+                let nomeJogadorObj = Object.values(usuarios).find(u => u.idFicha === idFicha);
+                let nomeJogador = nomeJogadorObj ? nomeJogadorObj.nome : '';
+                let elJogador = document.getElementById(`slot${numSlot}-jogador`);
+                if(elJogador) elJogador.value = nomeJogador;
+            }
+
             if(tipo !== 'horda') {
                 document.querySelectorAll(`.editavel-slot${numSlot}`).forEach(el => {
                     if(!el.classList.contains('mestre-unlocked')) { el.disabled = !temPermissao; } 
                     else { el.disabled = (usuarioAtual.cargo !== "Mestre"); } 
-                    if(el.type !== 'checkbox' && el.type !== 'radio' && el.type !== 'file') el.value = '';
+                    if(el.type !== 'checkbox' && el.type !== 'radio' && el.type !== 'file' && el.id !== `slot${numSlot}-jogador`) el.value = '';
                 });
 
                 get(ref(database, 'fotos/' + idFicha)).then(snap => {
@@ -1043,8 +1047,10 @@
                             if(chaveCompleta === `slot${numSlot}-monstro-nome`) chaveDoBanco = 'nome';
                         }
 
+                        let novoValor = e.target.value;
+
                         if (tipo === 'heroi' && ['for', 'des', 'con', 'int', 'sab', 'car', 'per'].includes(chaveDoBanco)) {
-                            let novoValor = Number(e.target.value);
+                            novoValor = Number(novoValor);
                             if (novoValor < 0) novoValor = 0;
                             if (novoValor > 20) novoValor = 20;
 
@@ -1065,7 +1071,20 @@
                             e.target.value = novoValor; 
                         }
                         
-                        update(ref(database, 'fichas/' + idFicha), { [chaveDoBanco]: e.target.value });
+                        // Lógica de limite para os Jogadores nas barras de HP e MANA
+                        if (usuarioAtual.cargo === 'Jogador' && (chaveDoBanco === 'hp-atual' || chaveDoBanco === 'mana-atual')) {
+                            if (novoValor !== "") {
+                                novoValor = Number(novoValor);
+                                if (novoValor < 0) novoValor = 0;
+                                let maxVal = chaveDoBanco === 'hp-atual' ? 
+                                    Number(document.getElementById(`slot${numSlot}-hp-efetivo`).innerText) || 20 : 
+                                    Number(document.getElementById(`slot${numSlot}-mana-efetivo`).innerText) || 20;
+                                if (novoValor > maxVal) novoValor = maxVal;
+                                e.target.value = novoValor;
+                            }
+                        }
+                        
+                        update(ref(database, 'fichas/' + idFicha), { [chaveDoBanco]: novoValor });
                         if(chaveDoBanco.includes('hp') || chaveDoBanco.includes('mana')) atualizarBarrasEAlertaNoSlot(numSlot, tipo);
                     }
                 });
@@ -1213,47 +1232,74 @@
             update(refFicha, pacoteAtualizacao);
         }
 
-        window.passarTurno = async function(numSlot) {
-            const tipo = slotsDeVisao[numSlot].tipo;
-            const idFicha = slotsDeVisao[numSlot].idFicha;
-            if(!idFicha) return;
-
-            const refFicha = ref(database, 'fichas/' + idFicha);
-            const snapshot = await get(refFicha);
-            let dados = snapshot.val() || {};
-            let efeitos = dados.efeitos || [];
-
-            let hpAtual = Number(dados['hp-atual']) || 0;
-            let manaAtual = Number(dados['mana-atual']) || 0;
+        window.avancarTurnoGlobal = async function() {
+            if (usuarioAtual.cargo !== "Mestre") return;
             
-            let hpMax = tipo === 'heroi' ? (Number(document.getElementById(`slot${numSlot}-hp-efetivo`).innerText) || 20) : (Number(dados['hp-max']) || 20);
-            let manaMax = tipo === 'heroi' ? (Number(document.getElementById(`slot${numSlot}-mana-efetivo`).innerText) || 20) : (Number(dados['mana-max']) || 20);
+            const refFichas = ref(database, 'fichas');
+            const snapFichas = await get(refFichas);
+            let fichas = snapFichas.val() || {};
             
-            let attrParaReverter = {};
-
-            let efeitosAtualizados = efeitos.map(e => {
-                hpAtual += e.modHp;
-                manaAtual += e.modMana;
-                e.turnos -= 1;
+            let pacoteGeral = {};
+            
+            for (let idFicha in fichas) {
+                let dados = fichas[idFicha];
+                let efeitos = dados.efeitos || [];
+                if (efeitos.length === 0) continue;
                 
-                if (e.turnos <= 0 && e.attrDestino && e.modAttr !== 0) {
-                    if(!attrParaReverter[e.attrDestino]) attrParaReverter[e.attrDestino] = 0;
-                    attrParaReverter[e.attrDestino] += e.modAttr; 
+                let hpAtual = Number(dados['hp-atual']) || 0;
+                let manaAtual = Number(dados['mana-atual']) || 0;
+                
+                let isHero = Object.values(usuarios).some(u => u.idFicha === idFicha);
+                let hpMax = Number(dados['hp-max']) || 20;
+                let manaMax = Number(dados['mana-max']) || 20;
+                
+                if (isHero) {
+                    hpMax += (Number(dados['con']) || 0) * 3;
+                    manaMax += (Number(dados['int']) || 0) * 2;
                 }
-                return e;
-            }).filter(e => e.turnos > 0);
-
-            if(hpAtual > hpMax) hpAtual = hpMax;
-            if(manaAtual > manaMax) manaAtual = manaMax;
-
-            let pacoteAtualizacao = { efeitos: efeitosAtualizados, 'hp-atual': hpAtual, 'mana-atual': manaAtual };
-
-            for (let attr in attrParaReverter) {
-                let valorCorrente = Number(dados[attr]) || 0;
-                pacoteAtualizacao[attr] = valorCorrente - attrParaReverter[attr];
+                
+                let attrParaReverter = {};
+                let efeitosAtualizados = efeitos.map(e => {
+                    hpAtual += e.modHp;
+                    manaAtual += e.modMana;
+                    e.turnos -= 1;
+                    
+                    if (e.turnos <= 0 && e.attrDestino && e.modAttr !== 0) {
+                        if(!attrParaReverter[e.attrDestino]) attrParaReverter[e.attrDestino] = 0;
+                        attrParaReverter[e.attrDestino] += e.modAttr; 
+                    }
+                    return e;
+                }).filter(e => e.turnos > 0);
+                
+                if(hpAtual > hpMax) hpAtual = hpMax;
+                if(manaAtual > manaMax) manaAtual = manaMax;
+                if(hpAtual < 0) hpAtual = 0;
+                if(manaAtual < 0) manaAtual = 0;
+                
+                pacoteGeral[`fichas/${idFicha}/efeitos`] = efeitosAtualizados;
+                pacoteGeral[`fichas/${idFicha}/hp-atual`] = hpAtual;
+                pacoteGeral[`fichas/${idFicha}/mana-atual`] = manaAtual;
+                
+                for (let attr in attrParaReverter) {
+                    let valorCorrente = Number(dados[attr]) || 0;
+                    pacoteGeral[`fichas/${idFicha}/${attr}`] = valorCorrente - attrParaReverter[attr];
+                }
             }
-
-            update(refFicha, pacoteAtualizacao);
+            
+            const snapHordas = await get(ref(database, 'hordas'));
+            let hordas = snapHordas.val() || {};
+            for (let idHorda in hordas) {
+                let dados = hordas[idHorda];
+                let efeitos = dados.efeitos || [];
+                if (efeitos.length === 0) continue;
+                
+                let efeitosAtualizados = efeitos.map(e => { e.turnos -= 1; return e; }).filter(e => e.turnos > 0);
+                pacoteGeral[`hordas/${idHorda}/efeitos`] = efeitosAtualizados;
+            }
+            
+            if (Object.keys(pacoteGeral).length > 0) {
+                await update(ref(database), pacoteGeral);
+            }
         }
 
         function renderizarEfeitosNoSlot(numSlot, tipo, efeitos) {
