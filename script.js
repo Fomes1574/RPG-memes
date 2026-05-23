@@ -63,10 +63,10 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
                     </div>
                     <div class="info-grid">
                         <div style="display: flex; gap: 10px; grid-column: span 2; align-items: center; border-bottom: 1px dashed #3a2212; padding-bottom: 10px;">
-                            <div style="flex: 1;"><label>Nome do Herói</label><input type="text" id="slot${numSlot}-nome" class="editavel-slot${numSlot}"></div>
+                            <div style="flex: 1;"><label>Nome do Personagem</label><input type="text" id="slot${numSlot}-nome" class="editavel-slot${numSlot}"></div>
                             <div style="width: 130px; text-align: center;">
-                                <label style="color:#d4af37; font-size: 12px;">NÍVEL</label>
-                                <div class="level-display" id="slot${numSlot}-level-display" data-current-level="1">LV. <span id="slot${numSlot}-num-level">1</span></div>
+                                <label style="color:#d4af37; font-size: 14px; letter-spacing: 2px;">NÍVEL</label>
+                                <div class="level-display" id="slot${numSlot}-level-display" data-current-level="1" style="font-size: 26px;">LV. <span id="slot${numSlot}-num-level">1</span></div>
                             </div>
                         </div>
                         <div><label>Jogador</label><input type="text" id="slot${numSlot}-jogador" class="editavel-slot${numSlot}" readonly></div>
@@ -102,7 +102,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
                         </div>
                         <div><label>Gênero</label><input type="text" id="slot${numSlot}-genero" class="editavel-slot${numSlot}"></div>
                         <div style="grid-column: span 2; margin-top: 5px; text-align: center;">
-                            <button class="btn-mini-acao editavel-slot${numSlot}" onclick="abrirArvoreHabilidades('${numSlot}')" style="width: 100%; padding: 8px; font-size: 14px; border-color: #d4af37; color: #d4af37; box-shadow: 0 0 10px rgba(212, 175, 55, 0.2); background: rgba(0,0,0,0.5);">📜 ABRIR ÁRVORE DE HABILIDADES</button>
+                            <button class="btn-mini-acao editavel-slot${numSlot}" onclick="abrirArvoreHabilidades('${numSlot}')" style="width: 100%; padding: 8px; font-size: 14px; border-color: #d4af37; color: #d4af37; box-shadow: 0 0 10px rgba(212, 175, 55, 0.2); background: rgba(0,0,0,0.5);">📜 ÁRVORE DE HABILIDADES</button>
                         </div>
                     </div>
                 </div>
@@ -148,7 +148,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
                     <div style="grid-column: span 2;"><label>Condição Física</label><input type="text" id="slot${numSlot}-condicao" class="editavel-slot${numSlot}"></div>
                 </div>
 
-                <div class="section-title">Atributos Primordiais <span id="slot${numSlot}-pts-livres" style="font-size: 11px; color: #ffd700; font-weight: bold;">(0 Livres)</span></div>
+                <div class="section-title">Atributos <span id="slot${numSlot}-pts-livres" style="font-size: 14px; color: #ffd700; font-weight: bold;">( 0 / 10 )</span></div>
                 <div class="atributos-grid">
                     <div class="attr-box"><label>FOR</label><input type="number" id="slot${numSlot}-for" class="editavel-slot${numSlot}"></div>
                     <div class="attr-box"><label>DES</label><input type="number" id="slot${numSlot}-des" class="editavel-slot${numSlot}"></div>
@@ -176,10 +176,9 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
                     <div id="lista-efeitos-slot${numSlot}"></div>
                 </div>
 
-                <div class="section-title">Anotações e Relatos</div>
+                <div class="section-title">Descrições</div>
                 <div class="info-grid">
-                    <div><label>Aparência Física</label><textarea id="slot${numSlot}-aparencia" class="editavel-slot${numSlot}" rows="3"></textarea></div>
-                    <div><label>Anotações do Viajante</label><textarea id="slot${numSlot}-extra" class="editavel-slot${numSlot}" rows="3"></textarea></div>
+                    <div style="grid-column: span 2;"><textarea id="slot${numSlot}-extra" class="editavel-slot${numSlot}" rows="6" placeholder="Anotações livres..."></textarea></div>
                 </div>
             </div>`;
         }
@@ -911,7 +910,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
 
                     let spanPts = document.getElementById(`slot${numSlot}-pts-livres`);
                     if(spanPts) {
-                        spanPts.innerText = `(${ptsLivres} Livres de ${maxAtributos})`;
+                        spanPts.innerText = `( ${ptsLivres} / ${maxAtributos} )`;
                         spanPts.style.color = ptsLivres > 0 ? '#27ae60' : (ptsLivres === 0 ? '#b89c72' : '#d95757');
                     }
 
@@ -1024,8 +1023,13 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
 
             const caixaHp = document.getElementById(caixaHpId);
             if(caixaHp) {
-                if (percHp <= 10 && hpMax > 0 && hpAtual > 0) { caixaHp.classList.add('alerta-morte'); } 
-                else { caixaHp.classList.remove('alerta-morte'); }
+                if (percHp <= 10 && hpMax > 0 && hpAtual > 0) {
+                    caixaHp.classList.add('alerta-morte');
+                    if (barHpElement && tipo === 'heroi') barHpElement.classList.add('alerta-morte');
+                } else {
+                    caixaHp.classList.remove('alerta-morte');
+                    if (barHpElement && tipo === 'heroi') barHpElement.classList.remove('alerta-morte');
+                }
             }
         }
 
