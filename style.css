@@ -63,34 +63,38 @@
         .fraction-input span { color: #8b6d43; font-weight: bold; font-size: 20px; }
         .fraction-input input { font-size: 18px; padding: 4px; }
         
-        .bar-bg { width: 100%; background-color: #0a0604; border-radius: 12px; height: 14px; margin-top: 8px; border: 1px solid #1a0f0a; box-shadow: inset 0 2px 5px rgba(0,0,0,0.9); position: relative;}
-        .bar-fill { position: relative; overflow: hidden; height: 100%; transition: width 0.5s ease-out; border-radius: 12px; position: relative;}
+        .bar-bg { width: 100%; background-color: #0a0604; border-radius: 12px; height: 16px; margin-top: 8px; border: 1px solid #2a1f1a; box-shadow: inset 0 3px 6px rgba(0,0,0,0.9), 0 1px 1px rgba(255,255,255,0.05); position: relative; overflow: hidden;}
+        .bar-fill { position: relative; height: 100%; transition: width 0.5s ease-out; border-radius: 12px; box-shadow: inset 0 2px 4px rgba(255,255,255,0.3), inset 0 -2px 4px rgba(0,0,0,0.4); }
         
-        .hp-fill { background: linear-gradient(90deg, #1e7039, #27ae60); box-shadow: 0 0 10px 3px rgba(39, 174, 96, 0.8);} 
-        .mana-fill { background: linear-gradient(90deg, #18527a, #2980b9); box-shadow: 0 0 10px 3px rgba(41, 128, 185, 0.8);} 
+        .hp-fill { background: linear-gradient(90deg, #1e7039, #27ae60); box-shadow: 0 0 10px 3px rgba(39, 174, 96, 0.8), inset 0 2px 4px rgba(255,255,255,0.3), inset 0 -2px 4px rgba(0,0,0,0.4);} 
+        .mana-fill { background: linear-gradient(90deg, #18527a, #2980b9); box-shadow: 0 0 10px 3px rgba(41, 128, 185, 0.8), inset 0 2px 4px rgba(255,255,255,0.3), inset 0 -2px 4px rgba(0,0,0,0.4);} 
         
         /* FEIXE BRILHOSO DAS BARRAS */
         .bar-fill::after {
             content: ''; position: absolute; top: 0; left: -100%; width: 50%; height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
-            animation: brilho-magico 2.5s infinite linear;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+            animation: brilho-magico 3s infinite linear;
+            transform: skewX(-20deg);
         }
         @keyframes brilho-magico { 0% { left: -100%; } 100% { left: 200%; } }
 
         /* BARRA DE EXPERIÊNCIA DE OURO E LEVEL UP ÉPICO */
         .level-display { font-size: 20px; font-weight: bold; color: #d4af37; text-align: center; text-shadow: 1px 1px 2px black; transition: 0.5s; display: flex; align-items: center; justify-content: center; gap: 5px; }
         
-        .epic-level-up { animation: epic-level-up 3s cubic-bezier(0.25, 1, 0.5, 1) forwards !important; color: #ffffff !important; }
+        .epic-level-up { animation: epic-level-up 3s cubic-bezier(0.25, 1, 0.5, 1) forwards !important; color: #ffffff !important; z-index: 100; position: relative; }
         @keyframes epic-level-up {
             0% { transform: scale(1); filter: brightness(1); text-shadow: 0 0 5px #ffaa00; }
-            20% { transform: scale(1.6); filter: brightness(2); text-shadow: 0 0 20px #ffaa00, 0 0 40px #ffaa00; }
-            50% { transform: scale(1.8); filter: brightness(3); text-shadow: 0 0 40px #fff, 0 0 80px #ffea00; }
-            80% { transform: scale(1.4); filter: brightness(2); text-shadow: 0 0 20px #ffaa00; }
+            10% { transform: scale(2.5); filter: brightness(3); text-shadow: 0 0 30px #fff, 0 0 60px #ffea00, 0 0 100px #ffea00; color: #fff; }
+            30% { transform: scale(2.2) rotate(-5deg); text-shadow: 0 0 40px #fff, 0 0 80px #ffea00; }
+            50% { transform: scale(2.4) rotate(5deg); text-shadow: 0 0 40px #fff, 0 0 80px #ffea00; }
+            70% { transform: scale(2.2) rotate(-3deg); text-shadow: 0 0 40px #fff, 0 0 80px #ffea00; }
+            90% { transform: scale(1.5); filter: brightness(2); text-shadow: 0 0 20px #ffaa00; }
             100% { transform: scale(1); filter: brightness(1); text-shadow: 1px 1px 2px black; }
         }
 
         .exp-text { color: #C0C0C0; font-weight: bold; font-size: 11px; transition: all 0.5s ease; text-shadow: 1px 1px 2px black; margin-bottom: 2px;}
-        .exp-fill { background: linear-gradient(90deg, #b8860b, #d4af37, #ffd700); box-shadow: 0 0 var(--brilho-xp-blur, 10px) var(--brilho-xp-spread, 2px) rgba(212, 175, 55, var(--brilho-xp-opacity, 0.5)); position: relative; overflow: visible; transition: box-shadow 0.5s ease;}
+        .exp-fill { background: linear-gradient(90deg, #b8860b, #d4af37, #ffd700); box-shadow: 0 0 var(--brilho-xp-blur, 10px) var(--brilho-xp-spread, 2px) rgba(212, 175, 55, var(--brilho-xp-opacity, 0.5)); position: relative; overflow: hidden; transition: box-shadow 0.5s ease;}
+        .exp-fill::after { display: none; }
         
         /* ÁRVORE DE HABILIDADES */
         #modal-arvore { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 2500; justify-content: center; align-items: center; backdrop-filter: blur(8px); }
@@ -102,8 +106,8 @@
         .tab-classe.ativa { background: #d4af37; color: #000; border-color: #fff; box-shadow: 0 0 15px rgba(212, 175, 55, 0.6); }
         .tab-classe.bloqueada { opacity: 0.4; cursor: not-allowed; }
         .tab-classe:hover:not(.bloqueada):not(.ativa) { background: #3a2212; color: #dcd0ba; }
-        .btn-fechar-arvore { position: absolute; top: 15px; right: 20px; background: transparent; border: none; color: #8c1c13; font-size: 24px; cursor: pointer; transition: 0.2s; box-shadow: none; padding: 0;}
-        .btn-fechar-arvore:hover { background: transparent; transform: scale(1.2); color: #d95757; text-shadow: 0 0 5px red;}
+        .btn-fechar-arvore { position: absolute; top: 15px; right: 20px; background: rgba(0,0,0,0.5); border: 2px solid #8c1c13; color: #d95757; font-size: 14px; cursor: pointer; transition: 0.2s; padding: 5px 15px; border-radius: 4px; z-index: 2600; font-family: 'Georgia', serif; font-weight: bold; text-transform: uppercase;}
+        .btn-fechar-arvore:hover { background: #8c1c13; color: #fff; transform: scale(1.1); box-shadow: 0 0 15px red;}
         .arvore-content { flex: 1; padding: 30px; overflow-y: auto; display: flex; justify-content: center; align-items: center; position: relative; background: radial-gradient(circle at center, #1c130d 0%, #0a0503 100%); }
         .arvore-view { display: none; width: 100%; height: 100%; flex-direction: column; align-items: center; justify-content: center; position: relative; }
         .arvore-view.ativa { display: flex; }

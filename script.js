@@ -71,7 +71,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
                         </div>
                         <div><label>Jogador</label><input type="text" id="slot${numSlot}-jogador" class="editavel-slot${numSlot}" readonly></div>
                         <div><label>Linhagem / Raça</label><input type="text" id="slot${numSlot}-raca" class="editavel-slot${numSlot}"></div>
-                        <div style="display: flex; flex-direction: column; gap: 5px;">
+                        <div>
                             <label>Vocação / Classe</label>
                             <select id="slot${numSlot}-classe" class="editavel-slot${numSlot}">
                                 <option value="">Nenhuma</option>
@@ -86,9 +86,11 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
                                 <option value="Bardo">Bardo</option>
                                 <option value="Monge">Monge</option>
                             </select>
-                            <button class="btn-mini-acao editavel-slot${numSlot}" onclick="abrirArvoreHabilidades('${numSlot}')" style="margin: 0; padding: 4px; font-size: 10px; border-color: #8b6d43; color: #d4af37; box-shadow: none;">📜 Árvore de Habilidades</button>
                         </div>
                         <div><label>Gênero</label><input type="text" id="slot${numSlot}-genero" class="editavel-slot${numSlot}"></div>
+                        <div style="grid-column: span 2; margin-top: 5px; text-align: center;">
+                            <button class="btn-mini-acao editavel-slot${numSlot}" onclick="abrirArvoreHabilidades('${numSlot}')" style="width: 100%; padding: 8px; font-size: 14px; border-color: #d4af37; color: #d4af37; box-shadow: 0 0 10px rgba(212, 175, 55, 0.2); background: rgba(0,0,0,0.5);">📜 ABRIR ÁRVORE DE HABILIDADES</button>
+                        </div>
                     </div>
                 </div>
 
