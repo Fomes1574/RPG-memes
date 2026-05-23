@@ -509,6 +509,32 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
             return h;
         }
 
+        window.invocarMonstro = function() {
+            let nome = prompt("Nome da nova ameaça (Monstro/NPC):");
+            if(!nome) return;
+            nome = nome.trim();
+            if(nome === "") return;
+            
+            // Generate a clean ID
+            let id = nome.toLowerCase().replace(/[^a-z0-9]/g, '');
+            if(!id) id = 'monstro_' + Date.now();
+            
+            // Set up basic ficha
+            update(ref(database, 'fichas/' + id), { 
+                nome: nome, 
+                tipo: 'monstro', 
+                'hp-max': 20, 
+                'hp-atual': 20, 
+                'mana-max': 20, 
+                'mana-atual': 20 
+            });
+            // Register in the list
+            update(ref(database, 'lista_monstros/' + id), { 
+                nome: nome,
+                ativo: true 
+            });
+        }
+
         window.transformarEmHorda = async function(numSlot) {
             const idMonstroOriginal = slotsDeVisao[numSlot].idFicha;
             const qtdStr = document.getElementById(`slot${numSlot}-qtd-horda`).value;
