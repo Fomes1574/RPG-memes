@@ -118,7 +118,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
                             <label style="margin:0; color:#9c8464;">Base Máx (Mestre):</label>
                             <input type="number" id="slot${numSlot}-hp-max" class="editavel-slot${numSlot} mestre-unlocked" title="Vida Base Máxima (Padrão 20)" style="width:50px; padding:2px; font-size:11px;">
                         </div>
-                        <div class="bar-bg"><div class="bar-fill hp-fill" id="bar-hp-slot${numSlot}" style="width: 100%;"></div></div>
+                        <div class="bar-bg"><div class="bar-fill hp-fill" id="bar-hp-slot${numSlot}" style="width: 100%;"></div><div class="shield-fill" id="bar-shield-slot${numSlot}" style="width: 0%;"></div><div class="hp-text-overlay" id="txt-escudo-slot${numSlot}"></div></div>
                     </div>
                     
                     <div class="caixa-status">
@@ -147,40 +147,120 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
                     <div><label>Moedas de Ouro</label><input type="number" id="slot${numSlot}-ouro" class="editavel-slot${numSlot}" style="color:#d4af37;"></div>
                     <div style="grid-column: span 2;"><label>Condição Física</label><input type="text" id="slot${numSlot}-condicao" class="editavel-slot${numSlot}"></div>
                 </div>
-
-                <div class="section-title">Atributos <span id="slot${numSlot}-pts-livres" style="font-size: 14px; color: #ffd700; font-weight: bold;">( 0 / 10 )</span></div>
-                <div class="atributos-grid">
-                    <div class="attr-box"><label>FOR</label><input type="number" id="slot${numSlot}-for" class="editavel-slot${numSlot}"></div>
-                    <div class="attr-box"><label>DES</label><input type="number" id="slot${numSlot}-des" class="editavel-slot${numSlot}"></div>
-                    <div class="attr-box"><label>CON</label><input type="number" id="slot${numSlot}-con" class="editavel-slot${numSlot}"></div>
-                    <div class="attr-box"><label>INT</label><input type="number" id="slot${numSlot}-int" class="editavel-slot${numSlot}"></div>
-                    <div class="attr-box"><label>SAB</label><input type="number" id="slot${numSlot}-sab" class="editavel-slot${numSlot}"></div>
-                    <div class="attr-box"><label>CAR</label><input type="number" id="slot${numSlot}-car" class="editavel-slot${numSlot}"></div>
-                    <div class="attr-box"><label>PER</label><input type="number" id="slot${numSlot}-per" class="editavel-slot${numSlot}"></div>
                 </div>
 
-                <div class="section-title">Itens Equipados</div>
-                <div class="equipamentos-container">${eqHtml}</div>
+                <!-- TABS NAVEGAÇÃO -->
+                <div class="hero-tabs-nav">
+                    <button class="hero-tab-btn active" onclick="alternarAbaHeroi(${numSlot}, 'status')" id="tab-btn-${numSlot}-status">Atributos</button>
+                    <button class="hero-tab-btn" onclick="alternarAbaHeroi(${numSlot}, 'inventario')" id="tab-btn-${numSlot}-inventario">Equips & Buffs</button>
+                    <button class="hero-tab-btn" onclick="alternarAbaHeroi(${numSlot}, 'grimorio')" id="tab-btn-${numSlot}-grimorio">Grimório</button>
+                    <button class="hero-tab-btn" onclick="alternarAbaHeroi(${numSlot}, 'combate')" id="tab-btn-${numSlot}-combate" style="color:#d95757; border-color:#d95757;">Ações & Combate</button>
+                </div>
 
-                <div class="section-title">Buff e Debuff</div>
-                <div class="buff-container">
-                    <div class="buff-input-grid esconder-jogador">
-                        <input type="text" id="slot${numSlot}-novo-buff-nome" class="editavel-slot${numSlot}" placeholder="Nome">
-                        <input type="number" id="slot${numSlot}-novo-buff-hp" class="editavel-slot${numSlot}" placeholder="HP/T">
-                        <input type="number" id="slot${numSlot}-novo-buff-mana" class="editavel-slot${numSlot}" placeholder="MN/T">
-                        <select id="slot${numSlot}-novo-buff-attr" class="editavel-slot${numSlot}"><option value="">Nenhum</option><option value="for">FOR</option><option value="des">DES</option><option value="con">CON</option><option value="int">INT</option><option value="sab">SAB</option><option value="car">CAR</option><option value="per">PER</option></select>
-                        <input type="number" id="slot${numSlot}-novo-buff-mod" class="editavel-slot${numSlot}" placeholder="Mod">
-                        <input type="number" id="slot${numSlot}-novo-buff-turnos" class="editavel-slot${numSlot}" placeholder="Turnos">
-                        <button class="editavel-slot${numSlot}" onclick="adicionarEfeito(${numSlot})" style="padding: 5px;">ADD</button>
+                <!-- TAB: STATUS -->
+                <div id="tab-${numSlot}-status" class="hero-tab-content active">
+                    <div class="section-title">Atributos <span id="slot${numSlot}-pts-livres" style="font-size: 14px; color: #ffd700; font-weight: bold;">( 0 / 10 )</span></div>
+                    <div class="atributos-grid">
+                        <div class="attr-box"><label>FOR</label><input type="number" id="slot${numSlot}-for" class="editavel-slot${numSlot}"></div>
+                        <div class="attr-box"><label>DES</label><input type="number" id="slot${numSlot}-des" class="editavel-slot${numSlot}"></div>
+                        <div class="attr-box"><label>CON</label><input type="number" id="slot${numSlot}-con" class="editavel-slot${numSlot}"></div>
+                        <div class="attr-box"><label>INT</label><input type="number" id="slot${numSlot}-int" class="editavel-slot${numSlot}"></div>
+                        <div class="attr-box"><label>SAB</label><input type="number" id="slot${numSlot}-sab" class="editavel-slot${numSlot}"></div>
+                        <div class="attr-box"><label>CAR</label><input type="number" id="slot${numSlot}-car" class="editavel-slot${numSlot}"></div>
+                        <div class="attr-box"><label>PER</label><input type="number" id="slot${numSlot}-per" class="editavel-slot${numSlot}"></div>
                     </div>
-                    <div id="lista-efeitos-slot${numSlot}"></div>
+                    <div class="section-title">Descrições</div>
+                    <div class="info-grid">
+                        <div style="grid-column: span 2;"><textarea id="slot${numSlot}-extra" class="editavel-slot${numSlot}" rows="6" placeholder="Anotações livres..."></textarea></div>
+                    </div>
                 </div>
 
-                <div class="section-title">Descrições</div>
-                <div class="info-grid">
-                    <div style="grid-column: span 2;"><textarea id="slot${numSlot}-extra" class="editavel-slot${numSlot}" rows="6" placeholder="Anotações livres..."></textarea></div>
+                <!-- TAB: INVENTÁRIO & BUFFS -->
+                <div id="tab-${numSlot}-inventario" class="hero-tab-content">
+                    <div class="section-title">Itens Equipados</div>
+                    <div class="equipamentos-container">${eqHtml}</div>
+
+                    <div class="section-title">Buff e Debuff</div>
+                    <div class="buff-container">
+                        <div class="buff-input-grid esconder-jogador">
+                            <input type="text" id="slot${numSlot}-novo-buff-nome" class="editavel-slot${numSlot}" placeholder="Nome">
+                            <input type="number" id="slot${numSlot}-novo-buff-hp" class="editavel-slot${numSlot}" placeholder="HP/T">
+                            <input type="number" id="slot${numSlot}-novo-buff-mana" class="editavel-slot${numSlot}" placeholder="MN/T">
+                            <select id="slot${numSlot}-novo-buff-attr" class="editavel-slot${numSlot}"><option value="">Nenhum</option><option value="for">FOR</option><option value="des">DES</option><option value="con">CON</option><option value="int">INT</option><option value="sab">SAB</option><option value="car">CAR</option><option value="per">PER</option></select>
+                            <input type="number" id="slot${numSlot}-novo-buff-mod" class="editavel-slot${numSlot}" placeholder="Mod">
+                            <input type="number" id="slot${numSlot}-novo-buff-turnos" class="editavel-slot${numSlot}" placeholder="Turnos">
+                            <button class="editavel-slot${numSlot}" onclick="adicionarEfeito(${numSlot})" style="padding: 5px;">ADD</button>
+                        </div>
+                        <div id="lista-efeitos-slot${numSlot}"></div>
+                    </div>
+                </div>
+
+                <!-- TAB: GRIMÓRIO -->
+                <div id="tab-${numSlot}-grimorio" class="hero-tab-content">
+                    <div class="section-title">Adicionar Habilidade</div>
+                    <div class="buff-container">
+                        <div class="buff-input-grid" style="grid-template-columns: 2fr 1fr 1fr 1.5fr;">
+                            <input type="text" id="slot${numSlot}-hab-nome" class="editavel-slot${numSlot}" placeholder="Nome Habilidade">
+                            <input type="number" id="slot${numSlot}-hab-ap" class="editavel-slot${numSlot}" placeholder="AP" value="0">
+                            <input type="number" id="slot${numSlot}-hab-mana" class="editavel-slot${numSlot}" placeholder="Mana" value="0">
+                            <select id="slot${numSlot}-hab-tipo" class="editavel-slot${numSlot}">
+                                <option value="ativa">Ativa (Ataque)</option>
+                                <option value="passiva">Passiva</option>
+                                <option value="cura">Cura</option>
+                                <option value="suporte">Suporte / Buff</option>
+                            </select>
+                        </div>
+                        <textarea id="slot${numSlot}-hab-desc" class="editavel-slot${numSlot}" rows="2" placeholder="Descrição ou Efeito da Habilidade..." style="width:100%; margin-top:5px; background:rgba(0,0,0,0.5); border:1px solid #3a2212; color:#dcd0ba; padding:5px;"></textarea>
+                        <button class="editavel-slot${numSlot}" onclick="adicionarHabilidade(${numSlot})" style="width:100%; padding: 8px; margin-top: 5px; background: #d4af37; border: 1px solid #5c3a21; color:#000; font-weight:bold; cursor:pointer;">GRAVAR NO GRIMÓRIO</button>
+                    </div>
+                    <div class="section-title" style="margin-top: 15px;">Habilidades Passivas</div>
+                    <div id="lista-habilidades-passivas-slot${numSlot}"></div>
+                    <div class="section-title" style="margin-top: 15px;">Habilidades Ativas</div>
+                    <div id="lista-habilidades-ativas-slot${numSlot}"></div>
+                </div>
+
+                <!-- TAB: AÇÕES E COMBATE -->
+                <div id="tab-${numSlot}-combate" class="hero-tab-content">
+                    <div class="section-title" style="color:#d95757; border-bottom-color:#8c1c13;">Ações e Combate</div>
+                    <div class="buff-container" style="border-color:#8c1c13; background:rgba(20, 5, 5, 0.6);">
+                        <div style="margin-bottom: 15px;">
+                            <label style="color:#d95757; font-weight:bold;">Ameaça na Mesa:</label>
+                            <span id="nome-ameaca-ativa-slot${numSlot}" style="color:#fff;">Nenhuma ameaça na mesa no momento...</span>
+                        </div>
+                        
+                        <div style="display: flex; gap: 10px; align-items: stretch;">
+                            <div style="display: flex; flex-direction: column; gap: 5px; flex: 1;">
+                                <label style="color:#b89c72;">Dano Base</label>
+                                <input type="number" id="slot${numSlot}-jogador-ataque-dano" class="editavel-slot${numSlot}" placeholder="Valor" style="text-align:center; font-size: 18px; padding: 10px; border-color:#d4af37; color:#fff;">
+                                <label class="checkbox-alvo" style="margin-top: 5px; justify-content:center; padding: 5px; border:1px dashed #d95757; border-radius:4px;"><input type="checkbox" id="slot${numSlot}-jogador-critico"> 🔥 Crítico (Nat 20)</label>
+                            </div>
+                            <div style="display: flex; flex-direction: column; gap: 5px; flex: 1.5;">
+                                <label style="color:#b89c72;">Alvos Disponíveis</label>
+                                <div id="alvos-combate-slot${numSlot}" style="flex:1; background: rgba(0,0,0,0.5); border: 1px solid #5c1818; padding: 5px; border-radius: 4px; overflow-y:auto; max-height:80px; display:flex; flex-direction:column; gap:5px;">
+                                    <!-- Populated via JS dynamically -->
+                                </div>
+                            </div>
+                        </div>
+
+                        <div style="display:flex; gap:10px; margin-top:15px;">
+                            <button onclick="jogadorAtacar(${numSlot}, false)" class="btn-acao-intenso">⚔️ Ataque Único</button>
+                            <button onclick="jogadorAtacar(${numSlot}, true)" class="btn-acao-intenso" style="background: linear-gradient(to bottom, #d95757, #8c1c13); filter: hue-rotate(20deg);">🔥 Ataque em Área</button>
+                        </div>
+                    </div>
                 </div>
             </div>`;
+        }
+
+        window.alternarAbaHeroi = function(numSlot, abaName) {
+            // Remove active de todos os botoes e conteudos
+            document.querySelectorAll(`#container-slot${numSlot}-heroi .hero-tab-btn`).forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll(`#container-slot${numSlot}-heroi .hero-tab-content`).forEach(content => content.classList.remove('active'));
+            
+            // Adiciona active no alvo
+            const btnTarget = document.getElementById(`tab-btn-${numSlot}-${abaName}`);
+            const contentTarget = document.getElementById(`tab-${numSlot}-${abaName}`);
+            if(btnTarget) btnTarget.classList.add('active');
+            if(contentTarget) contentTarget.classList.add('active');
         }
 
         function gerarHtmlMonstro(numSlot) {
@@ -211,7 +291,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
                         <div class="fraction-input">
                             <input type="number" id="slot${numSlot}-monstro-hp-atual" class="editavel-slot${numSlot}" style="color: #27ae60;"><span>/</span><input type="number" id="slot${numSlot}-monstro-hp-max" class="editavel-slot${numSlot} mestre-unlocked" style="color: #27ae60;">
                         </div>
-                        <div class="bar-bg"><div class="bar-fill hp-fill" id="bar-hp-monstro-slot${numSlot}" style="width: 100%;"></div></div>
+                        <div class="bar-bg"><div class="bar-fill hp-fill" id="bar-hp-monstro-slot${numSlot}" style="width: 100%;"></div><div class="shield-fill" id="bar-shield-monstro-slot${numSlot}" style="width: 0%;"></div><div class="hp-text-overlay" id="txt-escudo-monstro-slot${numSlot}"></div></div>
                     </div>
                     <div class="caixa-status">
                         <label style="color: #2980b9; text-align: center;">MANA</label>
@@ -334,6 +414,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
                     } else {
                         limparSlot(2);
                     }
+                    atualizarAlvosJogador(ameacaEmCombateGlobal);
                 }
                 if (usuarioAtual.cargo === "Mestre") {
                     // Sem ação no momento, estado combate livre para Mestre
@@ -344,6 +425,63 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
         // ==========================================
         // GESTÃO DE MENUS E SLOTS DO MESTRE (NOVO)
         // ==========================================
+        let ouvinteAlvoJogador = null;
+        let refAlvoJogador = null;
+
+        function atualizarAlvosJogador(ameacaId) {
+            let nomeSpan = document.getElementById(`nome-ameaca-ativa-slot1`);
+            let alvosDiv = document.getElementById(`alvos-combate-slot1`);
+            if(!nomeSpan || !alvosDiv) return;
+
+            if(ouvinteAlvoJogador && refAlvoJogador) {
+                off(refAlvoJogador, 'value', ouvinteAlvoJogador);
+            }
+
+            if(!ameacaId) {
+                nomeSpan.innerText = "Nenhuma ameaça na mesa no momento...";
+                alvosDiv.innerHTML = "";
+                return;
+            }
+
+            if(ameacaId.startsWith('horda_')) {
+                refAlvoJogador = ref(database, 'hordas/' + ameacaId);
+                ouvinteAlvoJogador = onValue(refAlvoJogador, (snap) => {
+                    if(snap.exists()) {
+                        let horda = snap.val();
+                        nomeSpan.innerText = horda.nome || 'Horda';
+                        let html = '';
+                        for(let mId in horda.membros) {
+                            let hpAtual = Number(horda.membros[mId]['hp-atual']) || 0;
+                            if(hpAtual > 0) {
+                                html += `<label class="checkbox-alvo" style="color:#d95757; font-size:12px; margin-bottom:2px;"><input type="checkbox" value="${ameacaId}_${mId}"> Alvo ${mId} (HP: ${hpAtual})</label>`;
+                            }
+                        }
+                        alvosDiv.innerHTML = html;
+                    } else {
+                        nomeSpan.innerText = "Ameaça removida.";
+                        alvosDiv.innerHTML = "";
+                    }
+                });
+            } else {
+                refAlvoJogador = ref(database, 'fichas/' + ameacaId);
+                ouvinteAlvoJogador = onValue(refAlvoJogador, (snap) => {
+                    if(snap.exists()) {
+                        let m = snap.val();
+                        nomeSpan.innerText = m.nome || 'Monstro';
+                        let hpAtual = Number(m['hp-atual']) || 0;
+                        if(hpAtual > 0) {
+                            alvosDiv.innerHTML = `<label class="checkbox-alvo" style="color:#d95757; font-size:12px;"><input type="checkbox" value="${ameacaId}"> ${m.nome || 'Monstro'} (HP: ${hpAtual})</label>`;
+                        } else {
+                            alvosDiv.innerHTML = "";
+                        }
+                    } else {
+                        nomeSpan.innerText = "Ameaça removida.";
+                        alvosDiv.innerHTML = "";
+                    }
+                });
+            }
+        }
+
         function atualizarSidebarMestre() {
             if(usuarioAtual.cargo !== "Mestre") return;
             
@@ -511,7 +649,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
                                     <input type="number" id="horda-${mId}-hp-atual" class="horda-compact-input editavel-slot${numSlot}" value="${hpAtual}" style="width:50px; color:#27ae60; padding:2px; font-size: 12px; text-align: center;"> / 
                                     <input type="number" id="horda-${mId}-hp-max" class="horda-compact-input mestre-unlocked" value="${hpMax}" style="width:50px; color:#27ae60; padding:2px; font-size: 12px; text-align: center;" disabled>
                                 </div>
-                                <div class="bar-bg" style="height: 6px; margin-top: 4px;"><div class="bar-fill hp-fill" id="bar-hp-horda-${mId}" style="width: ${percHp}%;"></div></div>
+                                <div class="bar-bg" style="height: 6px; margin-top: 4px;"><div class="bar-fill hp-fill" id="bar-hp-horda-${mId}" style="width: ${percHp}%;"></div><div class="shield-fill" id="bar-shield-horda-${mId}" style="width: 0%;"></div><div class="hp-text-overlay" id="txt-escudo-horda-${mId}" style="font-size: 9px;"></div></div>
                             </div>
                             
                             <div id="caixa-mana-horda-${mId}" class="caixa-status" style="padding: 2px; flex: 1;">
@@ -834,6 +972,16 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
                             if(barHp) barHp.style.width = percHp + '%';
                             if(barMana) barMana.style.width = percMana + '%';
                             
+                            let escudo = Number(mData['escudo']) || 0;
+                            let barShield = document.getElementById(`bar-shield-horda-${mId}`);
+                            let txtEscudo = document.getElementById(`txt-escudo-horda-${mId}`);
+                            if(barShield) {
+                                let percEscudo = (escudo / hpMax) * 100;
+                                if(percEscudo > 100) percEscudo = 100;
+                                barShield.style.width = escudo > 0 ? percEscudo + '%' : '0%';
+                            }
+                            if(txtEscudo) txtEscudo.innerText = escudo > 0 ? `+${escudo}` : '';
+                            
                             let caixaHp = document.getElementById(`caixa-hp-horda-${mId}`);
                             if(caixaHp) {
                                 if(percHp <= 10 && hpMax > 0 && hpAtual > 0) caixaHp.classList.add('alerta-morte');
@@ -848,7 +996,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
                 }
 
                 for(let chave in dados) {
-                    if(chave === 'efeitos') continue;
+                    if(chave === 'efeitos' || chave === 'grimorio') continue;
                     let idHTML = formatarIdElemento(numSlot, tipo, chave);
                     let el = document.getElementById(idHTML);
                     if(el && document.activeElement !== el) el.value = dados[chave];
@@ -932,6 +1080,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
                 }
 
                 renderizarEfeitosNoSlot(numSlot, tipo, dados.efeitos || []);
+                if(tipo === 'heroi') renderizarGrimorioNoSlot(numSlot, dados.grimorio || {});
                 atualizarBarrasEAlertaNoSlot(numSlot, tipo);
                 atualizarTooltipsAtributosNoSlot(numSlot, tipo, dados);
             });
@@ -1020,6 +1169,21 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
 
             if (barHpElement) barHpElement.style.width = percHp + '%';
             if (barManaElement) barManaElement.style.width = percMana + '%';
+
+            let escudo = Number(slotsDeVisao[numSlot].dados?.escudo) || 0;
+            let barIdShield = tipo === 'heroi' ? `bar-shield-slot${numSlot}` : `bar-shield-monstro-slot${numSlot}`;
+            let txtIdShield = tipo === 'heroi' ? `txt-escudo-slot${numSlot}` : `txt-escudo-monstro-slot${numSlot}`;
+            let barShieldElement = document.getElementById(barIdShield);
+            let txtShieldElement = document.getElementById(txtIdShield);
+
+            if(barShieldElement) {
+                let percEscudo = (escudo / hpMax) * 100;
+                if(percEscudo > 100) percEscudo = 100;
+                barShieldElement.style.width = escudo > 0 ? percEscudo + '%' : '0%';
+            }
+            if(txtShieldElement) {
+                txtShieldElement.innerText = escudo > 0 ? `+${escudo}` : '';
+            }
 
             const caixaHp = document.getElementById(caixaHpId);
             if(caixaHp) {
@@ -1262,10 +1426,25 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
                 const snapshot = await get(refFicha);
                 let dados = snapshot.val() || {};
                 let hpAtual = Number(dados['hp-atual']) || 0;
+                let escudo = Number(dados['escudo']) || 0;
                 
-                hpAtual -= dano;
-                if(hpAtual < 0) hpAtual = 0;
-                update(refFicha, { 'hp-atual': hpAtual });
+                let danoRestante = dano;
+                if(escudo > 0) {
+                    if(escudo >= danoRestante) {
+                        escudo -= danoRestante;
+                        danoRestante = 0;
+                    } else {
+                        danoRestante -= escudo;
+                        escudo = 0;
+                    }
+                    update(refFicha, { 'escudo': escudo });
+                }
+                
+                if(danoRestante > 0) {
+                    hpAtual -= danoRestante;
+                    if(hpAtual < 0) hpAtual = 0;
+                    update(refFicha, { 'hp-atual': hpAtual });
+                }
             }
             
             inputDano.value = '';
@@ -1417,7 +1596,170 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
             }
         }
 
+        window.renderizarGrimorioNoSlot = function(numSlot, grimorio) {
+            const divAtivas = document.getElementById(`lista-habilidades-ativas-slot${numSlot}`);
+            const divPassivas = document.getElementById(`lista-habilidades-passivas-slot${numSlot}`);
+            if(!divAtivas || !divPassivas) return;
+            
+            divAtivas.innerHTML = '';
+            divPassivas.innerHTML = '';
+            
+            const temPermissao = (usuarioAtual.cargo === "Mestre") || (usuarioAtual.idFicha === slotsDeVisao[numSlot].idFicha);
+            
+            for(let habId in grimorio) {
+                let hab = grimorio[habId];
+                let corBorda = '#d4af37';
+                let icon = '✨';
+                if(hab.tipo === 'ativa') { corBorda = '#d95757'; icon = '⚔️'; }
+                else if(hab.tipo === 'cura') { corBorda = '#27ae60'; icon = '🌿'; }
+                else if(hab.tipo === 'passiva') { corBorda = '#b89c72'; icon = '🛡️'; }
+                
+                let btnHtml = '';
+                if(hab.tipo !== 'passiva') {
+                    btnHtml = `<button onclick="usarHabilidade(${numSlot}, '${habId}')" style="background: rgba(0,0,0,0.5); border: 1px solid ${corBorda}; color: ${corBorda}; padding: 3px 8px; font-weight: bold; cursor: pointer;">${icon} USAR</button>`;
+                }
+                
+                let delHtml = temPermissao ? `<button onclick="deletarHabilidade(${numSlot}, '${habId}')" style="background: none; border: none; color: #8c1c13; cursor: pointer; font-size: 14px; margin-left: 10px;" title="Apagar Habilidade">🗑️</button>` : '';
+                
+                let div = document.createElement('div');
+                div.style.cssText = `border: 1px solid ${corBorda}; padding: 10px; margin-bottom: 10px; background: rgba(10, 5, 2, 0.8); border-radius: 4px;`;
+                div.innerHTML = `
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 5px;">
+                        <div>
+                            <strong style="color: ${corBorda}; font-size: 16px;">${hab.nome}</strong>
+                            <div style="font-size: 11px; color: #b89c72;">Custo: <span style="color:#d99c57;">${hab.ap} AP</span> | <span style="color:#2980b9;">${hab.mana} Mana</span></div>
+                        </div>
+                        <div style="display: flex; align-items: center;">
+                            ${btnHtml}
+                            ${delHtml}
+                        </div>
+                    </div>
+                    <div style="font-size: 12px; color: #dcd0ba; margin-top: 5px; font-style: italic;">
+                        ${hab.desc}
+                    </div>
+                `;
+                
+                if(hab.tipo === 'passiva') divPassivas.appendChild(div);
+                else divAtivas.appendChild(div);
+            }
+        };
+
         window.atualizarHudMestre = function(jogadorId, campo, valor) {
             if(valor === "") return;
             update(ref(database, 'fichas/' + jogadorId), { [campo]: Number(valor) });
         }
+
+        window.jogadorAtacar = async function(numSlot, area) {
+            const inputDano = document.getElementById(`slot${numSlot}-jogador-ataque-dano`);
+            const critico = document.getElementById(`slot${numSlot}-jogador-critico`).checked;
+            let dano = Number(inputDano.value) || 0;
+            if(dano <= 0) return alert("Insira um valor de dano base válido!");
+            if(critico) dano = dano * 2;
+            
+            const checkboxes = document.querySelectorAll(`#alvos-combate-slot${numSlot} input[type="checkbox"]:checked`);
+            if(checkboxes.length === 0) return alert("Selecione pelo menos um alvo!");
+            
+            for(let cb of checkboxes) {
+                let idAlvo = cb.value;
+                if(idAlvo.startsWith("horda_")) {
+                    let hordaId = ameacaEmCombateGlobal;
+                    let mId = idAlvo.split("_")[1];
+                    let refMembro = ref(database, `hordas/${hordaId}/membros/${mId}`);
+                    let snap = await get(refMembro);
+                    if(snap.exists()) {
+                        let mDados = snap.val();
+                        let hpAtual = Number(mDados['hp-atual']) || 0;
+                        let escudo = Number(mDados['escudo']) || 0;
+                        let danoRestante = dano;
+                        if(escudo > 0) {
+                            if(escudo >= danoRestante) { escudo -= danoRestante; danoRestante = 0; }
+                            else { danoRestante -= escudo; escudo = 0; }
+                            update(refMembro, { escudo: escudo });
+                        }
+                        if(danoRestante > 0) {
+                            hpAtual -= danoRestante;
+                            if(hpAtual < 0) hpAtual = 0;
+                            update(refMembro, { 'hp-atual': hpAtual });
+                        }
+                    }
+                } else {
+                    let refMonstro = ref(database, `fichas/${idAlvo}`);
+                    let snap = await get(refMonstro);
+                    if(snap.exists()) {
+                        let mDados = snap.val();
+                        let hpAtual = Number(mDados['hp-atual']) || 0;
+                        let escudo = Number(mDados['escudo']) || 0;
+                        let danoRestante = dano;
+                        if(escudo > 0) {
+                            if(escudo >= danoRestante) { escudo -= danoRestante; danoRestante = 0; }
+                            else { danoRestante -= escudo; escudo = 0; }
+                            update(refMonstro, { escudo: escudo });
+                        }
+                        if(danoRestante > 0) {
+                            hpAtual -= danoRestante;
+                            if(hpAtual < 0) hpAtual = 0;
+                            update(refMonstro, { 'hp-atual': hpAtual });
+                        }
+                    }
+                }
+            }
+            
+            inputDano.value = '';
+            document.getElementById(`slot${numSlot}-jogador-critico`).checked = false;
+            checkboxes.forEach(cb => cb.checked = false);
+        };
+        
+        window.adicionarHabilidade = function(numSlot) {
+            let nome = document.getElementById(`slot${numSlot}-hab-nome`).value;
+            let ap = Number(document.getElementById(`slot${numSlot}-hab-ap`).value) || 0;
+            let mana = Number(document.getElementById(`slot${numSlot}-hab-mana`).value) || 0;
+            let tipo = document.getElementById(`slot${numSlot}-hab-tipo`).value;
+            let desc = document.getElementById(`slot${numSlot}-hab-desc`).value;
+            
+            if(!nome) return alert("Habilidade precisa de um nome!");
+            
+            const idFicha = slotsDeVisao[numSlot].idFicha;
+            const habId = "hab_" + Date.now();
+            
+            update(ref(database, `fichas/${idFicha}/grimorio/${habId}`), {
+                nome, ap, mana, tipo, desc
+            });
+            
+            document.getElementById(`slot${numSlot}-hab-nome`).value = '';
+            document.getElementById(`slot${numSlot}-hab-ap`).value = '0';
+            document.getElementById(`slot${numSlot}-hab-mana`).value = '0';
+            document.getElementById(`slot${numSlot}-hab-desc`).value = '';
+        };
+
+        window.deletarHabilidade = function(numSlot, habId) {
+            if(confirm("Tem certeza que deseja apagar essa habilidade do grimório?")) {
+                const idFicha = slotsDeVisao[numSlot].idFicha;
+                remove(ref(database, `fichas/${idFicha}/grimorio/${habId}`));
+            }
+        };
+
+        window.usarHabilidade = function(numSlot, habId) {
+            const idFicha = slotsDeVisao[numSlot].idFicha;
+            get(ref(database, `fichas/${idFicha}/grimorio/${habId}`)).then(snap => {
+                if(snap.exists()) {
+                    let hab = snap.val();
+                    let manaAtual = Number(document.getElementById(`slot${numSlot}-mana-atual`).value) || 0;
+                    let apAtual = Number(document.getElementById(`slot${numSlot}-ap`).value) || 0;
+                    
+                    if(hab.mana > manaAtual) return alert("Mana insuficiente para usar " + hab.nome + "!");
+                    if(hab.ap > apAtual) return alert("AP insuficiente para usar " + hab.nome + "!");
+                    
+                    update(ref(database, `fichas/${idFicha}`), {
+                        'mana-atual': manaAtual - hab.mana,
+                        'ap': apAtual - hab.ap
+                    });
+                    
+                    // Se for de ataque, move o jogador para a aba de combate
+                    if(hab.tipo === 'ativa') {
+                        alternarAbaHeroi(numSlot, 'combate');
+                    } else {
+                        alert(`Habilidade ${hab.nome} usada!`);
+                    }
+                }
+            });
+        };
