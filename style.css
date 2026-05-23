@@ -1,0 +1,183 @@
+﻿/* ESTÉTICA MEDIEVAL CLÁSSICA */
+        body { 
+            font-family: 'Georgia', serif; 
+            background: radial-gradient(circle at 50% 50%, #2e1d13 0%, #0c0704 100%);
+            background-attachment: fixed;
+            color: #dcd0ba; 
+            margin: 0; padding: 20px; 
+            display: flex; justify-content: center; align-items: flex-start; min-height: 100vh;
+        }
+        
+        #tela-login { background: #1a100a; padding: 40px; border-radius: 4px; border: 3px double #8b6d43; text-align: center; box-shadow: 0 20px 50px rgba(0,0,0,0.9); width: 320px; margin-top: 15vh;}
+        #tela-app { display: none; width: 100%; max-width: 1400px; }
+        
+        .mesa-de-jogo { display: flex; gap: 25px; width: 100%; justify-content: center; flex-wrap: wrap; align-items: flex-start; padding-bottom: 50px; transition: all 0.5s;}
+        .slot-container { flex: 1; min-width: 400px; max-width: 600px; display: flex; justify-content: center; transition: all 0.5s;}
+        
+        /* FICHA DO PERSONAGEM & HORDAS */
+        .container { background: #1c130d; padding: 30px; border-radius: 2px; border: 3px double #8b6d43; box-shadow: 0 15px 40px rgba(0,0,0,0.9), inset 0 0 40px rgba(0,0,0,0.7); width: 100%; display: none; }
+        .container.monstro-theme { border-color: #6b1d1d; background: #1c0a0a; box-shadow: 0 15px 40px rgba(0,0,0,0.9), inset 0 0 50px rgba(20,0,0,0.9);}
+        
+        .nav-bar { background: #120a06; padding: 15px 25px; border-radius: 4px; border: 1px solid #5c3a21; margin-bottom: 25px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 8px 25px rgba(0,0,0,0.9); flex-wrap: wrap; gap: 15px;}
+        .nav-info { font-size: 15px; color: #b89c72; text-shadow: 1px 1px 2px black;}
+        
+        select { background-color: #0a0503; color: #dcd0ba; border: 1px solid #8b6d43; padding: 8px 12px; border-radius: 2px; font-weight: bold; cursor: pointer; font-family: 'Georgia', serif; outline: none; text-align: left;}
+        select:focus { border-color: #d4af37; background-color: #1a100a;}
+        
+        .painel-mestre-box { display: flex; align-items: center; gap: 5px; border: 1px solid #3a2212; padding: 5px 10px; border-radius: 4px; background: rgba(0,0,0,0.5); }
+        .painel-mestre-box select { width: 110px; font-size: 11px; padding: 6px; }
+
+        .header-grid { display: grid; grid-template-columns: 140px 1fr; gap: 20px; margin-bottom: 20px; }
+        .info-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; align-items: center; }
+        .status-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin: 15px 0; background: rgba(0,0,0,0.4); padding: 20px; border-radius: 8px; border: 1px solid #3a2212; box-shadow: inset 0 0 10px rgba(0,0,0,0.8);}
+        
+        .atributos-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 10px; text-align: center; margin-top: 10px;}
+        .attr-box { background: rgba(0,0,0,0.6); border: 1px solid #5c3a21; padding: 10px 5px; box-shadow: inset 0 0 8px rgba(0,0,0,0.8); transition: 0.2s;}
+        .attr-box:hover { border-color: #d4af37; background: rgba(20, 10, 5, 0.8); cursor: help;}
+        .attr-box label { font-size: 11px; color: #b89c72; margin-bottom: 8px; font-weight: bold; text-align: center; cursor: help;}
+        .attr-box input { font-size: 22px; padding: 5px 0; background: transparent; border: none; box-shadow: none; color: #fff; cursor: help; text-align: center;}
+        
+        .section-title { border-bottom: 2px solid #5c3a21; padding-bottom: 5px; margin-top: 30px; color: #b89c72; text-transform: uppercase; font-weight: bold; font-size: 14px; letter-spacing: 2px; text-shadow: 2px 2px 2px #000; display: flex; justify-content: space-between; align-items: center;}
+        .monstro-theme .section-title { border-bottom-color: #5c1818; color: #a84242; }
+        
+        label { display: block; font-size: 10px; color: #9c8464; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 1px; text-align: center;}
+        
+        input, textarea { width: 100%; background-color: rgba(0, 0, 0, 0.6); border: 1px solid #4a2e1b; color: #e8dcc5; padding: 8px; box-sizing: border-box; font-family: 'Georgia', serif; transition: 0.3s; text-align: center;}
+        textarea { text-align: left; }
+        input:focus, textarea:focus { border-color: #8b6d43; background-color: rgba(20, 10, 5, 0.8); outline: none;}
+        input[type="number"] { font-weight: bold; text-align: center;}
+        
+        input:disabled, textarea:disabled, button:disabled { opacity: 0.6; cursor: not-allowed; border-color: #24140b; background-color: rgba(0,0,0,0.8); color: #6b5a48;}
+        input.mestre-unlocked:disabled { color: #dcd0ba; opacity: 1; } 
+
+        .foto-personagem { width: 140px; height: 140px; background-color: #050302; border: 2px solid #5c3a21; object-fit: cover; box-shadow: 0 5px 15px rgba(0,0,0,0.9); }
+        .monstro-theme .foto-personagem { border-color: #5c1818; }
+        
+        .btn-upload { display: block; width: 100%; font-size: 10px; margin-top: 8px; cursor: pointer; color: #b89c72; border: 1px dashed #5c3a21; padding: 6px; text-align: center; background: rgba(0,0,0,0.5); transition: 0.2s; box-sizing: border-box;}
+        .btn-upload:hover { background: rgba(92,58,33,0.3); color: #fff;}
+        .monstro-theme .btn-upload { border-color: #5c1818; color: #a84242;}
+        .monstro-theme .btn-upload:hover { background: rgba(92,24,24,0.3); color: #fff;}
+
+        /* BARRAS MÁGICAS E ALINHAMENTO */
+        .fraction-input { display: flex; align-items: center; justify-content: center; gap: 8px; }
+        .fraction-input span { color: #8b6d43; font-weight: bold; font-size: 20px; }
+        .fraction-input input { font-size: 18px; padding: 4px; }
+        
+        .bar-bg { width: 100%; background-color: #0a0604; border-radius: 12px; height: 14px; margin-top: 8px; border: 1px solid #1a0f0a; box-shadow: inset 0 2px 5px rgba(0,0,0,0.9); position: relative;}
+        .bar-fill { position: relative; overflow: hidden; height: 100%; transition: width 0.5s ease-out; border-radius: 12px; position: relative;}
+        
+        .hp-fill { background: linear-gradient(90deg, #1e7039, #27ae60); box-shadow: 0 0 10px 3px rgba(39, 174, 96, 0.8);} 
+        .mana-fill { background: linear-gradient(90deg, #18527a, #2980b9); box-shadow: 0 0 10px 3px rgba(41, 128, 185, 0.8);} 
+        
+        /* FEIXE BRILHOSO DAS BARRAS */
+        .bar-fill::after {
+            content: ''; position: absolute; top: 0; left: -100%; width: 50%; height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            animation: brilho-magico 2.5s infinite linear;
+        }
+        @keyframes brilho-magico { 0% { left: -100%; } 100% { left: 200%; } }
+
+        /* BARRA DE EXPERIÊNCIA DE OURO E LEVEL UP ÉPICO */
+        .level-display { font-size: 20px; font-weight: bold; color: #d4af37; text-align: center; text-shadow: 1px 1px 2px black; transition: 0.5s; display: flex; align-items: center; justify-content: center; gap: 5px; }
+        
+        .epic-level-up { animation: epic-level-up 3s cubic-bezier(0.25, 1, 0.5, 1) forwards !important; color: #ffffff !important; }
+        @keyframes epic-level-up {
+            0% { transform: scale(1); filter: brightness(1); text-shadow: 0 0 5px #ffaa00; }
+            20% { transform: scale(1.6); filter: brightness(2); text-shadow: 0 0 20px #ffaa00, 0 0 40px #ffaa00; }
+            50% { transform: scale(1.8); filter: brightness(3); text-shadow: 0 0 40px #fff, 0 0 80px #ffea00; }
+            80% { transform: scale(1.4); filter: brightness(2); text-shadow: 0 0 20px #ffaa00; }
+            100% { transform: scale(1); filter: brightness(1); text-shadow: 1px 1px 2px black; }
+        }
+
+        .exp-text { color: #C0C0C0; font-weight: bold; font-size: 11px; transition: all 0.5s ease; text-shadow: 1px 1px 2px black; margin-bottom: 2px;}
+        .exp-fill { background: linear-gradient(90deg, #d4af37, #fceabb, #f8b500); box-shadow: 0 0 15px rgba(248, 181, 0, 0.8); position: relative; overflow: visible;}
+        
+        /* BOLA BRILHANTE FIXA E RELUZENTE NO FINAL */
+        .exp-fill::after {
+            content: ''; position: absolute; left: 100%; top: -2px; height: 16px; width: 16px;
+            background: #fff; border-radius: 50%; transform: translateX(-50%);
+            box-shadow:
+                0 0 5px 2px #fff,
+                0 0 15px 5px #f8b500,
+                0 0 30px calc(var(--brilho-xp-escala, 1) * 1px) #fff;
+            animation: brilho-exp-piscando 1.5s infinite alternate;
+        }
+
+        @keyframes brilho-exp-piscando { 0% { opacity: 0.7; transform: translateX(-50%) scale(1); } 100% { opacity: 1; transform: translateX(-50%) scale(1.1); } }
+
+        /* ALERTA PISCANTE DE VIDA BAIXA (HERÓIS, MONSTROS E HORDAS) */
+        .caixa-status { padding: 10px; transition: 0.3s; border: 1px solid transparent; border-radius: 4px;}
+        .alerta-morte { animation: pulso-morte-discreto 1.5s infinite alternate !important; }
+        @keyframes pulso-morte-discreto {
+            0% { box-shadow: 0 0 5px rgba(139, 0, 0, 0.1), inset 0 0 5px rgba(139, 0, 0, 0.1); border-color: rgba(139, 0, 0, 0.2); }
+            100% { box-shadow: 0 0 12px rgba(180, 0, 0, 0.4), inset 0 0 10px rgba(180, 0, 0, 0.3); border-color: rgba(139, 0, 0, 0.5); }
+        }
+        
+        /* HUD DO MESTRE */
+        #btn-toggle-hud { position: fixed; top: 15px; left: 15px; z-index: 1001; display: none; padding: 6px 10px; font-size: 11px; box-shadow: 0 4px 10px rgba(0,0,0,0.8); }
+        #hud-mestre { position: fixed; top: 15px; left: 15px; background: rgba(20, 10, 5, 0.95); border: 2px solid #5c3a21; padding: 15px; border-radius: 4px; box-shadow: 0 10px 30px rgba(0,0,0,0.9); z-index: 1000; display: none; flex-direction: column; gap: 10px; width: 220px; backdrop-filter: blur(5px);}
+        .hud-player { border-bottom: 1px solid #3a2212; padding-bottom: 12px; margin-bottom: 5px;}
+        .hud-player:last-child { border-bottom: none; padding-bottom: 0; margin-bottom: 0;}
+        .hud-name { font-weight: bold; color: #d4af37; font-size: 12px; text-transform: uppercase; margin-bottom: 6px; letter-spacing: 1px; text-align: center;}
+        
+        .hud-stats-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+        .hud-input { width: 40px; background: rgba(0,0,0,0.5); border: 1px solid #3a2212; color: #dcd0ba; font-size: 11px; padding: 2px; text-align: center; border-radius: 2px; font-weight: bold;}
+        .hud-input:focus { border-color: #d4af37; outline: none; }
+        
+        .hud-mini-bar-bg { width: 100%; background: #000; height: 4px; border-radius: 2px; margin-bottom: 4px; overflow: hidden; position: relative;}
+        .hud-mini-bar-fill { height: 100%; border-radius: 2px; transition: 0.3s; position: relative;}
+        
+        /* Brilho reluzente às mini barras do HUD */
+        .hud-mini-bar-fill[style*="background:#27ae60"] { box-shadow: 0 0 5px 1px rgba(39, 174, 96, 0.8); }
+        .hud-mini-bar-fill[style*="background:#2980b9"] { box-shadow: 0 0 5px 1px rgba(41, 128, 185, 0.8); }
+        
+        /* SLOTS DE EQUIPAMENTO */
+        .equipamento-slot { display: grid; grid-template-columns: 15px 2fr 1fr 60px 1fr 60px 85px; gap: 6px; align-items: center; background: rgba(0,0,0,0.5); padding: 10px; border: 1px solid #3a2212; margin-bottom: 8px;}
+        .equipamento-slot input, .equipamento-slot select { font-size: 11px; padding: 6px; text-align: left;}
+        .slot-num { font-weight: bold; color: #8b6d43; text-align: center; }
+        .btn-equipar { padding: 6px; font-size: 11px; margin: 0; }
+        .btn-equipar.equipado { background: #1e7039; border-color: #27ae60; color: white; box-shadow: inset 0 0 5px rgba(0,0,0,0.5); }
+        
+        .checkbox-alvo { display: flex; align-items: center; gap: 5px; color: #b89c72; font-size: 12px; font-weight: bold; cursor: pointer; text-transform: capitalize;}
+        .checkbox-alvo input { width: 16px; height: 16px; cursor: pointer; margin: 0; box-shadow: none;}
+
+        .buff-container { background: rgba(0,0,0,0.4); padding: 15px; border: 1px solid #3a2212; margin-top: 10px;}
+        .buff-input-grid { display: grid; grid-template-columns: 1fr 60px 60px 80px 60px 60px 50px; gap: 6px; margin-bottom: 12px;}
+        .buff-input-grid input, .buff-input-grid select { padding: 6px; font-size: 11px; text-align: left;}
+        
+        .buff-item { display: flex; justify-content: space-between; align-items: center; background: #140c08; padding: 8px 12px; border: 1px solid #2e1d13; margin-bottom: 6px; border-left: 4px solid #1e7039; box-shadow: 0 3px 6px rgba(0,0,0,0.6);}
+        .debuff-item { border-left-color: #8c1c13; }
+        
+        /* BOTÕES GERAIS */
+        button { background: linear-gradient(to bottom, #3a2212, #1c1008); color: #dcd0ba; border: 1px solid #8b6d43; padding: 10px 15px; border-radius: 2px; cursor: pointer; font-weight: bold; font-family: 'Georgia', serif; text-transform: uppercase; font-size: 11px; letter-spacing: 1px; transition: 0.2s; text-shadow: 1px 1px 2px black; box-shadow: 0 4px 8px rgba(0,0,0,0.8), inset 0 1px 1px rgba(255,255,255,0.1);}
+        button:hover:not(:disabled) { background: linear-gradient(to bottom, #4a2e1b, #2b1a0f); transform: translateY(-1px);}
+        
+        .btn-remover { background: transparent; border: none; color: #8c1c13; font-size: 14px; box-shadow: none; padding: 0 5px; cursor: pointer;}
+        .btn-remover:hover:not(:disabled) { background: transparent; transform: scale(1.2); text-shadow: 0 0 5px red;}
+
+        .btn-mini-acao { padding: 4px 6px; font-size: 12px; background: #1a0f0a; color: #8b6d43; border: 1px solid #3a2212; border-radius: 4px; margin: 0 2px; }
+        .btn-mini-acao:hover { background: #d4af37; color: #000; border-color: #ffd700; text-shadow: none; }
+        .btn-limpar { background: transparent; border: 1px solid #8c1c13; color: #d95757; padding: 5px 8px; font-size: 10px; }
+        .btn-limpar:hover { background: #360e0e; }
+        
+        .btn-exp-master { background: linear-gradient(to bottom, #d4af37, #b8860b) !important; color: #000 !important; text-shadow: none !important; border-color: #fff !important; }
+
+        .painel-mestre { display: none; gap: 10px; flex-wrap: wrap; background: rgba(0,0,0,0.7); padding: 10px; border: 1px dashed #6b1d1d; align-items: center;}
+        .btn-invocar { background: linear-gradient(to bottom, #6b4d1b, #4a3411) !important; border-color: #8b6d43 !important;}
+        .btn-lancar { background: linear-gradient(to bottom, #1e5c2e, #11361a) !important; border-color: #27ae60 !important;}
+        .btn-derrotado { background: linear-gradient(to bottom, #2b2b2b, #121212) !important; border-color: #4a4a4a !important; color: #888 !important;}
+        .btn-deletar { background: linear-gradient(to bottom, #5c1818, #360e0e) !important; border-color: #8c1c13 !important;}
+        
+        .mestre-only-inline { display: none; }
+        body.is-mestre .mestre-only-inline { display: inline-block; }
+        body.is-mestre .mestre-only-flex { display: flex; }
+        
+        body.is-jogador .esconder-jogador { display: none !important; }
+        
+        input.hud-stat-field[type="number"], .horda-compact-input { -webkit-appearance: number-input; -moz-appearance: number-input; appearance: number-input; }
+        input.hud-stat-field[type="number"]::-webkit-inner-spin-button, .horda-compact-input::-webkit-inner-spin-button { opacity: 1; }
+        
+        /* ESTILOS DA HORDA E BARRAS INTERNAS */
+        .horda-member-card { background: #140c08; border: 2px solid #5c1818; padding: 15px; border-radius: 4px; margin-bottom: 15px; box-shadow: inset 0 0 15px rgba(0,0,0,0.8); }
+        .horda-compact-input { background: rgba(0,0,0,0.5); border: 1px solid #3a2212; color: #dcd0ba; text-align: center; }
+        .horda-compact-input:focus { border-color: #d4af37; outline: none; }
