@@ -417,9 +417,6 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
         }
 
         window.mestreLimpar = function(numSlot) {
-            document.getElementById(`mestre-t${numSlot}-player`).value = '';
-            document.getElementById(`mestre-t${numSlot}-monstro`).value = '';
-            document.getElementById(`mestre-t${numSlot}-horda`).value = '';
             limparSlot(numSlot);
         }
 
