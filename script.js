@@ -185,7 +185,10 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
         }
 
         function gerarHtmlMonstro(numSlot) {
-            let alvosHtml = playersList.map(p => `<label class="checkbox-alvo"><input type="checkbox" value="${p}" class="alvo-ataque-slot${numSlot}"> ${p}</label>`).join('            <div class="container monstro-theme" id="container-slot${numSlot}-monstro">
+            let alvosHtml = playersList.map(p => `<label class="checkbox-alvo"><input type="checkbox" value="${p}" class="alvo-ataque-slot${numSlot}"> ${p}</label>`).join('');
+            
+            return `
+            <div class="container monstro-theme" id="container-slot${numSlot}-monstro">
                 <div class="header-grid" style="grid-template-columns: 100px 1fr;">
                     <div style="display: flex; flex-direction: column;">
                         <img id="img-foto-monstro-slot${numSlot}" class="foto-personagem" src="" alt="Sem foto" style="width:100px; height:100px;">
