@@ -203,7 +203,6 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
                         <label style="color:#a84242; font-size: 14px;">Ameaça</label>
                         <input type="text" id="slot${numSlot}-monstro-nome" class="editavel-slot${numSlot}" style="font-size: 24px; font-weight: bold; margin-bottom: 10px;">
                     </div>
-                </div>               </div>
                 </div>
 
                 <div class="section-title">Atributos de Combate</div>
