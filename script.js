@@ -46,7 +46,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
                     <div class="equipamento-slot">
                         <span class="slot-num">${i}</span>
                         <input type="text" id="slot${numSlot}-item${i}-nome" class="editavel-slot${numSlot}" placeholder="Nome do Item">
-                        <div style="display: flex; align-items: center; gap: 5px;" class="esconder-jogador">
+                        <div style="display: flex; align-items: center; gap: 5px;">
                             <button onclick="mudarQtdItem(${numSlot}, ${i}, -1)" class="btn-qtd editavel-slot${numSlot}">-</button>
                             <input type="number" id="slot${numSlot}-item${i}-qtd" class="editavel-slot${numSlot}" value="0" readonly style="width: 40px; text-align: center; background: rgba(0,0,0,0.8); border: 1px solid #3a2212; color: #fff;">
                             <button onclick="mudarQtdItem(${numSlot}, ${i}, 1)" class="btn-qtd editavel-slot${numSlot}">+</button>
@@ -57,7 +57,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
             return `
             <div class="container" id="container-slot${numSlot}-heroi">
                 <div class="header-grid">
-                    <div style="display: flex; flex-direction: column;">
+                    <div style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
                         <img id="img-foto-slot${numSlot}" class="foto-personagem" src="" alt="Sem foto">
                         <label class="btn-upload editavel-slot${numSlot}-label esconder-jogador">📁 Enviar do PC<input type="file" class="editavel-slot${numSlot}" accept="image/png, image/jpeg, image/webp" style="display:none;" onchange="processarUploadOtimizado(event, ${numSlot})"></label>
                     </div>
@@ -159,7 +159,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
                     <div class="attr-box"><label>PER</label><input type="number" id="slot${numSlot}-per" class="editavel-slot${numSlot}"></div>
                 </div>
 
-                <div class="section-title">Itens Equipados (Máx 5)</div>
+                <div class="section-title">Itens Equipados</div>
                 <div class="equipamentos-container">${eqHtml}</div>
 
                 <div class="section-title">Buff e Debuff</div>

@@ -104,7 +104,7 @@
         .painel-mestre-box { display: flex; align-items: center; gap: 5px; border: 1px solid #3a2212; padding: 5px 10px; border-radius: 4px; background: rgba(0,0,0,0.5); }
         .painel-mestre-box select { width: 110px; font-size: 11px; padding: 6px; }
 
-        .header-grid { display: grid; grid-template-columns: 140px 1fr; gap: 20px; margin-bottom: 20px; }
+        .header-grid { display: grid; grid-template-columns: 155px 1fr; gap: 20px; margin-bottom: 20px; align-items: center; }
         .info-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; align-items: center; }
         .status-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin: 15px 0; background: rgba(0,0,0,0.4); padding: 20px; border-radius: 8px; border: 1px solid #3a2212; box-shadow: inset 0 0 10px rgba(0,0,0,0.8);}
         
