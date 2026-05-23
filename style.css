@@ -231,7 +231,23 @@
             border-left: 2px solid #5c3a21;
             z-index: 1000; display: flex; flex-direction: column;
             box-shadow: -5px 0 25px rgba(0,0,0,0.9);
+            transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1);
         }
+        .sidebar-mestre.sidebar-fechada {
+            transform: translateX(300px);
+        }
+        #btn-toggle-sidebar {
+            position: absolute; top: 50vh; left: -32px; width: 32px; height: 60px;
+            background: linear-gradient(to right, #2a150c, #110a06);
+            border: 2px solid #5c3a21; border-right: none;
+            border-radius: 8px 0 0 8px; cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            color: #d4af37; font-size: 16px; font-weight: bold;
+            box-shadow: -3px 0 10px rgba(0,0,0,0.8);
+            transform: translateY(-50%);
+            transition: all 0.3s ease;
+        }
+        #btn-toggle-sidebar:hover { background: linear-gradient(to right, #3a1d12, #1a0f09); color: #fff; }
         .sidebar-header {
             padding: 20px; text-align: center; border-bottom: 2px solid #3a2212;
             background: rgba(0,0,0,0.5);
@@ -287,10 +303,11 @@
         }
         
         /* SLOTS DE EQUIPAMENTO */
-        .equipamento-slot { display: grid; grid-template-columns: 15px 2fr 1fr 60px 1fr 60px 85px; gap: 6px; align-items: center; background: rgba(0,0,0,0.5); padding: 10px; border: 1px solid #3a2212; margin-bottom: 8px;}
-        .equipamento-slot input, .equipamento-slot select { font-size: 11px; padding: 6px; text-align: left;}
+        .equipamento-slot { display: grid; grid-template-columns: 15px 1fr auto; gap: 10px; align-items: center; background: rgba(0,0,0,0.5); padding: 10px; border: 1px solid #3a2212; margin-bottom: 8px;}
+        .equipamento-slot input { font-size: 11px; padding: 6px; text-align: left; }
         .slot-num { font-weight: bold; color: #8b6d43; text-align: center; }
-        .btn-equipar { padding: 6px; font-size: 11px; margin: 0; }
+        .btn-qtd { background: #1a0f09; border: 1px solid #5c3a21; color: #d4af37; cursor: pointer; padding: 4px 8px; font-weight: bold; border-radius: 4px; }
+        .btn-qtd:hover { background: #2a150c; }
         .btn-equipar.equipado { background: #1e7039; border-color: #27ae60; color: white; box-shadow: inset 0 0 5px rgba(0,0,0,0.5); }
         
         .checkbox-alvo { display: flex; align-items: center; gap: 5px; color: #b89c72; font-size: 12px; font-weight: bold; cursor: pointer; text-transform: capitalize;}

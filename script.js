@@ -46,11 +46,11 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
                     <div class="equipamento-slot">
                         <span class="slot-num">${i}</span>
                         <input type="text" id="slot${numSlot}-item${i}-nome" class="editavel-slot${numSlot}" placeholder="Nome do Item">
-                        <select id="slot${numSlot}-item${i}-attr1" class="editavel-slot${numSlot}">${optionsAttrs}</select>
-                        <input type="number" id="slot${numSlot}-item${i}-mod1" class="editavel-slot${numSlot}" placeholder="+Mod">
-                        <select id="slot${numSlot}-item${i}-attr2" class="editavel-slot${numSlot}">${optionsAttrs}</select>
-                        <input type="number" id="slot${numSlot}-item${i}-mod2" class="editavel-slot${numSlot}" placeholder="+Mod">
-                        <button id="slot${numSlot}-btn-equip-${i}" onclick="toggleEquipar(${numSlot}, ${i})" class="editavel-slot${numSlot} btn-equipar">Equipar</button>
+                        <div style="display: flex; align-items: center; gap: 5px;" class="esconder-jogador">
+                            <button onclick="mudarQtdItem(${numSlot}, ${i}, -1)" class="btn-qtd editavel-slot${numSlot}">-</button>
+                            <input type="number" id="slot${numSlot}-item${i}-qtd" class="editavel-slot${numSlot}" value="0" readonly style="width: 40px; text-align: center; background: rgba(0,0,0,0.8); border: 1px solid #3a2212; color: #fff;">
+                            <button onclick="mudarQtdItem(${numSlot}, ${i}, 1)" class="btn-qtd editavel-slot${numSlot}">+</button>
+                        </div>
                     </div>`;
             }
 
@@ -392,6 +392,34 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
                 `;
             }
             document.getElementById('cat-hordas').innerHTML = htmlHordas;
+        }
+
+        window.mudarQtdItem = async function(numSlot, i, delta) {
+            if(usuarioAtual.cargo !== "Mestre" && usuarioAtual.nome !== slotsDeVisao[numSlot].idFicha) return;
+            
+            let inputId = `slot${numSlot}-item${i}-qtd`;
+            let input = document.getElementById(inputId);
+            if(!input) return;
+            let current = Number(input.value) || 0;
+            let newVal = current + delta;
+            if(newVal < 0) newVal = 0;
+            if(newVal === current) return;
+            input.value = newVal;
+            
+            // Trigger input event to save to Firebase
+            input.dispatchEvent(new Event('input'));
+        }
+
+        window.toggleSidebarMestre = function() {
+            const sidebar = document.getElementById('sidebar-mestre');
+            const seta = document.getElementById('seta-sidebar');
+            if (sidebar.classList.contains('sidebar-fechada')) {
+                sidebar.classList.remove('sidebar-fechada');
+                seta.innerText = '▶';
+            } else {
+                sidebar.classList.add('sidebar-fechada');
+                seta.innerText = '◀';
+            }
         }
 
         window.toggleCategoria = function(catId) {
@@ -1025,36 +1053,6 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
                 img.src = e.target.result;
             }
             reader.readAsDataURL(file);
-        }
-
-        window.toggleEquipar = async function(numSlot, slotEq) {
-            if(usuarioAtual.cargo !== "Mestre" && slotsDeVisao[numSlot].tipo !== 'heroi') return;
-            const idFicha = slotsDeVisao[numSlot].idFicha;
-            
-            const refFicha = ref(database, 'fichas/' + idFicha);
-            const snapshot = await get(refFicha);
-            let dados = snapshot.val() || {};
-
-            const isEquipado = dados[`item${slotEq}-equipado`] || false;
-            const attr1 = dados[`item${slotEq}-attr1`];
-            const mod1 = Number(dados[`item${slotEq}-mod1`]) || 0;
-            const attr2 = dados[`item${slotEq}-attr2`];
-            const mod2 = Number(dados[`item${slotEq}-mod2`]) || 0;
-
-            let pacoteAtualizacao = {};
-            pacoteAtualizacao[`item${slotEq}-equipado`] = !isEquipado;
-            let multiplier = isEquipado ? -1 : 1; 
-
-            if (attr1 && mod1 !== 0) {
-                let atual = Number(dados[attr1]) || 0;
-                pacoteAtualizacao[attr1] = atual + (mod1 * multiplier);
-                dados[attr1] = pacoteAtualizacao[attr1]; 
-            }
-            if (attr2 && mod2 !== 0) {
-                let atual = Number(dados[attr2]) || 0;
-                pacoteAtualizacao[attr2] = atual + (mod2 * multiplier);
-            }
-            update(refFicha, pacoteAtualizacao);
         }
 
         window.adicionarEfeito = async function(numSlot, isMonstro) {
