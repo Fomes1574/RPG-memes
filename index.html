@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>RPG Memes - Mesa do Mestre</title>
-    <link rel="stylesheet" href="style.css?v=4">
+    <link rel="stylesheet" href="style.css?v=5">
 </head>
 <body style="--brilho-xp-escala: 1;">
 
@@ -31,11 +31,11 @@
     </div>
 
     <div id="tela-login">
-        <h2 style="color: #d4af37; margin-bottom: 5px; letter-spacing: 3px; text-shadow: 2px 2px 5px black; font-size: 28px;">RPG MEMES</h2>
-        <p style="color: #9c8464; font-size: 14px; margin-bottom: 25px; font-style: italic;">Declare sua identidade, viajante</p>
-        <input type="text" id="input-senha" placeholder="Insira seu nome..." style="text-align: center; font-size: 16px; margin-bottom: 20px;">
-        <button style="width: 100%; padding: 14px; font-size: 14px;" onclick="fazerLogin()">Adentrar no mundo</button>
-        <p id="msg-erro" style="color: #8c1c13; font-size: 13px; margin-top: 15px; display: none; font-weight: bold;">As chamas não reconhecem este nome.</p>
+        <h2 id="login-title">O Pacto</h2>
+        <p id="login-subtitle">"Assine com seu sangue ou tinta, viajante, para adentrar os reinos esquecidos..."</p>
+        <input type="text" id="input-senha" placeholder="Sua Assinatura..." autocomplete="off">
+        <button id="btn-login-wax" onclick="fazerLogin()">Assinar & Adentrar</button>
+        <p id="msg-erro" style="color: #8c1c13; font-size: 14px; margin-top: 20px; display: none; font-weight: bold; text-shadow: none;">Assinatura não reconhecida pelo Pacto.</p>
     </div>
 
     <div id="tela-app">
@@ -121,6 +121,6 @@
         </div>
     </div>
 
-    <script type="module" src="script.js?v=4"></script>
+    <script type="module" src="script.js?v=5"></script>
 </body>
 </html>
