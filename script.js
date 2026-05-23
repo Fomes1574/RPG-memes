@@ -185,19 +185,22 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
         }
 
         function gerarHtmlMonstro(numSlot) {
-            let alvosHtml = playersList.map(p => `<label class="checkbox-alvo"><input type="checkbox" value="${p}" class="alvo-ataque-slot${numSlot}"> ${p}</label>`).join('');
-            
-            return `
-            <div class="container monstro-theme" id="container-slot${numSlot}-monstro">
+            let alvosHtml = playersList.map(p => `<label class="checkbox-alvo"><input type="checkbox" value="${p}" class="alvo-ataque-slot${numSlot}"> ${p}</label>`).join('            <div class="container monstro-theme" id="container-slot${numSlot}-monstro">
                 <div class="header-grid" style="grid-template-columns: 100px 1fr;">
                     <div style="display: flex; flex-direction: column;">
                         <img id="img-foto-monstro-slot${numSlot}" class="foto-personagem" src="" alt="Sem foto" style="width:100px; height:100px;">
-                        <label class="btn-upload editavel-slot${numSlot}-label esconder-jogador">📁 Upload<input type="file" class="editavel-slot${numSlot}" accept="image/png, image/jpeg, image/webp" style="display:none;" onchange="processarUploadOtimizado(event, ${numSlot})"></label>
+                        <label class="btn-upload editavel-slot${numSlot}-label esconder-jogador">📷 Upload<input type="file" class="editavel-slot${numSlot}" accept="image/png, image/jpeg, image/webp" style="display:none;" onchange="processarUploadOtimizado(event, ${numSlot})"></label>
                     </div>
-                    <div style="display: flex; flex-direction: column; justify-content: center;">
+                    <div style="display: flex; flex-direction: column; justify-content: center; position: relative;">
+                        <div class="mestre-acoes-ficha esconder-jogador" style="position: absolute; top: -10px; right: 0; display: flex; gap: 5px;">
+                            <button onclick="lancarAmeacaFicha(${numSlot})" style="background: rgba(0,0,0,0.5); border: 1px solid #d4af37; color: #d4af37; padding: 3px 8px; font-size: 10px; cursor: pointer;">👁️ Lançar</button>
+                            <button onclick="abaterAmeacaFicha(${numSlot})" style="background: rgba(0,0,0,0.5); border: 1px solid #8c1c13; color: #d95757; padding: 3px 8px; font-size: 10px; cursor: pointer;">🩸 Abater</button>
+                            <button onclick="deletarAmeacaFicha(${numSlot})" style="background: rgba(0,0,0,0.5); border: 1px solid #5c1818; color: #8c1c13; padding: 3px 8px; font-size: 10px; cursor: pointer;">🗑️ Apagar</button>
+                        </div>
                         <label style="color:#a84242; font-size: 14px;">Ameaça</label>
                         <input type="text" id="slot${numSlot}-monstro-nome" class="editavel-slot${numSlot}" style="font-size: 24px; font-weight: bold; margin-bottom: 10px;">
                     </div>
+                </div>               </div>
                 </div>
 
                 <div class="section-title">Atributos de Combate</div>
@@ -222,9 +225,12 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
                 <div class="section-title esconder-jogador">Ação Ofensiva (Mestre)</div>
                 <div class="buff-container esconder-jogador">
                     <div style="display: flex; gap: 15px; align-items: flex-end; flex-wrap: wrap;">
-                        <div><label style="color: #d95757;">Dano</label><input type="number" id="slot${numSlot}-ataque-dano" class="editavel-slot${numSlot}" placeholder="Valor" style="width: 80px;"></div>
-                        <div style="flex: 1;"><label style="color: #b89c72;">Alvos (Players)</label><div style="display: flex; gap: 15px; flex-wrap: wrap; background: rgba(0,0,0,0.5); padding: 10px; border: 1px solid #3a2212; border-radius: 4px; min-height: 20px; align-items: center;">${alvosHtml}</div></div>
-                        <button class="editavel-slot${numSlot}" onclick="executarAtaque(${numSlot})" style="background: linear-gradient(to bottom, #752020, #4a1111); border-color:#8c1c13; padding: 10px 20px;">ATACAR ⚔️</button>
+                        <div><label style="color: #d95757;">Dano</label><input type="number" id="slot${numSlot}-ataque-dano" class="editavel-slot${numSlot}" placeholder="Valor" style="width: 80px; text-align: center; font-size: 16px; border-color: #8c1c13; color: #fff;"></div>
+                        <div style="flex: 1;">
+                            <label style="color: #b89c72;">Alvos (Players)</label>
+                            <div style="display: flex; gap: 15px; flex-wrap: wrap; background: rgba(20, 10, 5, 0.8); padding: 10px; border: 1px solid #5c3a21; border-radius: 4px; min-height: 20px; align-items: center;">${alvosHtml}</div>
+                        </div>
+                        <button class="editavel-slot${numSlot}" onclick="executarAtaque(${numSlot})" style="background: linear-gradient(to bottom, #8c1c13, #4a1111); border-color:#d95757; color: #fff; padding: 10px 20px; font-weight: bold; text-shadow: 1px 1px 2px black;">⚔️ ATACAR</button>
                     </div>
                 </div>
                 
@@ -287,8 +293,9 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
                     document.getElementById('badge-cargo').style.borderColor = "#8c1c13";
                     document.getElementById('badge-cargo').style.color = "#a84242";
                     document.getElementById('painel-mestre').style.display = "flex";
+                    document.getElementById('sidebar-mestre').style.display = "flex";
                     document.getElementById('btn-toggle-hud').style.display = "block"; 
-                    preencherDropdownsMestre();
+                    atualizarSidebarMestre();
                     initHudGlobais();
                 } else {
                     document.getElementById('seletor-jogador').style.display = "block";
@@ -308,12 +315,12 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
         function iniciarOuvintesGerais() {
             onValue(ref(database, 'lista_monstros'), (snapshot) => {
                 monstrosNoBanco = snapshot.val() || {};
-                if(usuarioAtual.cargo === "Mestre") preencherDropdownsMestre();
+                if(usuarioAtual.cargo === "Mestre") atualizarSidebarMestre();
             });
 
             onValue(ref(database, 'hordas'), (snapshot) => {
                 hordasNoBanco = snapshot.val() || {};
-                if(usuarioAtual.cargo === "Mestre") preencherDropdownsMestre();
+                if(usuarioAtual.cargo === "Mestre") atualizarSidebarMestre();
             });
 
             onValue(ref(database, 'estado_combate/ativo'), (snapshot) => {
@@ -328,54 +335,78 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
                     }
                 }
                 if (usuarioAtual.cargo === "Mestre") {
-                    atualizarBotoesMestre();
+                    // Sem ação no momento, estado combate livre para Mestre
                 }
             });
         }
 
         // ==========================================
-        // GESTÃO DE MENUS E SLOTS DO MESTRE
+        // GESTÃO DE MENUS E SLOTS DO MESTRE (NOVO)
         // ==========================================
-        function preencherDropdownsMestre() {
+        function atualizarSidebarMestre() {
             if(usuarioAtual.cargo !== "Mestre") return;
             
-            let htmlJogadores = `<option value="">👤 Jogadores...</option>` + playersList.map(p => `<option value="${p}">${p.toUpperCase()}</option>`).join('');
-            let htmlMonstros = `<option value="">💀 Monstros...</option>`;
-            for(let id in monstrosNoBanco) { htmlMonstros += `<option value="${id}">${monstrosNoBanco[id].nome}</option>`; }
-            
-            let htmlHordas = `<option value="">🛡️ Hordas...</option>`;
-            for(let id in hordasNoBanco) { htmlHordas += `<option value="${id}">${hordasNoBanco[id].nome}</option>`; }
-            
-            ['1', '2'].forEach(t => {
-                let sP = document.getElementById(`mestre-t${t}-player`);
-                let sM = document.getElementById(`mestre-t${t}-monstro`);
-                let sH = document.getElementById(`mestre-t${t}-horda`);
-                let vP = sP.value, vM = sM.value, vH = sH.value;
-                
-                sP.innerHTML = htmlJogadores; sP.value = vP;
-                sM.innerHTML = htmlMonstros; sM.value = vM;
-                sH.innerHTML = htmlHordas; sH.value = vH;
+            // Popula Jogadores
+            let htmlJogadores = '';
+            playersList.forEach(p => {
+                htmlJogadores += `
+                    <div class="item-acervo">
+                        <span class="item-acervo-nome">${p.toUpperCase()}</span>
+                        <div class="item-acervo-botoes">
+                            <button class="btn-slot-acervo" onclick="mestreAbrir(1, 'heroi', '${p}')">1</button>
+                            <button class="btn-slot-acervo" onclick="mestreAbrir(2, 'heroi', '${p}')">2</button>
+                        </div>
+                    </div>
+                `;
             });
+            document.getElementById('cat-jogadores').innerHTML = htmlJogadores;
 
-            const selAmeaca = document.getElementById('seletor-ameaca');
-            let vAmeaca = selAmeaca.value;
-            let optMonstros = ``; let optHordas = ``;
-            for(let id in monstrosNoBanco) { optMonstros += `<option value="${id}">💀 ${monstrosNoBanco[id].nome}</option>`; }
-            for(let id in hordasNoBanco) { optHordas += `<option value="${id}">🛡️ ${hordasNoBanco[id].nome}</option>`; }
-            
-            document.getElementById('optgroup-monstros').innerHTML = optMonstros;
-            document.getElementById('optgroup-hordas').innerHTML = optHordas;
-            
-            if (vAmeaca && (monstrosNoBanco[vAmeaca] || hordasNoBanco[vAmeaca])) {
-                selAmeaca.value = vAmeaca;
+            // Popula Monstros
+            let htmlMonstros = '';
+            for(let id in monstrosNoBanco) {
+                htmlMonstros += `
+                    <div class="item-acervo">
+                        <span class="item-acervo-nome">${monstrosNoBanco[id].nome}</span>
+                        <div class="item-acervo-botoes">
+                            <button class="btn-slot-acervo" onclick="mestreAbrir(1, 'monstro', '${id}')">1</button>
+                            <button class="btn-slot-acervo" onclick="mestreAbrir(2, 'monstro', '${id}')">2</button>
+                        </div>
+                    </div>
+                `;
+            }
+            document.getElementById('cat-monstros').innerHTML = htmlMonstros;
+
+            // Popula Hordas
+            let htmlHordas = '';
+            for(let id in hordasNoBanco) {
+                htmlHordas += `
+                    <div class="item-acervo">
+                        <span class="item-acervo-nome">${hordasNoBanco[id].nome}</span>
+                        <div class="item-acervo-botoes">
+                            <button class="btn-slot-acervo" onclick="mestreAbrir(1, 'horda', '${id}')">1</button>
+                            <button class="btn-slot-acervo" onclick="mestreAbrir(2, 'horda', '${id}')">2</button>
+                        </div>
+                    </div>
+                `;
+            }
+            document.getElementById('cat-hordas').innerHTML = htmlHordas;
+        }
+
+        window.toggleCategoria = function(catId) {
+            let div = document.getElementById(catId);
+            if(!div) return;
+            let btn = div.previousElementSibling;
+            if (div.style.display === 'none') {
+                div.style.display = 'flex';
+                if(btn) btn.classList.remove('fechado');
+            } else {
+                div.style.display = 'none';
+                if(btn) btn.classList.add('fechado');
             }
         }
 
         window.mestreAbrir = function(numSlot, tipo, valor) {
             if(!valor) return;
-            if(tipo !== 'heroi') document.getElementById(`mestre-t${numSlot}-player`).value = '';
-            if(tipo !== 'monstro') document.getElementById(`mestre-t${numSlot}-monstro`).value = '';
-            if(tipo !== 'horda') document.getElementById(`mestre-t${numSlot}-horda`).value = '';
             abrirFichaNoSlot(numSlot, tipo, valor);
         }
 
@@ -411,7 +442,16 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
 
         function renderizarHtmlHordaDinamico(idHorda, membros, numSlot) {
             let nomeHorda = hordasNoBanco[idHorda] ? hordasNoBanco[idHorda].nome : "Horda";
-            let h = `<div class="section-title" style="color:#d4af37; border-color:#8b6d43; margin-top:0;">🛡️ ${nomeHorda}</div>`;
+            let h = `
+            <div style="position: relative;">
+                <div class="mestre-acoes-ficha esconder-jogador" style="position: absolute; top: 5px; right: 5px; display: flex; gap: 5px; z-index: 10;">
+                    <button onclick="lancarAmeacaFicha(${numSlot})" style="background: rgba(0,0,0,0.5); border: 1px solid #d4af37; color: #d4af37; padding: 3px 8px; font-size: 10px; cursor: pointer;">👁️ Lançar</button>
+                    <button onclick="abaterAmeacaFicha(${numSlot})" style="background: rgba(0,0,0,0.5); border: 1px solid #8c1c13; color: #d95757; padding: 3px 8px; font-size: 10px; cursor: pointer;">🩸 Abater</button>
+                    <button onclick="deletarAmeacaFicha(${numSlot})" style="background: rgba(0,0,0,0.5); border: 1px solid #5c1818; color: #8c1c13; padding: 3px 8px; font-size: 10px; cursor: pointer;">🗑️ Apagar</button>
+                </div>
+                <div class="section-title" style="color:#d4af37; border-color:#8b6d43; margin-top:0;">🛡️ ${nomeHorda}</div>
+            </div>
+            `;
             h += `<div style="display:flex; flex-direction:column; gap:15px; margin-top:15px;">`;
             
             for(let mId in membros) {
@@ -430,44 +470,35 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
                 let isAlertaMorte = (percHp <= 10 && hpMax > 0 && hpAtual > 0) ? 'alerta-morte' : '';
 
                 h += `
-                <div class="horda-member-card">
-                    <div style="display:flex; justify-content: start; align-items:center; gap: 20px; margin-bottom: 10px; border-bottom: 1px dashed #5c1818; padding-bottom: 5px;">
-                        <h4 style="color:#a84242; margin:0; text-transform: uppercase; font-size: 14px;">${m.nome}</h4>
+                <div class="horda-member-card" style="display: flex; flex-direction: column; background: rgba(0,0,0,0.3); border: 1px solid #4a2e1b; border-radius: 4px; padding: 10px;">
+                    <div style="display:flex; justify-content: space-between; align-items:center; gap: 20px;">
+                        <h4 style="color:#a84242; margin:0; text-transform: uppercase; font-size: 14px; min-width: 100px;">${m.nome}</h4>
                         
-                        <div style="display:flex; gap:12px;">
+                        <div style="display:flex; gap:15px; flex: 1;">
                             <div id="caixa-hp-horda-${mId}" class="caixa-status ${isAlertaMorte}" style="padding: 2px; flex: 1;">
-                                <div style="color:#27ae60; font-size:10px; font-weight:bold; display: flex; justify-content: center; align-items: center; gap: 3px;">
+                                <div style="color:#27ae60; font-size:11px; font-weight:bold; display: flex; justify-content: center; align-items: center; gap: 3px;">
                                     HP: 
-                                    <input type="number" id="horda-${mId}-hp-atual" class="horda-compact-input editavel-slot${numSlot}" value="${hpAtual}" style="width:45px; color:#27ae60; padding:1px; font-size: 10px;"> / 
-                                    <input type="number" id="horda-${mId}-hp-max" class="horda-compact-input mestre-unlocked" value="${hpMax}" style="width:45px; color:#27ae60; padding:1px; font-size: 10px;" disabled>
+                                    <input type="number" id="horda-${mId}-hp-atual" class="horda-compact-input editavel-slot${numSlot}" value="${hpAtual}" style="width:50px; color:#27ae60; padding:2px; font-size: 12px; text-align: center;"> / 
+                                    <input type="number" id="horda-${mId}-hp-max" class="horda-compact-input mestre-unlocked" value="${hpMax}" style="width:50px; color:#27ae60; padding:2px; font-size: 12px; text-align: center;" disabled>
                                 </div>
-                                <div class="bar-bg" style="height: 5px; margin-top: 3px;"><div class="bar-fill hp-fill" id="bar-hp-horda-${mId}" style="width: ${percHp}%;"></div></div>
+                                <div class="bar-bg" style="height: 6px; margin-top: 4px;"><div class="bar-fill hp-fill" id="bar-hp-horda-${mId}" style="width: ${percHp}%;"></div></div>
                             </div>
                             
                             <div id="caixa-mana-horda-${mId}" class="caixa-status" style="padding: 2px; flex: 1;">
-                                <div style="color:#2980b9; font-size:10px; font-weight:bold; display: flex; justify-content: center; align-items: center; gap: 3px;">
+                                <div style="color:#2980b9; font-size:11px; font-weight:bold; display: flex; justify-content: center; align-items: center; gap: 3px;">
                                     MP: 
-                                    <input type="number" id="horda-${mId}-mana-atual" class="horda-compact-input editavel-slot${numSlot}" value="${manaAtual}" style="width:45px; color:#2980b9; padding:1px; font-size: 10px;"> / 
-                                    <input type="number" id="horda-${mId}-mana-max" class="horda-compact-input mestre-unlocked" value="${manaMax}" style="width:45px; color:#2980b9; padding:1px; font-size: 10px;" disabled>
+                                    <input type="number" id="horda-${mId}-mana-atual" class="horda-compact-input editavel-slot${numSlot}" value="${manaAtual}" style="width:50px; color:#2980b9; padding:2px; font-size: 12px; text-align: center;"> / 
+                                    <input type="number" id="horda-${mId}-mana-max" class="horda-compact-input mestre-unlocked" value="${manaMax}" style="width:50px; color:#2980b9; padding:2px; font-size: 12px; text-align: center;" disabled>
                                 </div>
-                                <div class="bar-bg" style="height: 5px; margin-top: 3px;"><div class="bar-fill mana-fill" id="bar-mana-horda-${mId}" style="width: ${percMana}%;"></div></div>
+                                <div class="bar-bg" style="height: 6px; margin-top: 4px;"><div class="bar-fill mana-fill" id="bar-mana-horda-${mId}" style="width: ${percMana}%;"></div></div>
                             </div>
                         </div>
                         
-                    </div>
-                    <div class="atributos-grid" style="grid-template-columns: repeat(7, 1fr); gap: 4px; margin-top: 5px;">
-                        <div class="attr-box" style="padding: 4px;"><label style="font-size:9px;">FOR</label><input type="number" id="horda-${mId}-for" class="horda-compact-input editavel-slot${numSlot}" value="${m.for || 0}" style="font-size:12px; width:100%; box-sizing:border-box;"></div>
-                        <div class="attr-box" style="padding: 4px;"><label style="font-size:9px;">DES</label><input type="number" id="horda-${mId}-des" class="horda-compact-input editavel-slot${numSlot}" value="${m.des || 0}" style="font-size:12px; width:100%; box-sizing:border-box;"></div>
-                        <div class="attr-box" style="padding: 4px;"><label style="font-size:9px;">CON</label><input type="number" id="horda-${mId}-con" class="horda-compact-input editavel-slot${numSlot}" value="${m.con || 0}" style="font-size:12px; width:100%; box-sizing:border-box;"></div>
-                        <div class="attr-box" style="padding: 4px;"><label style="font-size:9px;">INT</label><input type="number" id="horda-${mId}-int" class="horda-compact-input editavel-slot${numSlot}" value="${m.int || 0}" style="font-size:12px; width:100%; box-sizing:border-box;"></div>
-                        <div class="attr-box" style="padding: 4px;"><label style="font-size:9px;">SAB</label><input type="number" id="horda-${mId}-sab" class="horda-compact-input editavel-slot${numSlot}" value="${m.sab || 0}" style="font-size:12px; width:100%; box-sizing:border-box;"></div>
-                        <div class="attr-box" style="padding: 4px;"><label style="font-size:9px;">CAR</label><input type="number" id="horda-${mId}-car" class="horda-compact-input editavel-slot${numSlot}" value="${m.car || 0}" style="font-size:12px; width:100%; box-sizing:border-box;"></div>
-                        <div class="attr-box" style="padding: 4px;"><label style="font-size:9px;">PER</label><input type="number" id="horda-${mId}-per" class="horda-compact-input editavel-slot${numSlot}" value="${m.per || 0}" style="font-size:12px; width:100%; box-sizing:border-box;"></div>
-                    </div>
-                    <div class="esconder-jogador" style="margin-top: 15px; display:flex; gap:10px; align-items:center;">
-                        <input type="number" id="ataque-dano-${mId}" placeholder="Dano" style="width: 50px; padding:3px; font-size:10px; background:rgba(0,0,0,0.5); border:1px solid #4a2e1b; color:#fff; text-align:center;">
-                        <div style="display:flex; gap:8px;">${alvosHtmlCheckbox(mId)}</div>
-                        <button onclick="atacarMembroHorda('${mId}')" style="padding: 4px 8px; font-size:9px; background: linear-gradient(to bottom, #752020, #4a1111); border-color:#8c1c13; margin-left:auto;">Atacar ⚔️</button>
+                        <div class="esconder-jogador" style="display:flex; gap:10px; align-items:center;">
+                            <input type="number" id="ataque-dano-${mId}" placeholder="Dano" style="width: 50px; padding:4px; font-size:11px; background:rgba(0,0,0,0.8); border:1px solid #8c1c13; color:#fff; text-align:center;">
+                            <div style="display:flex; gap:8px;">${alvosHtmlCheckbox(mId)}</div>
+                            <button onclick="atacarMembroHorda('${mId}')" style="padding: 6px 12px; font-size:11px; background: linear-gradient(to bottom, #8c1c13, #4a1111); border-color:#d95757; color: #fff; font-weight: bold;">⚔️ ATACAR</button>
+                        </div>
                     </div>
                 </div>`;
             }
@@ -1210,25 +1241,44 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
             checkboxes.forEach(cb => cb.checked = false);
         };
 
-        window.selecionarAmeacaMestre = function(idAmeaca) {
-            if(!idAmeaca) return;
-            if(idAmeaca.startsWith('horda_')) {
-                document.getElementById('mestre-t2-horda').value = idAmeaca;
-                mestreAbrir(2, 'horda', idAmeaca);
-            } else {
-                document.getElementById('mestre-t2-monstro').value = idAmeaca;
-                mestreAbrir(2, 'monstro', idAmeaca);
-            }
-            atualizarBotoesMestre();
-        }
-
-        window.lancarAmeaca = function() {
-            const idAlvo = document.getElementById('seletor-ameaca').value;
+        window.lancarAmeacaFicha = function(numSlot) {
+            const idAlvo = slotsDeVisao[numSlot].idFicha;
             if(idAlvo) update(ref(database, 'estado_combate'), { ativo: idAlvo });
         }
         
-        window.ameacaDerrotada = function() {
-            remove(ref(database, 'estado_combate/ativo'));
+        window.abaterAmeacaFicha = function(numSlot) {
+            const idAlvo = slotsDeVisao[numSlot].idFicha;
+            if(idAlvo) {
+                if(ameacaEmCombateGlobal === idAlvo) remove(ref(database, 'estado_combate/ativo'));
+                
+                // Zera HP dependendo se é horda ou monstro
+                if(slotsDeVisao[numSlot].tipo === 'horda') {
+                    // Pra hordas, abater pode significar só remover de combate, mas vamos manter simples
+                    alert("A horda foi removida da mesa. Seus membros permanecem salvos.");
+                } else {
+                    update(ref(database, 'fichas/' + idAlvo), { 'hp-atual': 0 });
+                }
+            }
+        }
+
+        window.deletarAmeacaFicha = function(numSlot) {
+            const idAlvo = slotsDeVisao[numSlot].idFicha;
+            if(!idAlvo) return;
+            
+            if(confirm("Tem certeza que deseja DELETAR esta ameaça para sempre?")) {
+                if(ameacaEmCombateGlobal === idAlvo) remove(ref(database, 'estado_combate/ativo')); 
+                
+                if(idAlvo.startsWith('horda_')) {
+                    remove(ref(database, 'hordas/' + idAlvo));
+                } else {
+                    remove(ref(database, 'fotos/' + idAlvo));
+                    remove(ref(database, 'lista_monstros/' + idAlvo));
+                    remove(ref(database, 'fichas/' + idAlvo));
+                }
+
+                if(slotsDeVisao[1].idFicha === idAlvo) limparSlot(1);
+                if(slotsDeVisao[2].idFicha === idAlvo) limparSlot(2);
+            }
         }
 
         window.deletarAmeaca = function() {
@@ -1250,25 +1300,6 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
                 if(slotsDeVisao[1].idFicha === idAlvo) limparSlot(1);
                 if(slotsDeVisao[2].idFicha === idAlvo) limparSlot(2);
                 atualizarBotoesMestre();
-            }
-        }
-
-        function atualizarBotoesMestre() {
-            if(usuarioAtual.cargo !== "Mestre") return;
-            const btnLancar = document.getElementById('btn-lancar');
-            const btnDerrotado = document.getElementById('btn-derrotado');
-            const btnDeletar = document.getElementById('btn-deletar');
-            const idPainel = document.getElementById('seletor-ameaca').value;
-            
-            if(idPainel) {
-                btnDeletar.style.display = "inline-block";
-                if(ameacaEmCombateGlobal === idPainel) {
-                    btnLancar.style.display = "none"; btnDerrotado.style.display = "inline-block";
-                } else {
-                    btnLancar.style.display = "inline-block"; btnDerrotado.style.display = "none";
-                }
-            } else {
-                btnLancar.style.display = "none"; btnDerrotado.style.display = "none"; btnDeletar.style.display = "none";
             }
         }
 
