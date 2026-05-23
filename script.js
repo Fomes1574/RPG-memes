@@ -477,7 +477,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
 
                 h += `
                 <div class="horda-member-card" style="display: flex; flex-direction: column; background: rgba(0,0,0,0.3); border: 1px solid #4a2e1b; border-radius: 4px; padding: 10px;">
-                    <div style="display:flex; justify-content: space-between; align-items:center; gap: 20px;">
+                    <div style="display:flex; justify-content: space-between; align-items:center; gap: 20px; flex-wrap: wrap;">
                         <h4 style="color:#a84242; margin:0; text-transform: uppercase; font-size: 14px; min-width: 100px;">${m.nome}</h4>
                         
                         <div style="display:flex; gap:15px; flex: 1;">
@@ -1325,7 +1325,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
                                 <span id="hud-${p}-hp-max" style="font-weight:bold; font-size:11px; display:inline-block; width:25px; text-align:left;">20</span>
                             </div>
                         </div>
-                        <div class="hud-mini-bar-bg"><div class="hud-mini-bar-fill" id="hud-${p}-bar-hp" style="background:#27ae60; width:100%;"></div></div>
+                        <div class="hud-mini-bar-bg"><div class="hud-mini-bar-fill hud-hp-fill" id="hud-${p}-bar-hp" style="width:100%;"></div></div>
                         <div class="hud-stats-row" style="margin-top: 5px;">
                             <span style="color:#2980b9; font-weight:bold; font-size:11px;">MP:</span>
                             <div>
@@ -1333,7 +1333,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
                                 <span id="hud-${p}-mana-max" style="font-weight:bold; font-size:11px; display:inline-block; width:25px; text-align:left;">20</span>
                             </div>
                         </div>
-                        <div class="hud-mini-bar-bg"><div class="hud-mini-bar-fill" id="hud-${p}-bar-mana" style="background:#2980b9; width:100%;"></div></div>
+                        <div class="hud-mini-bar-bg"><div class="hud-mini-bar-fill hud-mana-fill" id="hud-${p}-bar-mana" style="width:100%;"></div></div>
                     </div>`;
             });
             listDiv.innerHTML = finalHTML;

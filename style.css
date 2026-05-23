@@ -270,12 +270,21 @@
         .hud-input { width: 40px; background: rgba(0,0,0,0.5); border: 1px solid #3a2212; color: #dcd0ba; font-size: 11px; padding: 2px; text-align: center; border-radius: 2px; font-weight: bold;}
         .hud-input:focus { border-color: #d4af37; outline: none; }
         
-        .hud-mini-bar-bg { width: 100%; background: #000; height: 4px; border-radius: 2px; margin-bottom: 4px; overflow: hidden; position: relative;}
-        .hud-mini-bar-fill { height: 100%; border-radius: 2px; transition: 0.3s; position: relative;}
+        .hud-mini-bar-bg { width: 100%; background: #0a0604; height: 8px; border-radius: 4px; margin-bottom: 8px; overflow: hidden; position: relative; border: 1px solid #2a1f1a; box-shadow: inset 0 2px 4px rgba(0,0,0,0.9); }
+        .hud-mini-bar-fill { height: 100%; border-radius: 4px; transition: width 1.5s cubic-bezier(0.25, 1, 0.5, 1); position: relative;}
         
-        /* Brilho reluzente às mini barras do HUD */
-        .hud-mini-bar-fill[style*="background:#27ae60"] { box-shadow: 0 0 5px 1px rgba(39, 174, 96, 0.8); }
-        .hud-mini-bar-fill[style*="background:#2980b9"] { box-shadow: 0 0 5px 1px rgba(41, 128, 185, 0.8); }
+        .hud-hp-fill {
+            background: linear-gradient(90deg, #186a3b, #2ecc71, #ffffff, #2ecc71, #186a3b);
+            background-size: 300% 100%;
+            box-shadow: 0 0 8px rgba(46, 204, 113, 0.8), inset 0 2px 3px rgba(255,255,255,0.8);
+            animation: liquid-flow 6s infinite linear;
+        }
+        .hud-mana-fill {
+            background: linear-gradient(90deg, #154360, #3498db, #ffffff, #3498db, #154360);
+            background-size: 300% 100%;
+            box-shadow: 0 0 8px rgba(52, 152, 219, 0.8), inset 0 2px 3px rgba(255,255,255,0.8);
+            animation: liquid-flow 6s infinite linear;
+        }
         
         /* SLOTS DE EQUIPAMENTO */
         .equipamento-slot { display: grid; grid-template-columns: 15px 2fr 1fr 60px 1fr 60px 85px; gap: 6px; align-items: center; background: rgba(0,0,0,0.5); padding: 10px; border: 1px solid #3a2212; margin-bottom: 8px;}
