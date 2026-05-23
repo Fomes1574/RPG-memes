@@ -70,7 +70,20 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
                             </div>
                         </div>
                         <div><label>Jogador</label><input type="text" id="slot${numSlot}-jogador" class="editavel-slot${numSlot}" readonly></div>
-                        <div><label>Linhagem / Raça</label><input type="text" id="slot${numSlot}-raca" class="editavel-slot${numSlot}"></div>
+                        <div>
+                            <label>Linhagem / Raça</label>
+                            <select id="slot${numSlot}-raca" class="editavel-slot${numSlot}">
+                                <option value="">Nenhuma</option>
+                                <option value="Humanos">Humanos</option>
+                                <option value="Elfo">Elfo</option>
+                                <option value="Anão">Anão</option>
+                                <option value="Orc">Orc</option>
+                                <option value="Gnomo">Gnomo</option>
+                                <option value="Halfiling">Halfiling</option>
+                                <option value="Khajiit">Khajiit</option>
+                                <option value="Argoniano">Argoniano</option>
+                            </select>
+                        </div>
                         <div>
                             <label>Vocação / Classe</label>
                             <select id="slot${numSlot}-classe" class="editavel-slot${numSlot}">
@@ -101,7 +114,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
                         <div class="fraction-input">
                             <input type="number" id="slot${numSlot}-hp-atual" class="editavel-slot${numSlot}" style="color: #27ae60;"><span>/</span><span id="slot${numSlot}-hp-efetivo" style="color: #27ae60; font-size: 20px; font-weight: bold; width:40px; display:inline-block; text-align:left;">20</span>
                         </div>
-                        <div class="mestre-only-flex" style="justify-content:center; align-items:center; margin-top:5px; gap:5px;">
+                        <div class="mestre-only-flex" style="display: none;">
                             <label style="margin:0; color:#9c8464;">Base Máx (Mestre):</label>
                             <input type="number" id="slot${numSlot}-hp-max" class="editavel-slot${numSlot} mestre-unlocked" title="Vida Base Máxima (Padrão 20)" style="width:50px; padding:2px; font-size:11px;">
                         </div>
@@ -113,7 +126,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
                         <div class="fraction-input">
                             <input type="number" id="slot${numSlot}-mana-atual" class="editavel-slot${numSlot}" style="color: #2980b9;"><span>/</span><span id="slot${numSlot}-mana-efetivo" style="color: #2980b9; font-size: 20px; font-weight: bold; width:40px; display:inline-block; text-align:left;">20</span>
                         </div>
-                        <div class="mestre-only-flex" style="justify-content:center; align-items:center; margin-top:5px; gap:5px;">
+                        <div class="mestre-only-flex" style="display: none;">
                             <label style="margin:0; color:#9c8464;">Base Máx (Mestre):</label>
                             <input type="number" id="slot${numSlot}-mana-max" class="editavel-slot${numSlot} mestre-unlocked" title="Mana Base Máxima (Padrão 20)" style="width:50px; padding:2px; font-size:11px;">
                         </div>

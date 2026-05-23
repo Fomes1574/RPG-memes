@@ -42,12 +42,12 @@
         
         label { display: block; font-size: 10px; color: #9c8464; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 1px; text-align: center;}
         
-        input, textarea { width: 100%; background-color: rgba(0, 0, 0, 0.6); border: 1px solid #4a2e1b; color: #e8dcc5; padding: 8px; box-sizing: border-box; font-family: 'Georgia', serif; transition: 0.3s; text-align: center;}
+        input, textarea, select { width: 100%; background-color: rgba(0, 0, 0, 0.6); border: 1px solid #4a2e1b; color: #e8dcc5; padding: 8px; box-sizing: border-box; font-family: 'Georgia', serif; transition: 0.3s; text-align: center;}
         textarea { text-align: left; }
-        input:focus, textarea:focus { border-color: #8b6d43; background-color: rgba(20, 10, 5, 0.8); outline: none;}
+        input:focus, textarea:focus, select:focus { border-color: #8b6d43; background-color: rgba(20, 10, 5, 0.8); outline: none;}
         input[type="number"] { font-weight: bold; text-align: center;}
         
-        input:disabled, textarea:disabled, button:disabled { opacity: 0.6; cursor: not-allowed; border-color: #24140b; background-color: rgba(0,0,0,0.8); color: #6b5a48;}
+        input:disabled, textarea:disabled, select:disabled, button:disabled { opacity: 0.6; cursor: not-allowed; border-color: #24140b; background-color: rgba(0,0,0,0.8); color: #6b5a48;}
         input.mestre-unlocked:disabled { color: #dcd0ba; opacity: 1; } 
 
         .foto-personagem { width: 140px; height: 140px; background-color: #050302; border: 2px solid #5c3a21; object-fit: cover; box-shadow: 0 5px 15px rgba(0,0,0,0.9); }
@@ -63,11 +63,34 @@
         .fraction-input span { color: #8b6d43; font-weight: bold; font-size: 20px; }
         .fraction-input input { font-size: 18px; padding: 4px; }
         
-        .bar-bg { width: 100%; background-color: #0a0604; border-radius: 12px; height: 16px; margin-top: 8px; border: 1px solid #2a1f1a; box-shadow: inset 0 3px 6px rgba(0,0,0,0.9), 0 1px 1px rgba(255,255,255,0.05); position: relative; overflow: hidden;}
-        .bar-fill { position: relative; height: 100%; transition: width 0.5s ease-out; border-radius: 12px; box-shadow: inset 0 2px 4px rgba(255,255,255,0.3), inset 0 -2px 4px rgba(0,0,0,0.4); }
+        .bar-bg { width: 100%; background-color: #0a0604; border-radius: 12px; height: 16px; margin-top: 8px; border: 1px solid #2a1f1a; box-shadow: inset 0 3px 6px rgba(0,0,0,0.9), 0 1px 1px rgba(255,255,255,0.05); position: relative; overflow: visible;}
+        .bar-fill { position: relative; height: 100%; transition: width 0.5s ease-out; border-radius: 12px; box-shadow: inset 0 2px 4px rgba(255,255,255,0.3), inset 0 -2px 4px rgba(0,0,0,0.4); overflow: hidden; }
         
-        .hp-fill { background: linear-gradient(90deg, #1e7039, #27ae60); box-shadow: 0 0 10px 3px rgba(39, 174, 96, 0.8), inset 0 2px 4px rgba(255,255,255,0.3), inset 0 -2px 4px rgba(0,0,0,0.4);} 
-        .mana-fill { background: linear-gradient(90deg, #18527a, #2980b9); box-shadow: 0 0 10px 3px rgba(41, 128, 185, 0.8), inset 0 2px 4px rgba(255,255,255,0.3), inset 0 -2px 4px rgba(0,0,0,0.4);} 
+        .hp-fill { 
+            background: linear-gradient(90deg, #1e7039, #2ecc71, #1e7039); 
+            background-size: 200% 100%;
+            box-shadow: 0 0 15px 5px rgba(46, 204, 113, 0.8), inset 0 2px 4px rgba(255,255,255,0.6), inset 0 -2px 4px rgba(0,0,0,0.5);
+            animation: liquid-flow 3s infinite linear, pulse-glow-hp 2s infinite alternate;
+        } 
+        .mana-fill { 
+            background: linear-gradient(90deg, #18527a, #3498db, #18527a); 
+            background-size: 200% 100%;
+            box-shadow: 0 0 15px 5px rgba(52, 152, 219, 0.8), inset 0 2px 4px rgba(255,255,255,0.6), inset 0 -2px 4px rgba(0,0,0,0.5);
+            animation: liquid-flow 3s infinite linear, pulse-glow-mana 2s infinite alternate;
+        } 
+        
+        @keyframes liquid-flow {
+            0% { background-position: 100% 0; }
+            100% { background-position: -100% 0; }
+        }
+        @keyframes pulse-glow-hp {
+            0% { box-shadow: 0 0 10px 3px rgba(46, 204, 113, 0.6), inset 0 2px 4px rgba(255,255,255,0.5), inset 0 -2px 4px rgba(0,0,0,0.5); }
+            100% { box-shadow: 0 0 25px 10px rgba(46, 204, 113, 1), inset 0 3px 6px rgba(255,255,255,0.8), inset 0 -2px 4px rgba(0,0,0,0.5); }
+        }
+        @keyframes pulse-glow-mana {
+            0% { box-shadow: 0 0 10px 3px rgba(52, 152, 219, 0.6), inset 0 2px 4px rgba(255,255,255,0.5), inset 0 -2px 4px rgba(0,0,0,0.5); }
+            100% { box-shadow: 0 0 25px 10px rgba(52, 152, 219, 1), inset 0 3px 6px rgba(255,255,255,0.8), inset 0 -2px 4px rgba(0,0,0,0.5); }
+        }
         
         /* FEIXE BRILHOSO DAS BARRAS */
         .bar-fill::after {
