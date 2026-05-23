@@ -399,7 +399,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
             if(!div) return;
             let btn = div.previousElementSibling;
             if (div.style.display === 'none') {
-                div.style.display = 'flex';
+                div.style.display = 'block';
                 if(btn) btn.classList.remove('fechado');
             } else {
                 div.style.display = 'none';
@@ -409,6 +409,10 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
 
         window.mestreAbrir = function(numSlot, tipo, valor) {
             if(!valor) return;
+            const outroSlot = numSlot === 1 ? 2 : 1;
+            if (slotsDeVisao[outroSlot].idFicha === valor && slotsDeVisao[outroSlot].tipo === tipo) {
+                limparSlot(outroSlot);
+            }
             abrirFichaNoSlot(numSlot, tipo, valor);
         }
 

@@ -141,19 +141,19 @@
         .fraction-input input { font-size: 18px; padding: 4px; }
         
         .bar-bg { width: 100%; background-color: #0a0604; border-radius: 12px; height: 16px; margin-top: 8px; border: 1px solid #2a1f1a; box-shadow: inset 0 3px 6px rgba(0,0,0,0.9), 0 1px 1px rgba(255,255,255,0.05); position: relative; overflow: visible;}
-        .bar-fill { position: relative; height: 100%; transition: width 0.5s ease-out; border-radius: 12px; box-shadow: inset 0 2px 4px rgba(255,255,255,0.3), inset 0 -2px 4px rgba(0,0,0,0.4); overflow: hidden; }
+        .bar-fill { position: relative; height: 100%; transition: width 1.5s cubic-bezier(0.25, 1, 0.5, 1); border-radius: 12px; box-shadow: inset 0 2px 4px rgba(255,255,255,0.3), inset 0 -2px 4px rgba(0,0,0,0.4); overflow: hidden; }
         
         .hp-fill { 
-            background: linear-gradient(90deg, #115926, #219d54, #7fdfa7, #219d54, #115926); 
+            background: linear-gradient(90deg, #186a3b, #2ecc71, #ffffff, #2ecc71, #186a3b); 
             background-size: 300% 100%;
-            box-shadow: 0 0 10px rgba(33, 157, 84, 0.4), inset 0 3px 6px rgba(255,255,255,0.7), inset 0 -3px 6px rgba(0,0,0,0.6);
-            animation: liquid-flow 4s infinite linear;
+            box-shadow: 0 0 15px rgba(46, 204, 113, 0.7), inset 0 6px 6px rgba(255,255,255,0.9), inset 0 -4px 6px rgba(0,0,0,0.6);
+            animation: liquid-flow 6s infinite linear;
         } 
         .mana-fill { 
-            background: linear-gradient(90deg, #0a3554, #1a74ad, #83bded, #1a74ad, #0a3554); 
+            background: linear-gradient(90deg, #154360, #3498db, #ffffff, #3498db, #154360); 
             background-size: 300% 100%;
-            box-shadow: 0 0 10px rgba(26, 116, 173, 0.4), inset 0 3px 6px rgba(255,255,255,0.7), inset 0 -3px 6px rgba(0,0,0,0.6);
-            animation: liquid-flow 4s infinite linear;
+            box-shadow: 0 0 15px rgba(52, 152, 219, 0.7), inset 0 6px 6px rgba(255,255,255,0.9), inset 0 -4px 6px rgba(0,0,0,0.6);
+            animation: liquid-flow 6s infinite linear;
         } 
         
         @keyframes liquid-flow {
