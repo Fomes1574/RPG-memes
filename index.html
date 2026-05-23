@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
@@ -102,6 +102,22 @@
         <div class="mesa-de-jogo">
             <div id="slot-1" class="slot-container" style="display: none;"></div>
             <div id="slot-2" class="slot-container" style="display: none;"></div>
+        </div>
+    </div>
+
+    <!-- MODAL ÁRVORE DE HABILIDADES -->
+    <div id="modal-arvore">
+        <div class="arvore-container">
+            <button class="btn-fechar-arvore" onclick="fecharArvore()">✖</button>
+            <div class="arvore-header">
+                <h2 class="arvore-titulo">Árvore de Habilidades</h2>
+                <div class="arvore-classes-tabs" id="arvore-tabs-container">
+                    <!-- As abas das classes serão injetadas via script -->
+                </div>
+            </div>
+            <div class="arvore-content" id="arvore-views-container">
+                <!-- As visões das árvores serão injetadas via script -->
+            </div>
         </div>
     </div>
 

@@ -1,4 +1,4 @@
-﻿import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
         import { getDatabase, ref, onValue, update, get, remove } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
 
         const firebaseConfig = {
@@ -71,7 +71,23 @@
                         </div>
                         <div><label>Jogador</label><input type="text" id="slot${numSlot}-jogador" class="editavel-slot${numSlot}" readonly></div>
                         <div><label>Linhagem / Raça</label><input type="text" id="slot${numSlot}-raca" class="editavel-slot${numSlot}"></div>
-                        <div><label>Vocação / Classe</label><input type="text" id="slot${numSlot}-classe" class="editavel-slot${numSlot}"></div>
+                        <div style="display: flex; flex-direction: column; gap: 5px;">
+                            <label>Vocação / Classe</label>
+                            <select id="slot${numSlot}-classe" class="editavel-slot${numSlot}">
+                                <option value="">Nenhuma</option>
+                                <option value="Guerreiro">Guerreiro</option>
+                                <option value="Paladino">Paladino</option>
+                                <option value="Druida">Druida</option>
+                                <option value="Bárbaro">Bárbaro</option>
+                                <option value="Arqueiro">Arqueiro</option>
+                                <option value="Ladino">Ladino</option>
+                                <option value="Mago">Mago</option>
+                                <option value="Curandeiro">Curandeiro</option>
+                                <option value="Bardo">Bardo</option>
+                                <option value="Monge">Monge</option>
+                            </select>
+                            <button class="btn-mini-acao editavel-slot${numSlot}" onclick="abrirArvoreHabilidades('${numSlot}')" style="margin: 0; padding: 4px; font-size: 10px; border-color: #8b6d43; color: #d4af37; box-shadow: none;">📜 Árvore de Habilidades</button>
+                        </div>
                         <div><label>Gênero</label><input type="text" id="slot${numSlot}-genero" class="editavel-slot${numSlot}"></div>
                     </div>
                 </div>
@@ -520,6 +536,79 @@
             document.getElementById('exp-amount-input').value = '';
         }
         window.fecharModalExp = function() { document.getElementById('modal-exp').style.display = 'none'; }
+
+        window.baixarBackupJson = async function() {
+            if(usuarioAtual.cargo !== "Mestre") return;
+            const snap = await get(ref(database, '/'));
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(snap.val()));
+            const dlAnchorElem = document.createElement('a');
+            dlAnchorElem.setAttribute("href", dataStr);
+            dlAnchorElem.setAttribute("download", "rpg_backup.json");
+            dlAnchorElem.click();
+        }
+
+        // ==========================================
+        // ÁRVORE DE HABILIDADES
+        // ==========================================
+        const classesRpg = ["Guerreiro", "Paladino", "Druida", "Bárbaro", "Arqueiro", "Ladino", "Mago", "Curandeiro", "Bardo", "Monge"];
+        
+        window.abrirArvoreHabilidades = function(numSlot) {
+            const selectClasse = document.getElementById(`slot${numSlot}-classe`);
+            const classeEscolhida = selectClasse ? selectClasse.value : "";
+            
+            if (!classeEscolhida) {
+                alert("Escolha uma Vocação / Classe primeiro na ficha para liberar sua árvore de melhorias!");
+                return;
+            }
+
+            const tabsContainer = document.getElementById("arvore-tabs-container");
+            const viewsContainer = document.getElementById("arvore-views-container");
+            
+            tabsContainer.innerHTML = "";
+            viewsContainer.innerHTML = "";
+
+            classesRpg.forEach(classe => {
+                const isEscolhida = (classe === classeEscolhida);
+                
+                // Criar Aba
+                const tab = document.createElement("button");
+                tab.className = `tab-classe ${isEscolhida ? 'ativa' : 'bloqueada'}`;
+                tab.innerText = classe;
+                tabsContainer.appendChild(tab);
+
+                // Criar Visão da Árvore
+                const view = document.createElement("div");
+                view.className = `arvore-view ${isEscolhida ? 'ativa' : ''}`;
+                
+                // Placeholder para a árvore
+                if (isEscolhida) {
+                    view.innerHTML = `
+                        <div style="text-align: center; margin-bottom: 30px;">
+                            <h3 style="color: #d4af37; margin:0; font-size: 20px;">Caminho do ${classe}</h3>
+                            <p style="color: #9c8464; font-size: 12px;">Habilidades em breve...</p>
+                        </div>
+                        <div class="skill-row">
+                            <div class="skill-node desbloqueada"><span class="skill-icon">I</span></div>
+                        </div>
+                        <div class="skill-linha skill-linha-v" style="position: relative; margin: -20px 0;"></div>
+                        <div class="skill-row">
+                            <div class="skill-node"><span class="skill-icon">II</span></div>
+                            <div class="skill-linha skill-linha-h" style="position: relative; margin: 0 -20px;"></div>
+                            <div class="skill-node"><span class="skill-icon">II</span></div>
+                        </div>
+                    `;
+                }
+                
+                viewsContainer.appendChild(view);
+            });
+
+            document.getElementById('modal-arvore').style.display = "flex";
+        }
+
+        window.fecharArvore = function() {
+            document.getElementById('modal-arvore').style.display = "none";
+        }
+
         window.aplicarExpLote = async function() {
             if(usuarioAtual.cargo !== "Mestre") return;
             const amount = Number(document.getElementById('exp-amount-input').value);
@@ -701,10 +790,16 @@
                     let glow = percExp / 6;
                     expText.style.textShadow = `0 0 ${glow}px rgba(255, 215, 0, 0.9), 1px 1px 2px black`;
                     
-                    // Lógica para Brilho Reluzente Dourado que cresce com XP
-                    let glowValue = 5 + (percExp / 100) * 25;
-                    const elContainer = document.getElementById(`container-slot${numSlot}-heroi`);
-                    if(elContainer) elContainer.style.setProperty('--brilho-xp-escala', glowValue.toString());
+                    // Lógica para Ouro Derretido que cresce com XP
+                    const elBarra = document.getElementById(`bar-exp-slot${numSlot}`);
+                    if(elBarra) {
+                        let opacidade = 0.4 + (percExp / 100) * 0.6; // De 0.4 a 1.0
+                        let blur = 10 + (percExp / 100) * 20; // De 10px a 30px
+                        let spread = 2 + (percExp / 100) * 8; // De 2px a 10px
+                        elBarra.style.setProperty('--brilho-xp-opacity', opacidade.toString());
+                        elBarra.style.setProperty('--brilho-xp-blur', blur + 'px');
+                        elBarra.style.setProperty('--brilho-xp-spread', spread + 'px');
+                    }
 
                     let maxAtributos = 10 + (levelData.level - 1);
                     let ptsAtuais = 0;
