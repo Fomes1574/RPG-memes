@@ -394,7 +394,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
         }
 
         window.mudarQtdItem = async function(numSlot, i, delta) {
-            if(usuarioAtual.cargo !== "Mestre" && usuarioAtual.nome !== slotsDeVisao[numSlot].idFicha) return;
+            if(usuarioAtual.cargo !== "Mestre" && usuarioAtual.idFicha !== slotsDeVisao[numSlot].idFicha) return;
             
             let inputId = `slot${numSlot}-item${i}-qtd`;
             let input = document.getElementById(inputId);
