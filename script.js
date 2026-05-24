@@ -86,8 +86,7 @@ function gerarHtmlHeroi(numSlot) {
                 </div>
 
                 <div style="display:flex; gap:10px; margin-top:15px;">
-                    <button onclick="jogadorAtacar(${numSlot}, false)" class="btn-acao-intenso">⚔️ Ataque Único</button>
-                    <button onclick="jogadorAtacar(${numSlot}, true)" class="btn-acao-intenso" style="background: linear-gradient(to bottom, #d95757, #8c1c13); filter: hue-rotate(20deg);">🔥 Ataque em Área</button>
+                    <button onclick="jogadorAtacar(${numSlot}, false)" class="btn-acao-intenso" style="width:100%;">⚔️ Atacar Alvos Selecionados</button>
                 </div>
             </div>
         </div>
@@ -1651,7 +1650,7 @@ window.toggleSidebarJogador = function(numSlot) {
                 let idAlvo = cb.value;
                 if(idAlvo.startsWith("horda_")) {
                     let hordaId = ameacaEmCombateGlobal;
-                    let mId = idAlvo.split("_")[1];
+                    let mId = idAlvo.replace(hordaId + "_", "");
                     let refMembro = ref(database, `hordas/${hordaId}/membros/${mId}`);
                     let snap = await get(refMembro);
                     if(snap.exists()) {
