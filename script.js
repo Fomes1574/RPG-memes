@@ -69,24 +69,22 @@ function gerarHtmlHeroi(numSlot) {
                     <span id="nome-ameaca-ativa-slot${numSlot}" style="color:#fff;">Nenhuma ameaça na mesa no momento...</span>
                 </div>
                 
-                <div style="display: flex; gap: 10px; align-items: flex-end;">
-                    <div style="display: flex; flex-direction: column; gap: 10px; flex: 1;">
-                        <div style="display: flex; align-items: center; gap: 5px; justify-content: space-between;">
-                            <label style="color:#b89c72; margin:0;">Dano</label>
-                            <input type="number" id="slot${numSlot}-jogador-ataque-dano" class="editavel-slot${numSlot}" placeholder="Valor" style="text-align:center; font-size: 16px; padding: 5px; border-color:#d4af37; color:#fff; width: 70px;">
-                        </div>
-                        <label class="checkbox-alvo" style="justify-content:center; padding: 5px; border:1px dashed #d95757; border-radius:4px; width: 100%;"><input type="checkbox" id="slot${numSlot}-jogador-critico"> 🔥 Crítico</label>
-                    </div>
-                    <div style="display: flex; flex-direction: column; gap: 5px; flex: 1.5;">
-                        <label style="color:#b89c72;">Alvos Disponíveis</label>
-                        <div id="alvos-combate-slot${numSlot}" style="flex:1; background: rgba(0,0,0,0.5); border: 1px solid #5c1818; padding: 5px; border-radius: 4px; overflow-y:auto; max-height:90px; display:flex; flex-direction:column; gap:5px;">
-                            <!-- Populated via JS dynamically -->
-                        </div>
+                <div style="margin-bottom: 10px;">
+                    <label style="color:#b89c72;">Alvos Disponíveis</label>
+                    <div id="alvos-combate-slot${numSlot}" style="background: rgba(0,0,0,0.5); border: 1px solid #5c1818; padding: 5px; border-radius: 4px; overflow-y:auto; max-height:130px; display:flex; flex-direction:column; gap:5px;">
+                        <!-- Populated via JS dynamically -->
                     </div>
                 </div>
 
+                <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 15px;">
+                    <label style="color:#b89c72; margin:0;">Dano</label>
+                    <input type="number" id="slot${numSlot}-jogador-ataque-dano" class="editavel-slot${numSlot}" placeholder="Valor" style="text-align:center; font-size: 16px; padding: 5px; border-color:#d4af37; color:#fff; width: 70px;">
+                    
+                    <label class="checkbox-alvo" style="padding: 5px; border:1px dashed #d95757; border-radius:4px; flex: 1; display:flex; justify-content:center;"><input type="checkbox" id="slot${numSlot}-jogador-critico"> 🔥 Crítico</label>
+                </div>
+
                 <div style="display:flex; gap:10px; margin-top:15px;">
-                    <button onclick="jogadorAtacar(${numSlot}, false)" class="btn-acao-intenso" style="width:100%;">⚔️ Atacar Alvos Selecionados</button>
+                    <button onclick="jogadorAtacar(${numSlot}, false)" class="btn-acao-intenso" style="width:100%; font-size: 16px;">⚔️ ATACAR</button>
                 </div>
             </div>
         </div>
@@ -100,7 +98,7 @@ function gerarHtmlHeroi(numSlot) {
             <!-- Coluna Esquerda: Foto -->
             <div style="display: flex; flex-direction: column; align-items: center;">
                 <img id="img-foto-slot${numSlot}" class="foto-personagem" src="" alt="Sem foto">
-                <label class="btn-upload editavel-slot${numSlot}-label esconder-jogador">📁 Enviar do PC<input type="file" class="editavel-slot${numSlot}" accept="image/png, image/jpeg, image/webp" style="display:none;" onchange="processarUploadOtimizado(event, ${numSlot})"></label>
+                <label class="btn-upload editavel-slot${numSlot}-label">📁 Enviar do PC<input type="file" class="editavel-slot${numSlot}" accept="image/png, image/jpeg, image/webp" style="display:none;" onchange="processarUploadOtimizado(event, ${numSlot})"></label>
             </div>
             
             <!-- Coluna Direita: Info -->
@@ -144,12 +142,12 @@ function gerarHtmlHeroi(numSlot) {
                     </select>
                 </div>
                 <div><label>Gênero</label><input type="text" id="slot${numSlot}-genero" class="editavel-slot${numSlot}"></div>
+                
+                <!-- Árvore logo abaixo das caixas de texto -->
+                <div style="grid-column: span 2; margin-top: 15px;">
+                    <button class="btn-mini-acao editavel-slot${numSlot}" onclick="abrirArvoreHabilidades('${numSlot}')" style="width: 100%; padding: 12px; font-size: 16px; border-color: #d4af37; color: #d4af37; box-shadow: 0 0 15px rgba(212, 175, 55, 0.3); background: rgba(0,0,0,0.6); letter-spacing: 1px;">📜 ÁRVORE DE HABILIDADES</button>
+                </div>
             </div>
-        </div>
-        
-        <!-- Árvore logo abaixo do header -->
-        <div style="margin: 10px 0 20px 0; text-align: center;">
-            <button class="btn-mini-acao editavel-slot${numSlot}" onclick="abrirArvoreHabilidades('${numSlot}')" style="width: 100%; padding: 12px; font-size: 16px; border-color: #d4af37; color: #d4af37; box-shadow: 0 0 15px rgba(212, 175, 55, 0.3); background: rgba(0,0,0,0.6); letter-spacing: 1px;">📜 ÁRVORE DE HABILIDADES</button>
         </div>
 
         <div class="section-title" style="margin-top: 15px; margin-bottom: 0;">Essência Vital</div>
@@ -439,7 +437,7 @@ window.toggleSidebarJogador = function(numSlot) {
                         for(let mId in horda.membros) {
                             let hpAtual = Number(horda.membros[mId]['hp-atual']) || 0;
                             if(hpAtual > 0) {
-                                html += `<label class="checkbox-alvo" style="color:#d95757; font-size:12px; margin-bottom:2px;"><input type="checkbox" value="${ameacaId}_${mId}"> Alvo ${mId} (HP: ${hpAtual})</label>`;
+                                html += `<label class="checkbox-alvo" style="color:#d95757; font-size:12px; margin-bottom:2px;"><input type="checkbox" value="${ameacaId}_${mId}"> ${horda.nome || 'Horda'} #${mId} (HP: ${hpAtual})</label>`;
                             }
                         }
                         alvosDiv.innerHTML = html;
