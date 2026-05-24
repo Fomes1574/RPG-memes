@@ -1064,7 +1064,7 @@ window.toggleSidebarJogador = function(numSlot) {
                     
                     let baseBonus = { for:0, des:0, con:0, int:0, sab:0, car:0, per:0 };
                     let raca = dados.raca || '';
-                    let vocacao = dados.vocacao || '';
+                    let vocacao = dados.classe || '';
                     
                     if(typeof RACES !== 'undefined' && RACES[raca]) {
                         if(RACES[raca].points) maxAtributos += RACES[raca].points;
@@ -1090,6 +1090,7 @@ window.toggleSidebarJogador = function(numSlot) {
                             if(val < minVal) {
                                 inputEl.value = minVal;
                                 val = minVal;
+                                update(refFicha, { [a]: minVal });
                             }
                         }
                         
@@ -1432,7 +1433,7 @@ window.toggleSidebarJogador = function(numSlot) {
             let baseBonus = {for:0, des:0, con:0, int:0, sab:0, car:0, per:0};
             if(tipo === 'heroi') {
                 let raca = dados.raca || '';
-                let vocacao = dados.vocacao || '';
+                let vocacao = dados.classe || '';
                 if(typeof RACES !== 'undefined' && RACES[raca] && !RACES[raca].points) {
                     for(let a in baseBonus) if(RACES[raca][a]) baseBonus[a] += RACES[raca][a];
                 }
