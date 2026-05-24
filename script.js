@@ -1,4 +1,4 @@
-﻿import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
         import { getDatabase, ref, onValue, update, get, remove } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
 
         const firebaseConfig = {
@@ -251,6 +251,7 @@
                     </div>
                 </div>
             </div>`;
+        }
         window.alternarAbaHeroi = function(numSlot, abaName) {
             // Remove active de todos os botoes e conteudos
             document.querySelectorAll(`#container-slot${numSlot}-heroi .hero-tab-btn`).forEach(btn => btn.classList.remove('active'));
