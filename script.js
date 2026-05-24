@@ -1,4 +1,4 @@
-﻿import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
         import { getDatabase, ref, onValue, update, get, remove } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
 
         const firebaseConfig = {
@@ -420,8 +420,8 @@ window.toggleSidebarJogador = function(numSlot) {
             let alvosDiv = document.getElementById(`alvos-combate-slot1`);
             if(!nomeSpan || !alvosDiv) return;
 
-            if(ouvinteAlvoJogador && refAlvoJogador) {
-                off(refAlvoJogador, 'value', ouvinteAlvoJogador);
+            if(typeof ouvinteAlvoJogador === 'function') {
+                ouvinteAlvoJogador();
             }
 
             if(!ameacaId) {
@@ -454,11 +454,12 @@ window.toggleSidebarJogador = function(numSlot) {
                 ouvinteAlvoJogador = onValue(refAlvoJogador, (snap) => {
                     if(snap.exists()) {
                         let m = snap.val();
-                        nomeSpan.innerText = m.nome || 'Monstro';
                         let hpAtual = Number(m['hp-atual']) || 0;
                         if(hpAtual > 0) {
+                            nomeSpan.innerText = m.nome || 'Monstro';
                             alvosDiv.innerHTML = `<label class="checkbox-alvo" style="color:#d95757; font-size:12px;"><input type="checkbox" value="${ameacaId}"> ${m.nome || 'Monstro'} (HP: ${hpAtual})</label>`;
                         } else {
+                            nomeSpan.innerText = (m.nome || 'Monstro') + " (Derrotado)";
                             alvosDiv.innerHTML = "";
                         }
                     } else {
