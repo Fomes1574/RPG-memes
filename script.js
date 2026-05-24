@@ -22,6 +22,30 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
             "arthur": { nome: "Arthur", cargo: "Jogador", idFicha: "arthur" }
         };
 
+        const RACES = {
+            "Humano": { points: 3 },
+            "Elfo": { des: 2, int: 1, per: 1, sab: 1, con: -2, for: -1 },
+            "Anão": { con: 2, for: 1, des: -2 },
+            "Orc": { for: 2, con: 1, car: -2, sab: -1 },
+            "Gnomo": { int: 2, sab: 1, for: -2, con: -1 },
+            "Halfling": { des: 2, car: 1, int: -3, for: -1 },
+            "Khajiit": { des: 4, int: -3, car: -1 },
+            "Argoniano": { con: 3, des: 1, car: -4, per: -1 }
+        };
+
+        const CLASSES = {
+            "Guerreiro": { for: 2, con: 1 },
+            "Paladino": { con: 2, car: 1 },
+            "Druida": { sab: 2, car: 1 },
+            "Bárbaro": { for: 2, con: 1 },
+            "Arqueiro": { des: 2, per: 1 },
+            "Ladino": { des: 3, per: 1 },
+            "Mago": { int: 2, sab: 1 },
+            "Curandeiro": { sab: 2, int: 1 },
+            "Bardo": { car: 3 },
+            "Monge": { con: 1, des: 1, sab: 1 }
+        };
+
         const playersList = ['lais', 'gomes', 'kamy', 'arthur'];
 
         let usuarioAtual = null; 
@@ -1037,14 +1061,56 @@ window.toggleSidebarJogador = function(numSlot) {
                     }
 
                     let maxAtributos = 10 + (levelData.level - 1);
-                    let ptsAtuais = 0;
-                    ['for', 'des', 'con', 'int', 'sab', 'car', 'per'].forEach(a => ptsAtuais += Number(dados[a]) || 0);
-                    let ptsLivres = maxAtributos - ptsAtuais;
+                    
+                    let baseBonus = { for:0, des:0, con:0, int:0, sab:0, car:0, per:0 };
+                    let raca = dados.raca || '';
+                    let vocacao = dados.vocacao || '';
+                    
+                    if(typeof RACES !== 'undefined' && RACES[raca]) {
+                        if(RACES[raca].points) maxAtributos += RACES[raca].points;
+                        else {
+                            for(let a in baseBonus) if(RACES[raca][a]) baseBonus[a] += RACES[raca][a];
+                        }
+                    }
+                    if(typeof CLASSES !== 'undefined' && CLASSES[vocacao]) {
+                        for(let a in baseBonus) if(CLASSES[vocacao][a]) baseBonus[a] += CLASSES[vocacao][a];
+                    }
+
+                    let ptsDistribuidos = 0;
+                    ['for', 'des', 'con', 'int', 'sab', 'car', 'per'].forEach(a => {
+                        let val = Number(dados[a]) || 0;
+                        let minVal = baseBonus[a];
+                        
+                        // Restringir a caixa de texto
+                        let inputEl = document.getElementById(`slot${numSlot}-${a}`);
+                        if(inputEl) {
+                            inputEl.min = minVal;
+                            // Se o valor estiver menor que o mínimo nativo, forçamos o valor mínimo visualmente
+                            // O banco de dados pode ter ficado atrasado se ele apenas mudou a raça.
+                            if(val < minVal) {
+                                inputEl.value = minVal;
+                                val = minVal;
+                            }
+                        }
+                        
+                        ptsDistribuidos += Math.max(0, val - minVal);
+                    });
+                    
+                    let ptsLivres = maxAtributos - ptsDistribuidos;
 
                     let spanPts = document.getElementById(`slot${numSlot}-pts-livres`);
                     if(spanPts) {
                         spanPts.innerText = `( ${ptsLivres} / ${maxAtributos} )`;
                         spanPts.style.color = ptsLivres > 0 ? '#27ae60' : (ptsLivres === 0 ? '#b89c72' : '#d95757');
+                    }
+                    
+                    // Lógica do Gnomo para Inventário
+                    let slot5El = document.getElementById(`slot${numSlot}-item5-nome`);
+                    if(slot5El) {
+                        let slotDiv = slot5El.closest('.equipamento-slot');
+                        if(slotDiv) {
+                            slotDiv.style.display = (raca === 'Gnomo') ? 'none' : '';
+                        }
                     }
 
                     for(let i=1; i<=5; i++) {
@@ -1363,6 +1429,18 @@ window.toggleSidebarJogador = function(numSlot) {
             const atributos = ['for', 'des', 'con', 'int', 'sab', 'car', 'per'];
             const prefixo = tipo === 'heroi' ? `slot${numSlot}` : `slot${numSlot}-monstro`;
             
+            let baseBonus = {for:0, des:0, con:0, int:0, sab:0, car:0, per:0};
+            if(tipo === 'heroi') {
+                let raca = dados.raca || '';
+                let vocacao = dados.vocacao || '';
+                if(typeof RACES !== 'undefined' && RACES[raca] && !RACES[raca].points) {
+                    for(let a in baseBonus) if(RACES[raca][a]) baseBonus[a] += RACES[raca][a];
+                }
+                if(typeof CLASSES !== 'undefined' && CLASSES[vocacao]) {
+                    for(let a in baseBonus) if(CLASSES[vocacao][a]) baseBonus[a] += CLASSES[vocacao][a];
+                }
+            }
+
             let modsItens = {for:0, des:0, con:0, int:0, sab:0, car:0, per:0};
             if(tipo === 'heroi') {
                 for(let i=1; i<=5; i++) {
@@ -1384,11 +1462,13 @@ window.toggleSidebarJogador = function(numSlot) {
                 let total = Number(dados[attr]) || 0;
                 let mItem = modsItens[attr] || 0;
                 let mBuff = modsBuffs[attr] || 0;
-                let base = total - mItem - mBuff;
+                let mNat = baseBonus[attr] || 0;
+                let baseTotal = total - mItem - mBuff;
+                let ptsDistribuidos = baseTotal - mNat;
                 
                 let inputEl = document.getElementById(`${prefixo}-${attr}`);
                 if(inputEl && inputEl.parentElement) {
-                    let txt = `Nativo: ${base}\nItens: ${mItem > 0 ? '+'+mItem : mItem}\nEfeitos: ${mBuff > 0 ? '+'+mBuff : mBuff}`;
+                    let txt = `Distrib.: ${ptsDistribuidos > 0 ? '+'+ptsDistribuidos : ptsDistribuidos}\nNativo (Raça/Classe): ${mNat > 0 ? '+'+mNat : mNat}\nItens: ${mItem > 0 ? '+'+mItem : mItem}\nEfeitos: ${mBuff > 0 ? '+'+mBuff : mBuff}`;
                     inputEl.parentElement.title = txt;
                     inputEl.title = txt;
                 }
@@ -1636,13 +1716,16 @@ window.toggleSidebarJogador = function(numSlot) {
 
         window.jogadorAtacar = async function(numSlot, area) {
             const inputDano = document.getElementById(`slot${numSlot}-jogador-ataque-dano`);
-            const critico = document.getElementById(`slot${numSlot}-jogador-critico`).checked;
+            const critico = document.getElementById(`slot${numSlot}-jogador-critico`);
             let dano = Number(inputDano.value) || 0;
             if(dano <= 0) return alert("Insira um valor de dano base válido!");
-            if(critico) dano = dano * 2;
+            if(critico.checked) dano = dano * 2;
             
             const checkboxes = document.querySelectorAll(`#alvos-combate-slot${numSlot} input[type="checkbox"]:checked`);
             if(checkboxes.length === 0) return alert("Selecione pelo menos um alvo!");
+            
+            inputDano.value = '';
+            critico.checked = false;
             
             for(let cb of checkboxes) {
                 let idAlvo = cb.value;
@@ -1689,8 +1772,6 @@ window.toggleSidebarJogador = function(numSlot) {
                 }
             }
             
-            inputDano.value = '';
-            document.getElementById(`slot${numSlot}-jogador-critico`).checked = false;
             checkboxes.forEach(cb => cb.checked = false);
         };
         
