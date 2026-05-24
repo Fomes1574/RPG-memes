@@ -1,4 +1,4 @@
-﻿import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
         import { getDatabase, ref, onValue, update, get, remove } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
 
         const firebaseConfig = {
@@ -244,17 +244,18 @@ function gerarHtmlHeroi(numSlot) {
 
     </div>`;
 }
-        window.toggleSidebarJogador = function(numSlot) {
-            const sidebar = document.getElementById(sidebar-jogador-slot);
-            const btn = document.getElementById(tn-toggle-jogador-slot);
-            if (sidebar.classList.contains('sidebar-fechada')) {
-                sidebar.classList.remove('sidebar-fechada');
-                btn.innerText = '◀';
-            } else {
-                sidebar.classList.add('sidebar-fechada');
-                btn.innerText = '▶';
-            }
-        }
+
+window.toggleSidebarJogador = function(numSlot) {
+    const sidebar = document.getElementById(`sidebar-jogador-slot${numSlot}`);
+    const btn = document.getElementById(`btn-toggle-jogador-slot${numSlot}`);
+    if (sidebar.classList.contains('sidebar-fechada')) {
+        sidebar.classList.remove('sidebar-fechada');
+        btn.innerText = '<';
+    } else {
+        sidebar.classList.add('sidebar-fechada');
+        btn.innerText = '>';
+    }
+}
 
         function gerarHtmlMonstro(numSlot) {
             let alvosHtml = playersList.map(p => `<label class="checkbox-alvo"><input type="checkbox" value="${p}" class="alvo-ataque-slot${numSlot}"> ${p}</label>`).join('');
