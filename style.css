@@ -402,3 +402,29 @@
         .btn-interromper { flex: 1; padding: 6px; background: rgba(0,0,0,0.5); border: 1px solid #d95757; color: #d95757; border-radius: 4px; cursor: pointer; transition: 0.2s; font-weight: bold; text-transform: uppercase; font-size: 11px; }
         .btn-interromper:hover { background: #d95757; color: #fff; }
         .status-conjurando { color: #d95757; font-weight: bold; animation: piscarVida 1s infinite; font-size: 11px; margin-top: 5px; text-align: center;}
+
+        /* SIDEBAR DO JOGADOR (LATERAL ESQUERDA) */
+        .sidebar-jogador-custom {
+            position: fixed; top: 0; left: 0; right: auto; width: 320px; height: 100vh;
+            background: linear-gradient(to bottom, #110a06, #0a0503);
+            border-right: 2px solid #5c3a21;
+            z-index: 1000; display: flex; flex-direction: column;
+            box-shadow: 5px 0 25px rgba(0,0,0,0.9);
+            transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+        }
+        .sidebar-jogador-custom.sidebar-fechada {
+            transform: translateX(-320px);
+        }
+        .btn-toggle-sidebar-jogador {
+            position: absolute; top: 50vh; right: -32px; width: 32px; height: 60px;
+            background: linear-gradient(to left, #2a150c, #110a06);
+            border: 2px solid #5c3a21; border-left: none;
+            border-radius: 0 8px 8px 0; cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            color: #d4af37; font-size: 16px; font-weight: bold;
+            box-shadow: 3px 0 10px rgba(0,0,0,0.8);
+            transform: translateY(-50%);
+            transition: all 0.3s ease;
+            z-index: 1001;
+        }
+        .btn-toggle-sidebar-jogador:hover { background: linear-gradient(to left, #3a1d12, #1a0f09); color: #fff; }
