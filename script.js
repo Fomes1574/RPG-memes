@@ -136,7 +136,7 @@ function gerarHtmlHeroi(numSlot) {
                 </div>
                 <div><label>Jogador</label><input type="text" id="slot${numSlot}-jogador" class="editavel-slot${numSlot}" readonly></div>
                 <div>
-                    <label>Linhagem / Raça</label>
+                    <label>Raça</label>
                     <select id="slot${numSlot}-raca" class="editavel-slot${numSlot}">
                         <option value="">Nenhuma</option>
                         <option value="Humanos">Humanos</option>
@@ -150,7 +150,7 @@ function gerarHtmlHeroi(numSlot) {
                     </select>
                 </div>
                 <div>
-                    <label>Vocação / Classe</label>
+                    <label>Classe</label>
                     <select id="slot${numSlot}-classe" class="editavel-slot${numSlot}">
                         <option value="">Nenhuma</option>
                         <option value="Guerreiro">Guerreiro</option>
@@ -806,7 +806,7 @@ window.toggleSidebarJogador = function(numSlot) {
             const classeEscolhida = selectClasse ? selectClasse.value : "";
             
             if (!classeEscolhida) {
-                alert("Escolha uma Vocação / Classe primeiro na ficha para liberar sua árvore de melhorias!");
+                alert("Escolha uma Classe primeiro na ficha para liberar sua árvore de melhorias!");
                 return;
             }
 
@@ -1155,22 +1155,58 @@ window.toggleSidebarJogador = function(numSlot) {
 
                         let novoValor = e.target.value;
 
+                        let dadosAntigos = slotsDeVisao[numSlot].dados || {};
+                        
+                        let baseAtual = {for:0, des:0, con:0, int:0, sab:0, car:0, per:0};
+                        let oldRaca = dadosAntigos.raca || '';
+                        let oldClasse = dadosAntigos.classe || '';
+                        if(typeof RACES !== 'undefined' && RACES[oldRaca] && !RACES[oldRaca].points) {
+                            for(let a in baseAtual) if(RACES[oldRaca][a]) baseAtual[a] += RACES[oldRaca][a];
+                        }
+                        if(typeof CLASSES !== 'undefined' && CLASSES[oldClasse]) {
+                            for(let a in baseAtual) if(CLASSES[oldClasse][a]) baseAtual[a] += CLASSES[oldClasse][a];
+                        }
+
+                        if (tipo === 'heroi' && (chaveDoBanco === 'raca' || chaveDoBanco === 'classe')) {
+                            let newRaca = chaveDoBanco === 'raca' ? novoValor : oldRaca;
+                            let newClasse = chaveDoBanco === 'classe' ? novoValor : oldClasse;
+                            
+                            let newBase = {for:0, des:0, con:0, int:0, sab:0, car:0, per:0};
+                            if(typeof RACES !== 'undefined' && RACES[newRaca] && !RACES[newRaca].points) {
+                                for(let a in newBase) if(RACES[newRaca][a]) newBase[a] += RACES[newRaca][a];
+                            }
+                            if(typeof CLASSES !== 'undefined' && CLASSES[newClasse]) {
+                                for(let a in newBase) if(CLASSES[newClasse][a]) newBase[a] += CLASSES[newClasse][a];
+                            }
+                            
+                            let updates = { [chaveDoBanco]: novoValor };
+                            ['for', 'des', 'con', 'int', 'sab', 'car', 'per'].forEach(attr => {
+                                let delta = newBase[attr] - baseAtual[attr];
+                                if(delta !== 0) {
+                                    updates[attr] = (Number(dadosAntigos[attr]) || 0) + delta;
+                                }
+                            });
+                            update(ref(database, 'fichas/' + idFicha), updates);
+                            return; // Terminamos
+                        }
+
                         if (tipo === 'heroi' && ['for', 'des', 'con', 'int', 'sab', 'car', 'per'].includes(chaveDoBanco)) {
                             novoValor = Number(novoValor);
-                            if (novoValor < 0) novoValor = 0;
-                            if (novoValor > 20) novoValor = 20;
-
-                            let dadosAntigos = slotsDeVisao[numSlot].dados || {};
+                            let minG = baseAtual[chaveDoBanco];
+                            if (novoValor < minG) novoValor = minG;
+                            
                             let expT = Number(dadosAntigos['expTotal']) || 0;
                             let lvl = getLevelData(expT).level;
                             let maxA = 10 + (lvl - 1);
+                            if(typeof RACES !== 'undefined' && RACES[oldRaca] && RACES[oldRaca].points) maxA += RACES[oldRaca].points;
 
-                            let sumOthers = 0;
+                            let ptsGastos = 0;
                             ['for', 'des', 'con', 'int', 'sab', 'car', 'per'].forEach(a => {
-                                if(a !== chaveDoBanco) sumOthers += Number(dadosAntigos[a]) || 0;
+                                let valDaVez = (a === chaveDoBanco) ? novoValor : (Number(dadosAntigos[a]) || 0);
+                                ptsGastos += Math.max(0, valDaVez - baseAtual[a]);
                             });
 
-                            if (sumOthers + novoValor > maxA && usuarioAtual.cargo !== "Mestre") {
+                            if (ptsGastos > maxA && usuarioAtual.cargo !== "Mestre") {
                                 e.target.value = dadosAntigos[chaveDoBanco] || 0; 
                                 return; 
                             }
