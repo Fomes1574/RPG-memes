@@ -1,4 +1,4 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+﻿import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
         import { getDatabase, ref, onValue, update, get, remove } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
 
         const firebaseConfig = {
@@ -53,53 +53,33 @@ function gerarHtmlHeroi(numSlot) {
                 </div>
             </div>`;
     }
-
-    return `
+    let sidebarHtml = '';
+    if (numSlot === 1) {
+        sidebarHtml = `
     <!-- LATERAL ESQUERDA (GRIMÓRIO E COMBATE) -->
     <div id="sidebar-jogador-slot${numSlot}" class="sidebar-mestre sidebar-fechada sidebar-jogador-custom">
         <button id="btn-toggle-jogador-slot${numSlot}" class="btn-toggle-sidebar-jogador" onclick="toggleSidebarJogador(${numSlot})">▶</button>
-        <div class="sidebar-header" style="text-align: center; font-size: 18px; margin-bottom: 20px; color:#d4af37;">Grimório & Combate</div>
+        <div class="sidebar-header" style="text-align: center; font-size: 18px; margin-bottom: 20px; color:#d4af37;">Ações e Combate</div>
         
         <div style="overflow-y:auto; padding:0 15px; flex:1; margin-bottom:20px;">
-            <!-- TAB: GRIMÓRIO -->
-            <div class="section-title">Adicionar Habilidade</div>
-            <div class="buff-container">
-                <div class="buff-input-grid" style="grid-template-columns: 2fr 1fr 1fr 1.5fr;">
-                    <input type="text" id="slot${numSlot}-hab-nome" class="editavel-slot${numSlot}" placeholder="Nome Habilidade">
-                    <input type="number" id="slot${numSlot}-hab-ap" class="editavel-slot${numSlot}" placeholder="AP" value="0">
-                    <input type="number" id="slot${numSlot}-hab-mana" class="editavel-slot${numSlot}" placeholder="Mana" value="0">
-                    <select id="slot${numSlot}-hab-tipo" class="editavel-slot${numSlot}">
-                        <option value="ativa">Ativa (Ataque)</option>
-                        <option value="passiva">Passiva</option>
-                        <option value="cura">Cura</option>
-                        <option value="suporte">Suporte / Buff</option>
-                    </select>
-                </div>
-                <textarea id="slot${numSlot}-hab-desc" class="editavel-slot${numSlot}" rows="2" placeholder="Descrição ou Efeito da Habilidade..." style="width:100%; margin-top:5px; background:rgba(0,0,0,0.5); border:1px solid #3a2212; color:#dcd0ba; padding:5px;"></textarea>
-                <button class="editavel-slot${numSlot}" onclick="adicionarHabilidade(${numSlot})" style="width:100%; padding: 8px; margin-top: 5px; background: #d4af37; border: 1px solid #5c3a21; color:#000; font-weight:bold; cursor:pointer;">GRAVAR NO GRIMÓRIO</button>
-            </div>
-            <div class="section-title" style="margin-top: 15px;">Habilidades Passivas</div>
-            <div id="lista-habilidades-passivas-slot${numSlot}"></div>
-            <div class="section-title" style="margin-top: 15px;">Habilidades Ativas</div>
-            <div id="lista-habilidades-ativas-slot${numSlot}"></div>
-            
             <!-- TAB: COMBATE -->
-            <div class="section-title" style="color:#d95757; border-bottom-color:#8c1c13; margin-top: 25px;">Ações e Combate</div>
             <div class="buff-container" style="border-color:#8c1c13; background:rgba(20, 5, 5, 0.6);">
                 <div style="margin-bottom: 15px;">
                     <label style="color:#d95757; font-weight:bold;">Ameaça na Mesa:</label>
                     <span id="nome-ameaca-ativa-slot${numSlot}" style="color:#fff;">Nenhuma ameaça na mesa no momento...</span>
                 </div>
                 
-                <div style="display: flex; gap: 10px; align-items: stretch;">
-                    <div style="display: flex; flex-direction: column; gap: 5px; flex: 1;">
-                        <label style="color:#b89c72;">Dano Base</label>
-                        <input type="number" id="slot${numSlot}-jogador-ataque-dano" class="editavel-slot${numSlot}" placeholder="Valor" style="text-align:center; font-size: 18px; padding: 10px; border-color:#d4af37; color:#fff;">
-                        <label class="checkbox-alvo" style="margin-top: 5px; justify-content:center; padding: 5px; border:1px dashed #d95757; border-radius:4px;"><input type="checkbox" id="slot${numSlot}-jogador-critico"> 🔥 Crítico (Nat 20)</label>
+                <div style="display: flex; gap: 10px; align-items: flex-end;">
+                    <div style="display: flex; flex-direction: column; gap: 10px; flex: 1;">
+                        <div style="display: flex; align-items: center; gap: 5px; justify-content: space-between;">
+                            <label style="color:#b89c72; margin:0;">Dano</label>
+                            <input type="number" id="slot${numSlot}-jogador-ataque-dano" class="editavel-slot${numSlot}" placeholder="Valor" style="text-align:center; font-size: 16px; padding: 5px; border-color:#d4af37; color:#fff; width: 70px;">
+                        </div>
+                        <label class="checkbox-alvo" style="justify-content:center; padding: 5px; border:1px dashed #d95757; border-radius:4px; width: 100%;"><input type="checkbox" id="slot${numSlot}-jogador-critico"> 🔥 Crítico</label>
                     </div>
                     <div style="display: flex; flex-direction: column; gap: 5px; flex: 1.5;">
                         <label style="color:#b89c72;">Alvos Disponíveis</label>
-                        <div id="alvos-combate-slot${numSlot}" style="flex:1; background: rgba(0,0,0,0.5); border: 1px solid #5c1818; padding: 5px; border-radius: 4px; overflow-y:auto; max-height:80px; display:flex; flex-direction:column; gap:5px;">
+                        <div id="alvos-combate-slot${numSlot}" style="flex:1; background: rgba(0,0,0,0.5); border: 1px solid #5c1818; padding: 5px; border-radius: 4px; overflow-y:auto; max-height:90px; display:flex; flex-direction:column; gap:5px;">
                             <!-- Populated via JS dynamically -->
                         </div>
                     </div>
@@ -111,8 +91,10 @@ function gerarHtmlHeroi(numSlot) {
                 </div>
             </div>
         </div>
-    </div>
+    </div>`;
+    }
 
+    return sidebarHtml + `
     <!-- FICHA PRINCIPAL -->
     <div class="container" id="container-slot${numSlot}-heroi">
         <div class="header-grid" style="align-items: flex-start;">
@@ -173,7 +155,7 @@ function gerarHtmlHeroi(numSlot) {
 
         <div class="section-title" style="margin-top: 15px; margin-bottom: 0;">Essência Vital</div>
         <div class="status-grid" style="grid-template-columns: repeat(2, 1fr); gap: 15px; margin: 5px 0 20px 0; padding: 20px;">
-            <div id="caixa-hp-slot${numSlot}" class="caixa-status" style="grid-column: span 2;">
+            <div id="caixa-hp-slot${numSlot}" class="caixa-status" style="grid-column: span 1;">
                 <label style="color: #27ae60; text-align: center;">HP</label>
                 <div class="fraction-input" style="justify-content: center;">
                     <input type="number" id="slot${numSlot}-hp-atual" class="editavel-slot${numSlot}" style="color: #27ae60;"><span>/</span><span id="slot${numSlot}-hp-efetivo" style="color: #27ae60; font-size: 20px; font-weight: bold; width:40px; display:inline-block; text-align:left;">20</span>
@@ -184,7 +166,7 @@ function gerarHtmlHeroi(numSlot) {
                 </div>
                 <div class="bar-bg"><div class="bar-fill hp-fill" id="bar-hp-slot${numSlot}" style="width: 100%;"></div><div class="shield-fill" id="bar-shield-slot${numSlot}" style="width: 0%;"></div><div class="hp-text-overlay" id="txt-escudo-slot${numSlot}"></div></div>
             </div>
-            <div class="caixa-status" style="grid-column: span 2;">
+            <div class="caixa-status" style="grid-column: span 1;">
                 <label style="color: #2980b9; text-align: center;">MANA</label>
                 <div class="fraction-input" style="justify-content: center;">
                     <input type="number" id="slot${numSlot}-mana-atual" class="editavel-slot${numSlot}" style="color: #2980b9;"><span>/</span><span id="slot${numSlot}-mana-efetivo" style="color: #2980b9; font-size: 20px; font-weight: bold; width:40px; display:inline-block; text-align:left;">20</span>
@@ -245,6 +227,17 @@ function gerarHtmlHeroi(numSlot) {
     </div>`;
 }
 
+window.toggleSidebarJogador = function(numSlot) {
+    const sidebar = document.getElementById(`sidebar-jogador-slot${numSlot}`);
+    const btn = document.getElementById(`btn-toggle-jogador-slot${numSlot}`);
+    if (sidebar.classList.contains('sidebar-fechada')) {
+        sidebar.classList.remove('sidebar-fechada');
+        btn.innerText = '<';
+    } else {
+        sidebar.classList.add('sidebar-fechada');
+        btn.innerText = '>';
+    }
+}
 window.toggleSidebarJogador = function(numSlot) {
     const sidebar = document.getElementById(`sidebar-jogador-slot${numSlot}`);
     const btn = document.getElementById(`btn-toggle-jogador-slot${numSlot}`);
