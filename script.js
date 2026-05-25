@@ -1294,7 +1294,7 @@ window.toggleSidebarJogador = function(numSlot) {
                 const img = new Image();
                 img.onload = function() {
                     const canvas = document.createElement('canvas');
-                    const MAX_SIZE = 150; 
+                    const MAX_SIZE = 400; 
                     let width = img.width; let height = img.height;
                     if (width > height) { if (width > MAX_SIZE) { height *= MAX_SIZE / width; width = MAX_SIZE; } } 
                     else { if (height > MAX_SIZE) { width *= MAX_SIZE / height; height = MAX_SIZE; } }
@@ -1302,7 +1302,7 @@ window.toggleSidebarJogador = function(numSlot) {
                     const ctx = canvas.getContext('2d');
                     ctx.drawImage(img, 0, 0, width, height);
 
-                    const dataUrlUltraLeve = canvas.toDataURL('image/webp', 0.6); 
+                    const dataUrlUltraLeve = canvas.toDataURL('image/webp', 0.85); 
                     const idFicha = slotsDeVisao[numSlot].idFicha;
                     if(idFicha) update(ref(database, 'fotos/' + idFicha), { base64: dataUrlUltraLeve });
                 }
