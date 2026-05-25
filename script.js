@@ -23,7 +23,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
         };
 
         const RACES = {
-            "Humano": { points: 3 },
+            "Humanos": { points: 3 },
             "Elfo": { des: 2, int: 1, per: 1, sab: 1, con: -2, for: -1 },
             "Anão": { con: 2, for: 1, des: -2 },
             "Orc": { for: 2, con: 1, car: -2, sab: -1 },
@@ -122,7 +122,7 @@ function gerarHtmlHeroi(numSlot) {
             <!-- Coluna Esquerda: Foto -->
             <div style="display: flex; flex-direction: column; align-items: center;">
                 <img id="img-foto-slot${numSlot}" class="foto-personagem" src="" alt="Sem foto">
-                <label class="btn-upload editavel-slot${numSlot}-label">📁 Enviar do PC<input type="file" class="editavel-slot${numSlot}" accept="image/png, image/jpeg, image/webp" style="display:none;" onchange="processarUploadOtimizado(event, ${numSlot})"></label>
+                <label class="btn-upload editavel-slot${numSlot}-label">📁 Enviar do PC<input type="file" class="editavel-slot${numSlot}" accept="image/*" style="display:none;" onchange="processarUploadOtimizado(event, ${numSlot})"></label>
             </div>
             
             <!-- Coluna Direita: Info -->
@@ -279,7 +279,7 @@ window.toggleSidebarJogador = function(numSlot) {
                 <div class="header-grid" style="grid-template-columns: 100px 1fr;">
                     <div style="display: flex; flex-direction: column;">
                         <img id="img-foto-monstro-slot${numSlot}" class="foto-personagem" src="" alt="Sem foto" style="width:100px; height:100px;">
-                        <label class="btn-upload editavel-slot${numSlot}-label esconder-jogador">📷 Upload<input type="file" class="editavel-slot${numSlot}" accept="image/png, image/jpeg, image/webp" style="display:none;" onchange="processarUploadOtimizado(event, ${numSlot})"></label>
+                        <label class="btn-upload editavel-slot${numSlot}-label esconder-jogador">📷 Upload<input type="file" class="editavel-slot${numSlot}" accept="image/*" style="display:none;" onchange="processarUploadOtimizado(event, ${numSlot})"></label>
                     </div>
                     <div style="display: flex; flex-direction: column; justify-content: center; position: relative;">
                         <div class="mestre-acoes-ficha esconder-jogador" style="position: absolute; top: -10px; right: 0; display: flex; gap: 5px;">
