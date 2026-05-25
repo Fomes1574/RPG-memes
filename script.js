@@ -1303,7 +1303,11 @@ window.toggleSidebarJogador = function(numSlot) {
                     ctx.drawImage(img, 0, 0, width, height);
 
                     const dataUrlUltraLeve = canvas.toDataURL('image/webp', 0.85); 
-                    const idFicha = slotsDeVisao[numSlot].idFicha;
+                    const idFicha = slotsDeVisao[numSlot]?.idFicha;
+                    const tipo = slotsDeVisao[numSlot]?.tipo || 'heroi';
+                    const imgEl = tipo === 'heroi' ? document.getElementById(`img-foto-slot${numSlot}`) : document.getElementById(`img-foto-monstro-slot${numSlot}`);
+                    if (imgEl) imgEl.src = dataUrlUltraLeve;
+                    
                     if(idFicha) update(ref(database, 'fotos/' + idFicha), { base64: dataUrlUltraLeve });
                 }
                 img.src = e.target.result;
