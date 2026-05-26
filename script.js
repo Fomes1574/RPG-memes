@@ -27,14 +27,14 @@
             "Monge": { con: 1, des: 1, sab: 1 }
         };
 
-        const RACA_BONUS = {
-            "Elfo": { int: 1, des: 1, for: -1 },
-            "Anão": { for: 1, con: 1, des: -1 },
-            "Orc": { for: 2, int: -1 },
-            "Gnomo": { int: 1, for: -1 },
-            "Halfling": { des: 1, car: 1, for: -1 },
-            "Khajiit": { des: 1, per: 1 },
-            "Argoniano": { con: 1, des: 1, per: -1 },
+                const RACA_BONUS = {
+            "Elfo": { des: 2, int: 1, per: 1, sab: 1, con: -2, for: -1 },
+            "Anão": { con: 2, for: 1, des: -2 },
+            "Orc": { for: 2, con: 1, car: -2, sab: -1 },
+            "Gnomo": { int: 2, sab: 1, for: -2, con: -1 },
+            "Halfling": { des: 2, car: 1, int: -3, for: -1 },
+            "Khajiit": { des: 4, int: -3, car: -1 },
+            "Argoniano": { con: 3, des: 1, car: -4, per: -1 },
             "Humanos": {}
         };
 
@@ -46,25 +46,25 @@
         };
 
         const NATIVE_SKILLS = {
-            "Humanos": [ { id: 'humano_adaptavel', nome: 'Adaptável', tipo: 'Ativa', efeito: 'Pode refazer 1 teste por sessão', img: 'Imagens/Habilidades Humano.png' } ],
-            "Elfo": [ { id: 'elfo_visao', nome: 'Visão Aguçada', tipo: 'Passiva', efeito: 'Enxerga no escuro', img: 'Imagens/Habilidades Elfo.png' }, { id: 'elfo_afinidade', nome: 'Afinidade Arcana', tipo: 'Passiva', efeito: 'Bônus em testes mágicos', img: 'Imagens/Habilidades Elfo.png' } ],
-            "Anão": [ { id: 'anao_resistencia', nome: 'Resistência Anã', tipo: 'Passiva', efeito: 'Resistência contra debuffs', img: 'Imagens/Habilidades Anão.png' } ],
-            "Orc": [ { id: 'orc_furia', nome: 'Fúria', tipo: 'Ativa', custo: '15 Mana', efeito: 'Dano extra por alguns turnos', img: 'Imagens/Habilidades Orc.png' } ],
-            "Gnomo": [ { id: 'gnomo_natureza', nome: 'Natureza mística', tipo: 'Passiva', efeito: 'Bônus em magia/poções', img: 'Imagens/Habilidades Gnomo.png' }, { id: 'gnomo_mente', nome: 'Mente Rápida', tipo: 'Passiva', efeito: 'Vantagem ilusões; +2 Percepção', img: 'Imagens/Habilidades Gnomo.png' } ],
-            "Halfling": [ { id: 'halfling_sorte', nome: 'Sorte Incrível', tipo: 'Ativa', custo: '10 Mana', efeito: 'Pode rerrolar 1 dado por sessão', img: 'Imagens/Habilidades Halfling.png' } ],
-            "Khajiit": [ { id: 'khajiit_sentidos', nome: 'Sentidos Felinos', tipo: 'Passiva', efeito: 'Bônus visão noturna; +2 Percepção', img: 'Imagens/Habilidades Khajiit.png' }, { id: 'khajiit_garras', nome: 'Garras Naturais', tipo: 'Passiva', efeito: 'Ataque desarmado causa dano extra', img: 'Imagens/Habilidades Khajiit.png' } ],
-            "Argoniano": [ { id: 'argoniano_regeneracao', nome: 'Regeneração', tipo: 'Passiva', efeito: 'Recupera pouca vida ao longo do tempo', img: 'Imagens/Habilidades Argoniano.png' }, { id: 'argoniano_anfibio', nome: 'Anfíbio', tipo: 'Passiva', efeito: "Respira na água; +2 Destreza n'água", img: 'Imagens/Habilidades Argoniano.png' }, { id: 'argoniano_resistencia', nome: 'Resistência Natural', tipo: 'Passiva', efeito: 'Bônus contra doenças e venenos', img: 'Imagens/Habilidades Argoniano.png' } ],
+            "Humanos": [ { id: 'humano_adaptavel', nome: 'Adaptável', tipo: 'Ativa', efeito: 'Pode refazer 1 teste por sessão', img: 'Imagens/Habilidades%20Humano.png' } ],
+            "Elfo": [ { id: 'elfo_visao', nome: 'Visão Aguçada', tipo: 'Passiva', efeito: 'Enxerga no escuro', img: 'Imagens/Habilidades%20Elfo.png' }, { id: 'elfo_afinidade', nome: 'Afinidade Arcana', tipo: 'Passiva', efeito: 'Bônus em testes mágicos', img: 'Imagens/Habilidades%20Elfo.png' } ],
+            "Anão": [ { id: 'anao_resistencia', nome: 'Resistência Anã', tipo: 'Passiva', efeito: 'Resistência contra debuffs', img: 'Imagens/Habilidades%20Anão.png' } ],
+            "Orc": [ { id: 'orc_furia', nome: 'Fúria', tipo: 'Ativa', custo: '15 Mana', efeito: 'Dano extra por alguns turnos', img: 'Imagens/Habilidades%20Orc.png' } ],
+            "Gnomo": [ { id: 'gnomo_natureza', nome: 'Natureza mística', tipo: 'Passiva', efeito: 'Bônus em magia/poções', img: 'Imagens/Habilidades%20Gnomo.png' }, { id: 'gnomo_mente', nome: 'Mente Rápida', tipo: 'Passiva', efeito: 'Vantagem ilusões; +2 Percepção', img: 'Imagens/Habilidades%20Gnomo.png' } ],
+            "Halfling": [ { id: 'halfling_sorte', nome: 'Sorte Incrível', tipo: 'Ativa', custo: '10 Mana', efeito: 'Pode rerrolar 1 dado por sessão', img: 'Imagens/Habilidades%20Halfling.png' } ],
+            "Khajiit": [ { id: 'khajiit_sentidos', nome: 'Sentidos Felinos', tipo: 'Passiva', efeito: 'Bônus visão noturna; +2 Percepção', img: 'Imagens/Habilidades%20Khajiit.png' }, { id: 'khajiit_garras', nome: 'Garras Naturais', tipo: 'Passiva', efeito: 'Ataque desarmado causa dano extra', img: 'Imagens/Habilidades%20Khajiit.png' } ],
+            "Argoniano": [ { id: 'argoniano_regeneracao', nome: 'Regeneração', tipo: 'Passiva', efeito: 'Recupera pouca vida ao longo do tempo', img: 'Imagens/Habilidades%20Argoniano.png' }, { id: 'argoniano_anfibio', nome: 'Anfíbio', tipo: 'Passiva', efeito: "Respira na água; +2 Destreza n'água", img: 'Imagens/Habilidades%20Argoniano.png' }, { id: 'argoniano_resistencia', nome: 'Resistência Natural', tipo: 'Passiva', efeito: 'Bônus contra doenças e venenos', img: 'Imagens/Habilidades%20Argoniano.png' } ],
             
-            "Guerreiro": [ { id: 'guerreiro_especialista', nome: 'Especialista em Combate', tipo: 'Passiva', efeito: 'Bônus com todas as armas', img: 'Imagens/Habilidades Guerreiro.png' }, { id: 'guerreiro_postura', nome: 'Postura Defensiva', tipo: 'Ativa', custo: '10 Mana', efeito: 'Reduz dano recebido', img: 'Imagens/Habilidades Guerreiro.png' } ],
-            "Paladino": [ { id: 'paladino_golpe', nome: 'Golpe Sagrado', tipo: 'Passiva', efeito: 'Dano extra contra malignos', img: 'Imagens/Habilidades Paladino.png' }, { id: 'paladino_cura', nome: 'Cura Divina', tipo: 'Ativa', custo: '15 Mana', efeito: 'Cura a si ou aliados', img: 'Imagens/Habilidades Paladino.png' } ],
-            "Druida": [ { id: 'druida_forma', nome: 'Forma Selvagem', tipo: 'Ativa', custo: '20 Mana', efeito: 'Transformação animal', img: 'Imagens/Habilidades Druida.png' }, { id: 'druida_vinculo', nome: 'Vínculo com a Natureza', tipo: 'Passiva', efeito: 'Lida com plantas e animais', img: 'Imagens/Habilidades Druida.png' } ],
-            "Bárbaro": [ { id: 'barbaro_furia', nome: 'Fúria', tipo: 'Ativa', custo: '15 Mana', efeito: 'Aumenta dano e resistência', img: 'Imagens/Habilidades Bárbaro.png' }, { id: 'barbaro_resistencia', nome: 'Resistência Brutal', tipo: 'Passiva', efeito: 'Reduz dano físico recebido', img: 'Imagens/Habilidades Bárbaro.png' } ],
-            "Arqueiro": [ { id: 'arqueiro_tiro', nome: 'Tiro Preciso', tipo: 'Passiva', efeito: 'Maior chance de acerto crítico', img: 'Imagens/Habilidades Arqueiro.png' }, { id: 'arqueiro_olho', nome: 'Olho de Águia', tipo: 'Passiva', efeito: 'Acerta o alvo com facilidade', img: 'Imagens/Habilidades Arqueiro.png' } ],
-            "Ladino": [ { id: 'ladino_ataque', nome: 'Ataque Furtivo', tipo: 'Passiva', efeito: 'Dano crítico em desprevenidos', img: 'Imagens/Habilidades Ladino.png' }, { id: 'ladino_evasao', nome: 'Evasão', tipo: 'Passiva', efeito: 'Maior chance de esquivar', img: 'Imagens/Habilidades Ladino.png' }, { id: 'ladino_especialista', nome: 'Especialista em Perícias', tipo: 'Passiva', efeito: 'Bônus em furtividade/lockpick', img: 'Imagens/Habilidades Ladino.png' } ],
-            "Mago": [ { id: 'mago_regeneracao', nome: 'Regeneração de mana', tipo: 'Passiva', efeito: 'Recupera mana mais rápido', img: 'Imagens/Habilidades Mago.png' } ],
-            "Curandeiro": [ { id: 'curandeiro_cura', nome: 'Cura Maior', tipo: 'Ativa', custo: '20 Mana', efeito: 'Recupera vida de aliados', img: 'Imagens/Habilidades Curandeiro.png' }, { id: 'curandeiro_protecao', nome: 'Proteção Espiritual', tipo: 'Passiva', efeito: 'Reduz dano do grupo', img: 'Imagens/Habilidades Curandeiro.png' }, { id: 'curandeiro_purificacao', nome: 'Purificação', tipo: 'Ativa', custo: '10 Mana', efeito: 'Remove debuffs', img: 'Imagens/Habilidades Curandeiro.png' } ],
-            "Bardo": [ { id: 'bardo_inspiracao', nome: 'Inspiração', tipo: 'Passiva', efeito: 'Concede bônus a aliados', img: 'Imagens/Habilidades Bardo.png' }, { id: 'bardo_cancao', nome: 'Canção Arcana', tipo: 'Passiva', efeito: 'Efeitos mágicos variados', img: 'Imagens/Habilidades Bardo.png' }, { id: 'bardo_manipulacao', nome: 'Manipulação Social', tipo: 'Passiva', efeito: 'Bônus em diálogo', img: 'Imagens/Habilidades Bardo.png' } ],
-            "Monge": [ { id: 'monge_golpes', nome: 'Golpes Rápidos', tipo: 'Passiva', efeito: 'Múltiplos ataques por turno', img: 'Imagens/Habilidades Monge.png' }, { id: 'monge_ki', nome: 'Ki Interior', tipo: 'Ativa', custo: '15 Mana', efeito: 'Aumenta a resistência', img: 'Imagens/Habilidades Monge.png' }, { id: 'monge_esquiva', nome: 'Esquiva Suprema', tipo: 'Passiva', efeito: 'Alta evasão', img: 'Imagens/Habilidades Monge.png' } ]
+            "Guerreiro": [ { id: 'guerreiro_especialista', nome: 'Especialista em Combate', tipo: 'Passiva', efeito: 'Bônus com todas as armas', img: 'Imagens/Habilidades%20Guerreiro.png' }, { id: 'guerreiro_postura', nome: 'Postura Defensiva', tipo: 'Ativa', custo: '10 Mana', efeito: 'Reduz dano recebido', img: 'Imagens/Habilidades%20Guerreiro.png' } ],
+            "Paladino": [ { id: 'paladino_golpe', nome: 'Golpe Sagrado', tipo: 'Passiva', efeito: 'Dano extra contra malignos', img: 'Imagens/Habilidades%20Paladino.png' }, { id: 'paladino_cura', nome: 'Cura Divina', tipo: 'Ativa', custo: '15 Mana', efeito: 'Cura a si ou aliados', img: 'Imagens/Habilidades%20Paladino.png' } ],
+            "Druida": [ { id: 'druida_forma', nome: 'Forma Selvagem', tipo: 'Ativa', custo: '20 Mana', efeito: 'Transformação animal', img: 'Imagens/Habilidades%20Druida.png' }, { id: 'druida_vinculo', nome: 'Vínculo com a Natureza', tipo: 'Passiva', efeito: 'Lida com plantas e animais', img: 'Imagens/Habilidades%20Druida.png' } ],
+            "Bárbaro": [ { id: 'barbaro_furia', nome: 'Fúria', tipo: 'Ativa', custo: '15 Mana', efeito: 'Aumenta dano e resistência', img: 'Imagens/Habilidades%20Bárbaro.png' }, { id: 'barbaro_resistencia', nome: 'Resistência Brutal', tipo: 'Passiva', efeito: 'Reduz dano físico recebido', img: 'Imagens/Habilidades%20Bárbaro.png' } ],
+            "Arqueiro": [ { id: 'arqueiro_tiro', nome: 'Tiro Preciso', tipo: 'Passiva', efeito: 'Maior chance de acerto crítico', img: 'Imagens/Habilidades%20Arqueiro.png' }, { id: 'arqueiro_olho', nome: 'Olho de Águia', tipo: 'Passiva', efeito: 'Acerta o alvo com facilidade', img: 'Imagens/Habilidades%20Arqueiro.png' } ],
+            "Ladino": [ { id: 'ladino_ataque', nome: 'Ataque Furtivo', tipo: 'Passiva', efeito: 'Dano crítico em desprevenidos', img: 'Imagens/Habilidades%20Ladino.png' }, { id: 'ladino_evasao', nome: 'Evasão', tipo: 'Passiva', efeito: 'Maior chance de esquivar', img: 'Imagens/Habilidades%20Ladino.png' }, { id: 'ladino_especialista', nome: 'Especialista em Perícias', tipo: 'Passiva', efeito: 'Bônus em furtividade/lockpick', img: 'Imagens/Habilidades%20Ladino.png' } ],
+            "Mago": [ { id: 'mago_regeneracao', nome: 'Regeneração de mana', tipo: 'Passiva', efeito: 'Recupera mana mais rápido', img: 'Imagens/Habilidades%20Mago.png' } ],
+            "Curandeiro": [ { id: 'curandeiro_cura', nome: 'Cura Maior', tipo: 'Ativa', custo: '20 Mana', efeito: 'Recupera vida de aliados', img: 'Imagens/Habilidades%20Curandeiro.png' }, { id: 'curandeiro_protecao', nome: 'Proteção Espiritual', tipo: 'Passiva', efeito: 'Reduz dano do grupo', img: 'Imagens/Habilidades%20Curandeiro.png' }, { id: 'curandeiro_purificacao', nome: 'Purificação', tipo: 'Ativa', custo: '10 Mana', efeito: 'Remove debuffs', img: 'Imagens/Habilidades%20Curandeiro.png' } ],
+            "Bardo": [ { id: 'bardo_inspiracao', nome: 'Inspiração', tipo: 'Passiva', efeito: 'Concede bônus a aliados', img: 'Imagens/Habilidades%20Bardo.png' }, { id: 'bardo_cancao', nome: 'Canção Arcana', tipo: 'Passiva', efeito: 'Efeitos mágicos variados', img: 'Imagens/Habilidades%20Bardo.png' }, { id: 'bardo_manipulacao', nome: 'Manipulação Social', tipo: 'Passiva', efeito: 'Bônus em diálogo', img: 'Imagens/Habilidades%20Bardo.png' } ],
+            "Monge": [ { id: 'monge_golpes', nome: 'Golpes Rápidos', tipo: 'Passiva', efeito: 'Múltiplos ataques por turno', img: 'Imagens/Habilidades%20Monge.png' }, { id: 'monge_ki', nome: 'Ki Interior', tipo: 'Ativa', custo: '15 Mana', efeito: 'Aumenta a resistência', img: 'Imagens/Habilidades%20Monge.png' }, { id: 'monge_esquiva', nome: 'Esquiva Suprema', tipo: 'Passiva', efeito: 'Alta evasão', img: 'Imagens/Habilidades%20Monge.png' } ]
         };
 
         const usuarios = {
@@ -96,7 +96,7 @@
             let eqHtml = '';
             for(let i=1; i<=5; i++){
                 eqHtml += `
-                    <div class="equipamento-slot">
+                    <div class="equipamento-slot" id="slot${numSlot}-item${i}-container">
                         <span class="slot-num">${i}</span>
                         <input type="text" id="slot${numSlot}-item${i}-nome" class="editavel-slot${numSlot}" placeholder="Nome do Item">
                         <div style="display: flex; align-items: center; gap: 5px;" class="esconder-jogador">
@@ -1042,7 +1042,7 @@
                     let expText = document.getElementById(`slot${numSlot}-exp-text`);
                     expText.innerText = `${levelData.currentExp} / ${levelData.requiredForNext}`;
                     let glow = percExp / 6;
-                    expText.style.textShadow = `0 0 ${glow}px rgba(255, 215, 0, 0.9), 1px 1px 2px black`;
+                                        expText.style.textShadow = `0 0 ${glow}px rgba(255, 215, 0, 0.9), 1px 1px 2px black`;
                     
                     // Lógica para Ouro Derretido que cresce com XP
                     const elBarra = document.getElementById(`bar-exp-slot${numSlot}`);
@@ -1055,9 +1055,14 @@
                         elBarra.style.setProperty('--brilho-xp-spread', spread + 'px');
                     }
 
-                    let maxAtributos = 10 + (levelData.level - 1);
+                    let baseMax = (dados.raca === 'Humanos') ? 13 : 10;
+                    let maxAtributos = baseMax + (levelData.level - 1);
                     let ptsAtuais = 0;
-                    ['for', 'des', 'con', 'int', 'sab', 'car', 'per'].forEach(a => ptsAtuais += Number(dados[a]) || 0);
+                    ['for', 'des', 'con', 'int', 'sab', 'car', 'per'].forEach(a => {
+                        let val = Number(dados[a]) || 0;
+                        let minVal = getBaseAttribute(a, dados.raca, dados.classe);
+                        if (val > minVal) ptsAtuais += (val - minVal);
+                    });
                     let ptsLivres = maxAtributos - ptsAtuais;
 
                     let spanPts = document.getElementById(`slot${numSlot}-pts-livres`);
@@ -1066,8 +1071,13 @@
                         spanPts.style.color = ptsLivres > 0 ? '#27ae60' : (ptsLivres === 0 ? '#b89c72' : '#d95757');
                     }
 
+                                        let elSlot5 = document.getElementById(`slot${numSlot}-item5-container`);
+                    if(elSlot5) {
+                        elSlot5.style.display = (dados.raca === 'Gnomo') ? 'none' : 'flex';
+                    }
+
                     for(let i=1; i<=5; i++) {
-                        let isEquipado = dados[`item${i}-equipado`] || false;
+                        let isEquipado = dados[item${i}-equipado] || false;
                         let btn = document.getElementById(`slot${numSlot}-btn-equip-${i}`);
                         if(!btn) continue;
                         if(isEquipado) {
@@ -1652,7 +1662,7 @@
                     
                     gridAtivas.innerHTML += `
                         <div class="card-magia">
-                            <img src="${magia.img}" alt="${magia.nome}" onerror="this.src='https://i.imgur.com/uP1Y7D1.png'">
+                            <img src="${magia.img}" alt="${magia.nome}" onerror="this.style.display='none'">
                             <div class="card-magia-info">
                                 <div class="card-magia-nome">${magia.nome}</div>
                                 <div class="card-magia-stats">
@@ -1666,7 +1676,7 @@
                 } else {
                     gridPassivas.innerHTML += `
                         <div class="card-magia">
-                            <img src="${magia.img}" alt="${magia.nome}" onerror="this.src='https://i.imgur.com/uP1Y7D1.png'">
+                            <img src="${magia.img}" alt="${magia.nome}" onerror="this.style.display='none'">
                             <div class="card-magia-info">
                                 <div class="card-magia-nome">${magia.nome}</div>
                                 <div class="card-magia-stats">
@@ -1677,7 +1687,7 @@
                     `;
                     passivasContainer.innerHTML += `
                         <div class="passiva-icone-container">
-                            <img src="${magia.img}" alt="${magia.nome}" class="passiva-icone" onerror="this.src='https://i.imgur.com/uP1Y7D1.png'">
+                            <img src="${magia.img}" alt="${magia.nome}" class="passiva-icone" onerror="this.style.display='none'">
                             <div class="passiva-nome">${magia.nome}</div>
                         </div>
                     `;
@@ -1849,6 +1859,13 @@
             });
             aliadosContainer.innerHTML = htmlAliados;
         };
+
+
+
+
+
+
+
 
 
 
