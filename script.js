@@ -1,4 +1,4 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+﻿import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
         import { getDatabase, ref, onValue, update, get, remove } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
 
         const firebaseConfig = {
@@ -25,6 +25,24 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
             "Curandeiro": { sab: 2, int: 1 },
             "Bardo": { car: 3 },
             "Monge": { con: 1, des: 1, sab: 1 }
+        };
+
+        const RACA_BONUS = {
+            "Elfo": { int: 1, des: 1, for: -1 },
+            "Anão": { for: 1, con: 1, des: -1 },
+            "Orc": { for: 2, int: -1 },
+            "Gnomo": { int: 1, for: -1 },
+            "Halfling": { des: 1, car: 1, for: -1 },
+            "Khajiit": { des: 1, per: 1 },
+            "Argoniano": { con: 1, des: 1, per: -1 },
+            "Humanos": {}
+        };
+
+        window.getBaseAttribute = function(attr, raca, classe) {
+            let base = 0;
+            if (raca && RACA_BONUS[raca]) base += RACA_BONUS[raca][attr] || 0;
+            if (classe && CLASSES[classe]) base += CLASSES[classe][attr] || 0;
+            return base;
         };
 
         const NATIVE_SKILLS = {
@@ -187,7 +205,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
                         </div>
                         <div><label>Jogador</label><input type="text" id="slot${numSlot}-jogador" class="editavel-slot${numSlot}" readonly></div>
                         <div>
-                            <label>Linhagem / Raça</label>
+                            <label>Raça</label>
                             <select id="slot${numSlot}-raca" class="editavel-slot${numSlot}">
                                 <option value="">Nenhuma</option>
                                 <option value="Humanos">Humanos</option>
@@ -201,7 +219,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
                             </select>
                         </div>
                         <div>
-                            <label>Vocação / Classe</label>
+                            <label>Classe</label>
                             <select id="slot${numSlot}-classe" class="editavel-slot${numSlot}">
                                 <option value="">Nenhuma</option>
                                 <option value="Guerreiro">Guerreiro</option>
@@ -793,7 +811,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
             const classeEscolhida = selectClasse ? selectClasse.value : "";
             
             if (!classeEscolhida) {
-                alert("Escolha uma Vocação / Classe primeiro na ficha para liberar sua árvore de melhorias!");
+                alert("Escolha uma Classe primeiro na ficha para liberar sua árvore de melhorias!");
                 return;
             }
 
@@ -1089,23 +1107,34 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
 
                         let novoValor = e.target.value;
 
-                        if (tipo === 'heroi' && ['for', 'des', 'con', 'int', 'sab', 'car', 'per'].includes(chaveDoBanco)) {
+                                                if (tipo === 'heroi' && ['for', 'des', 'con', 'int', 'sab', 'car', 'per'].includes(chaveDoBanco)) {
                             novoValor = Number(novoValor);
-                            if (novoValor < 0) novoValor = 0;
+                            let dadosAntigos = slotsDeVisao[numSlot].dados || {};
+                            let raca = dadosAntigos['raca'];
+                            let classe = dadosAntigos['classe'];
+                            
+                            let minPermitido = getBaseAttribute(chaveDoBanco, raca, classe);
+                            if (novoValor < minPermitido) novoValor = minPermitido;
                             if (novoValor > 20) novoValor = 20;
 
-                            let dadosAntigos = slotsDeVisao[numSlot].dados || {};
                             let expT = Number(dadosAntigos['expTotal']) || 0;
                             let lvl = getLevelData(expT).level;
-                            let maxA = 10 + (lvl - 1);
+                            let baseMax = (raca === 'Humanos') ? 13 : 10;
+                            let maxA = baseMax + (lvl - 1);
 
                             let sumOthers = 0;
                             ['for', 'des', 'con', 'int', 'sab', 'car', 'per'].forEach(a => {
-                                if(a !== chaveDoBanco) sumOthers += Number(dadosAntigos[a]) || 0;
+                                if(a !== chaveDoBanco) {
+                                    let v = Number(dadosAntigos[a]) || 0;
+                                    let min = getBaseAttribute(a, raca, classe);
+                                    if(v > min) sumOthers += (v - min);
+                                }
                             });
+                            
+                            let maxPermitidoParaEste = minPermitido + (maxA - sumOthers);
 
-                            if (sumOthers + novoValor > maxA && usuarioAtual.cargo !== "Mestre") {
-                                e.target.value = dadosAntigos[chaveDoBanco] || 0; 
+                            if (novoValor > maxPermitidoParaEste && usuarioAtual.cargo !== "Mestre") {
+                                e.target.value = dadosAntigos[chaveDoBanco] || minPermitido; 
                                 return; 
                             }
                             e.target.value = novoValor; 
@@ -1131,25 +1160,11 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
                             let newRaca = chaveDoBanco === 'raca' ? novoValor : oldRaca;
                             let newClasse = chaveDoBanco === 'classe' ? novoValor : oldClasse;
 
-                            let baseAtual = {for:0, des:0, con:0, int:0, sab:0, car:0, per:0};
-                            if (typeof RACES !== 'undefined' && RACES[oldRaca] && !RACES[oldRaca].points) {
-                                for(let a in baseAtual) if(RACES[oldRaca][a]) baseAtual[a] += RACES[oldRaca][a];
-                            }
-                            if (typeof CLASSES !== 'undefined' && CLASSES[oldClasse]) {
-                                for(let a in baseAtual) if(CLASSES[oldClasse][a]) baseAtual[a] += CLASSES[oldClasse][a];
-                            }
-
-                            let newBase = {for:0, des:0, con:0, int:0, sab:0, car:0, per:0};
-                            if (typeof RACES !== 'undefined' && RACES[newRaca] && !RACES[newRaca].points) {
-                                for(let a in newBase) if(RACES[newRaca][a]) newBase[a] += RACES[newRaca][a];
-                            }
-                            if (typeof CLASSES !== 'undefined' && CLASSES[newClasse]) {
-                                for(let a in newBase) if(CLASSES[newClasse][a]) newBase[a] += CLASSES[newClasse][a];
-                            }
-
-                            let updates = { [chaveDoBanco]: novoValor };
-                            ['for', 'des', 'con', 'int', 'sab', 'car', 'per'].forEach(attr => {
-                                let delta = newBase[attr] - baseAtual[attr];
+                                                        let updates = { [chaveDoBanco]: novoValor };
+                                                        ['for', 'des', 'con', 'int', 'sab', 'car', 'per'].forEach(attr => {
+                                let baseAtual = getBaseAttribute(attr, oldRaca, oldClasse);
+                                let newBase = getBaseAttribute(attr, newRaca, newClasse);
+                                let delta = newBase - baseAtual;
                                 if(delta !== 0) {
                                     updates[attr] = (Number(dadosAntigos[attr]) || 0) + delta;
                                 }
@@ -1219,7 +1234,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
                 const img = new Image();
                 img.onload = function() {
                     const canvas = document.createElement('canvas');
-                    const MAX_SIZE = 150; 
+                    const MAX_SIZE = 300; 
                     let width = img.width; let height = img.height;
                     if (width > height) { if (width > MAX_SIZE) { height *= MAX_SIZE / width; width = MAX_SIZE; } } 
                     else { if (height > MAX_SIZE) { width *= MAX_SIZE / height; height = MAX_SIZE; } }
@@ -1227,7 +1242,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
                     const ctx = canvas.getContext('2d');
                     ctx.drawImage(img, 0, 0, width, height);
 
-                    const dataUrlUltraLeve = canvas.toDataURL('image/webp', 0.6); 
+                    const dataUrlUltraLeve = canvas.toDataURL('image/webp', 0.9); 
                     const idFicha = slotsDeVisao[numSlot].idFicha;
                     if(idFicha) update(ref(database, 'fotos/' + idFicha), { base64: dataUrlUltraLeve });
                 }
@@ -1411,9 +1426,55 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
             atributos.forEach(attr => {
                 let total = Number(dados[attr]) || 0;
                 let mItem = modsItens[attr] || 0;
+                let mBuff = modsBuffs[attr] || 0;
+                let base = total - mItem - mBuff;
+                
+                let inputEl = document.getElementById(prefixo + '-' + attr);
+                if(inputEl && inputEl.parentElement) {
+                    let txt = 'Nativo: ' + base + '\nItens: ' + (mItem > 0 ? '+' + mItem : mItem) + '\nEfeitos: ' + (mBuff > 0 ? '+' + mBuff : mBuff);
+                    inputEl.parentElement.title = txt;
+                    inputEl.title = txt;
+                }
+            });
+        }
+
+        window.executarAtaque = async function(numSlot) {
+            const inputDano = document.getElementById('slot' + numSlot + '-ataque-dano');
+            const criticoCheckbox = document.getElementById('slot' + numSlot + '-ataque-critico');
+            let dano = Number(inputDano.value);
+            
+            if(!dano || dano <= 0) return alert("Insira um valor de dano válido!");
+            
+            if (criticoCheckbox && criticoCheckbox.checked) {
+                dano = dano * 2;
+            }
+
+            const checkboxes = document.querySelectorAll('.alvo-ataque-slot' + numSlot + ':checked');
+            if(checkboxes.length === 0) return alert("Selecione pelo menos um alvo para o ataque!");
+
+            const alvos = Array.from(checkboxes).map(cb => cb.value);
+
+            for(let alvo of alvos) {
+                const isHorda = alvo.startsWith('horda_');
+                const path = isHorda ? 'hordas/' + alvo : 'fichas/' + alvo;
+                
+                if (isHorda) {
+                    alert("Ataque em área contra hordas ainda não suportado diretamente aqui.");
+                    continue;
+                }
+
+                const refFicha = ref(database, path);
+                const snapshot = await get(refFicha);
+                let dados = snapshot.val() || {};
+                let hpAtual = Number(dados['hp-atual']) || 0;
+                
+                hpAtual -= dano;
+                if(hpAtual < 0) hpAtual = 0;
+                update(refFicha, { 'hp-atual': hpAtual });
             }
             
             inputDano.value = '';
+            if (criticoCheckbox) criticoCheckbox.checked = false;
             checkboxes.forEach(cb => cb.checked = false);
         };
 
@@ -1788,4 +1849,17 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
             });
             aliadosContainer.innerHTML = htmlAliados;
         };
+
+
+
+
+
+
+
+
+
+
+
+
+
 
