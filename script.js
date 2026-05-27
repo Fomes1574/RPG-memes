@@ -1,4 +1,4 @@
-﻿import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
         import { getDatabase, ref, onValue, update, get, remove } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
 
         const firebaseConfig = {
@@ -14,6 +14,25 @@
         const app = initializeApp(firebaseConfig);
         const database = getDatabase(app);
 
+        const usuarios = {
+            "dick":   { nome: "Dick", cargo: "Mestre", idFicha: null },
+            "lais":   { nome: "Lais", cargo: "Jogador", idFicha: "lais" },
+            "gomes":  { nome: "Gomes", cargo: "Jogador", idFicha: "gomes" },
+            "kamy":   { nome: "Kamy", cargo: "Jogador", idFicha: "kamy" },
+            "arthur": { nome: "Arthur", cargo: "Jogador", idFicha: "arthur" }
+        };
+
+        const RACES = {
+            "Humanos": { points: 3 },
+            "Elfo": { des: 2, int: 1, per: 1, sab: 1, con: -2, for: -1 },
+            "Anão": { con: 2, for: 1, des: -2 },
+            "Orc": { for: 2, con: 1, car: -2, sab: -1 },
+            "Gnomo": { int: 2, sab: 1, for: -2, con: -1 },
+            "Halfling": { des: 2, car: 1, int: -3, for: -1 },
+            "Khajiit": { des: 4, int: -3, car: -1 },
+            "Argoniano": { con: 3, des: 1, car: -4, per: -1 }
+        };
+
         const CLASSES = {
             "Guerreiro": { for: 2, con: 1 },
             "Paladino": { con: 2, car: 1 },
@@ -25,54 +44,6 @@
             "Curandeiro": { sab: 2, int: 1 },
             "Bardo": { car: 3 },
             "Monge": { con: 1, des: 1, sab: 1 }
-        };
-
-                const RACA_BONUS = {
-            "Elfo": { des: 2, int: 1, per: 1, sab: 1, con: -2, for: -1 },
-            "Anão": { con: 2, for: 1, des: -2 },
-            "Orc": { for: 2, con: 1, car: -2, sab: -1 },
-            "Gnomo": { int: 2, sab: 1, for: -2, con: -1 },
-            "Halfling": { des: 2, car: 1, int: -3, for: -1 },
-            "Khajiit": { des: 4, int: -3, car: -1 },
-            "Argoniano": { con: 3, des: 1, car: -4, per: -1 },
-            "Humanos": {}
-        };
-
-        window.getBaseAttribute = function(attr, raca, classe) {
-            let base = 0;
-            if (raca && RACA_BONUS[raca]) base += RACA_BONUS[raca][attr] || 0;
-            if (classe && CLASSES[classe]) base += CLASSES[classe][attr] || 0;
-            return base;
-        };
-
-        const NATIVE_SKILLS = {
-            "Humanos": [ { id: 'humano_adaptavel', nome: 'Adaptável', tipo: 'Ativa', efeito: 'Pode refazer 1 teste por sessão', img: 'Imagens/Habilidades%20Humano.png' } ],
-            "Elfo": [ { id: 'elfo_visao', nome: 'Visão Aguçada', tipo: 'Passiva', efeito: 'Enxerga no escuro', img: 'Imagens/Habilidades%20Elfo.png' }, { id: 'elfo_afinidade', nome: 'Afinidade Arcana', tipo: 'Passiva', efeito: 'Bônus em testes mágicos', img: 'Imagens/Habilidades%20Elfo.png' } ],
-            "Anão": [ { id: 'anao_resistencia', nome: 'Resistência Anã', tipo: 'Passiva', efeito: 'Resistência contra debuffs', img: 'Imagens/Habilidades%20Anão.png' } ],
-            "Orc": [ { id: 'orc_furia', nome: 'Fúria', tipo: 'Ativa', custo: '15 Mana', efeito: 'Dano extra por alguns turnos', img: 'Imagens/Habilidades%20Orc.png' } ],
-            "Gnomo": [ { id: 'gnomo_natureza', nome: 'Natureza mística', tipo: 'Passiva', efeito: 'Bônus em magia/poções', img: 'Imagens/Habilidades%20Gnomo.png' }, { id: 'gnomo_mente', nome: 'Mente Rápida', tipo: 'Passiva', efeito: 'Vantagem ilusões; +2 Percepção', img: 'Imagens/Habilidades%20Gnomo.png' } ],
-            "Halfling": [ { id: 'halfling_sorte', nome: 'Sorte Incrível', tipo: 'Ativa', custo: '10 Mana', efeito: 'Pode rerrolar 1 dado por sessão', img: 'Imagens/Habilidades%20Halfling.png' } ],
-            "Khajiit": [ { id: 'khajiit_sentidos', nome: 'Sentidos Felinos', tipo: 'Passiva', efeito: 'Bônus visão noturna; +2 Percepção', img: 'Imagens/Habilidades%20Khajiit.png' }, { id: 'khajiit_garras', nome: 'Garras Naturais', tipo: 'Passiva', efeito: 'Ataque desarmado causa dano extra', img: 'Imagens/Habilidades%20Khajiit.png' } ],
-            "Argoniano": [ { id: 'argoniano_regeneracao', nome: 'Regeneração', tipo: 'Passiva', efeito: 'Recupera pouca vida ao longo do tempo', img: 'Imagens/Habilidades%20Argoniano.png' }, { id: 'argoniano_anfibio', nome: 'Anfíbio', tipo: 'Passiva', efeito: "Respira na água; +2 Destreza n'água", img: 'Imagens/Habilidades%20Argoniano.png' }, { id: 'argoniano_resistencia', nome: 'Resistência Natural', tipo: 'Passiva', efeito: 'Bônus contra doenças e venenos', img: 'Imagens/Habilidades%20Argoniano.png' } ],
-            
-            "Guerreiro": [ { id: 'guerreiro_especialista', nome: 'Especialista em Combate', tipo: 'Passiva', efeito: 'Bônus com todas as armas', img: 'Imagens/Habilidades%20Guerreiro.png' }, { id: 'guerreiro_postura', nome: 'Postura Defensiva', tipo: 'Ativa', custo: '10 Mana', efeito: 'Reduz dano recebido', img: 'Imagens/Habilidades%20Guerreiro.png' } ],
-            "Paladino": [ { id: 'paladino_golpe', nome: 'Golpe Sagrado', tipo: 'Passiva', efeito: 'Dano extra contra malignos', img: 'Imagens/Habilidades%20Paladino.png' }, { id: 'paladino_cura', nome: 'Cura Divina', tipo: 'Ativa', custo: '15 Mana', efeito: 'Cura a si ou aliados', img: 'Imagens/Habilidades%20Paladino.png' } ],
-            "Druida": [ { id: 'druida_forma', nome: 'Forma Selvagem', tipo: 'Ativa', custo: '20 Mana', efeito: 'Transformação animal', img: 'Imagens/Habilidades%20Druida.png' }, { id: 'druida_vinculo', nome: 'Vínculo com a Natureza', tipo: 'Passiva', efeito: 'Lida com plantas e animais', img: 'Imagens/Habilidades%20Druida.png' } ],
-            "Bárbaro": [ { id: 'barbaro_furia', nome: 'Fúria', tipo: 'Ativa', custo: '15 Mana', efeito: 'Aumenta dano e resistência', img: 'Imagens/Habilidades%20Bárbaro.png' }, { id: 'barbaro_resistencia', nome: 'Resistência Brutal', tipo: 'Passiva', efeito: 'Reduz dano físico recebido', img: 'Imagens/Habilidades%20Bárbaro.png' } ],
-            "Arqueiro": [ { id: 'arqueiro_tiro', nome: 'Tiro Preciso', tipo: 'Passiva', efeito: 'Maior chance de acerto crítico', img: 'Imagens/Habilidades%20Arqueiro.png' }, { id: 'arqueiro_olho', nome: 'Olho de Águia', tipo: 'Passiva', efeito: 'Acerta o alvo com facilidade', img: 'Imagens/Habilidades%20Arqueiro.png' } ],
-            "Ladino": [ { id: 'ladino_ataque', nome: 'Ataque Furtivo', tipo: 'Passiva', efeito: 'Dano crítico em desprevenidos', img: 'Imagens/Habilidades%20Ladino.png' }, { id: 'ladino_evasao', nome: 'Evasão', tipo: 'Passiva', efeito: 'Maior chance de esquivar', img: 'Imagens/Habilidades%20Ladino.png' }, { id: 'ladino_especialista', nome: 'Especialista em Perícias', tipo: 'Passiva', efeito: 'Bônus em furtividade/lockpick', img: 'Imagens/Habilidades%20Ladino.png' } ],
-            "Mago": [ { id: 'mago_regeneracao', nome: 'Regeneração de mana', tipo: 'Passiva', efeito: 'Recupera mana mais rápido', img: 'Imagens/Habilidades%20Mago.png' } ],
-            "Curandeiro": [ { id: 'curandeiro_cura', nome: 'Cura Maior', tipo: 'Ativa', custo: '20 Mana', efeito: 'Recupera vida de aliados', img: 'Imagens/Habilidades%20Curandeiro.png' }, { id: 'curandeiro_protecao', nome: 'Proteção Espiritual', tipo: 'Passiva', efeito: 'Reduz dano do grupo', img: 'Imagens/Habilidades%20Curandeiro.png' }, { id: 'curandeiro_purificacao', nome: 'Purificação', tipo: 'Ativa', custo: '10 Mana', efeito: 'Remove debuffs', img: 'Imagens/Habilidades%20Curandeiro.png' } ],
-            "Bardo": [ { id: 'bardo_inspiracao', nome: 'Inspiração', tipo: 'Passiva', efeito: 'Concede bônus a aliados', img: 'Imagens/Habilidades%20Bardo.png' }, { id: 'bardo_cancao', nome: 'Canção Arcana', tipo: 'Passiva', efeito: 'Efeitos mágicos variados', img: 'Imagens/Habilidades%20Bardo.png' }, { id: 'bardo_manipulacao', nome: 'Manipulação Social', tipo: 'Passiva', efeito: 'Bônus em diálogo', img: 'Imagens/Habilidades%20Bardo.png' } ],
-            "Monge": [ { id: 'monge_golpes', nome: 'Golpes Rápidos', tipo: 'Passiva', efeito: 'Múltiplos ataques por turno', img: 'Imagens/Habilidades%20Monge.png' }, { id: 'monge_ki', nome: 'Ki Interior', tipo: 'Ativa', custo: '15 Mana', efeito: 'Aumenta a resistência', img: 'Imagens/Habilidades%20Monge.png' }, { id: 'monge_esquiva', nome: 'Esquiva Suprema', tipo: 'Passiva', efeito: 'Alta evasão', img: 'Imagens/Habilidades%20Monge.png' } ]
-        };
-
-        const usuarios = {
-            "dick":   { nome: "Dick", cargo: "Mestre", idFicha: null },
-            "lais":   { nome: "Lais", cargo: "Jogador", idFicha: "lais" },
-            "gomes":  { nome: "Gomes", cargo: "Jogador", idFicha: "gomes" },
-            "kamy":   { nome: "Kamy", cargo: "Jogador", idFicha: "kamy" },
-            "arthur": { nome: "Arthur", cargo: "Jogador", idFicha: "arthur" }
         };
 
         const playersList = ['lais', 'gomes', 'kamy', 'arthur'];
@@ -91,231 +62,214 @@
         // ==========================================
         // GERAÇÃO DE HTML DOS SLOTS
         // ==========================================
-        function gerarHtmlHeroi(numSlot) {
-            let optionsAttrs = `<option value="">Atributo</option><option value="hp-max">HP Máx</option><option value="mana-max">Mana Máx</option><option value="for">FOR</option><option value="des">DES</option><option value="con">CON</option><option value="int">INT</option><option value="sab">SAB</option><option value="car">CAR</option><option value="per">PER</option>`;
-            let eqHtml = '';
-            for(let i=1; i<=5; i++){
-                eqHtml += `
-                    <div class="equipamento-slot" id="slot${numSlot}-item${i}-container">
-                        <span class="slot-num">${i}</span>
-                        <input type="text" id="slot${numSlot}-item${i}-nome" class="editavel-slot${numSlot}" placeholder="Nome do Item">
-                        <div style="display: flex; align-items: center; gap: 5px;" class="esconder-jogador">
-                            <button onclick="mudarQtdItem(${numSlot}, ${i}, -1)" class="btn-qtd editavel-slot${numSlot}">-</button>
-                            <input type="number" id="slot${numSlot}-item${i}-qtd" class="editavel-slot${numSlot}" value="0" readonly style="width: 40px; text-align: center; background: rgba(0,0,0,0.8); border: 1px solid #3a2212; color: #fff;">
-                            <button onclick="mudarQtdItem(${numSlot}, ${i}, 1)" class="btn-qtd editavel-slot${numSlot}">+</button>
-                        </div>
-                    </div>`;
-            }
-
-            return `
-    <!-- LATERAL ESQUERDA (GRIMÓRIO E COMBATE) -->
-    <div id="sidebar-jogador-slot${numSlot}" class="sidebar-mestre sidebar-fechada sidebar-jogador-custom" style="position: absolute; left: 0; top: 0; bottom: 0; width: 300px; z-index: 100; transition: 0.3s; transform: translateX(-100%);">
-        <button id="btn-toggle-jogador-slot${numSlot}" class="btn-toggle-sidebar-jogador" onclick="toggleSidebarJogador(${numSlot})" style="position: absolute; right: -30px; top: 50%; width: 30px; height: 50px; background: #1a100c; border: 1px solid #8b6d43; color: #d4af37; cursor: pointer; display: flex; align-items: center; justify-content: center; border-radius: 0 8px 8px 0;">▶</button>
-        <div class="sidebar-header" style="text-align: center; font-size: 18px; margin-bottom: 20px; color:#d4af37; padding-top: 20px;">Ações e Combate</div>
-        
-        <div style="overflow-y:auto; padding:0 15px; flex:1; margin-bottom:20px;">
-            <!-- RADIO BUTTONS ATAQUE BASICO / MAGIA -->
-            <div style="display: flex; gap: 10px; margin-bottom: 15px; justify-content: center;">
-                <label style="color:#b89c72; font-size: 14px; cursor: pointer;">
-                    <input type="radio" name="modo-combate-slot${numSlot}" value="ataque" checked onchange="mudarModoCombate(${numSlot})"> Ataque Básico
-                </label>
-                <label style="color:#4a90e2; font-size: 14px; cursor: pointer;">
-                    <input type="radio" name="modo-combate-slot${numSlot}" value="magia" onchange="mudarModoCombate(${numSlot})"> Magia
-                </label>
-            </div>
-
-            <!-- MAGIA ENGATILHADA -->
-            <div id="magia-engatilhada-container-slot${numSlot}" style="display:none; margin-bottom: 15px; text-align:center;">
-                <div id="magia-engatilhada-custo-slot${numSlot}" style="color: #4a90e2; font-size: 12px; margin-bottom: 5px; font-weight: bold;">💧 0 Mana</div>
-                <button onclick="abrirGrimorio(${numSlot})" id="btn-magia-engatilhada-slot${numSlot}" style="width:100%; background: rgba(0,0,0,0.6); border: 1px solid #4a90e2; color: #fff; padding: 10px; font-size: 14px; border-radius: 4px; display: flex; align-items: center; justify-content: center; gap: 10px; cursor: pointer; transition: 0.2s;">
-                    Nenhuma Magia Selecionada <span>(Clique)</span>
-                </button>
-            </div>
-
-            <!-- AMEAÇA NA MESA -->
-            <div class="buff-container" style="border-color:#8c1c13; background:rgba(20, 5, 5, 0.6); margin-bottom: 10px; padding: 10px;">
-                <div style="margin-bottom: 10px;">
-                    <label style="color:#d95757; font-weight:bold; font-size: 12px;">AMEAÇA NA MESA:</label>
-                    <div id="alvos-combate-slot${numSlot}" style="display:flex; flex-direction:column; gap:5px; margin-top:5px; max-height:100px; overflow-y:auto;">
-                        <span id="nome-ameaca-ativa-slot${numSlot}" style="color:#fff; font-size: 12px;">Nenhuma ameaça na mesa...</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- ALIADOS NA MESA -->
-            <div class="buff-container" style="border-color:#27ae60; background:rgba(5, 20, 10, 0.6); margin-bottom: 15px; padding: 10px;">
-                <div style="margin-bottom: 10px;">
-                    <label style="color:#2ecc71; font-weight:bold; font-size: 12px;">ALIADOS NA MESA:</label>
-                    <div id="aliados-combate-slot${numSlot}" style="display:flex; flex-direction:column; gap:5px; margin-top:5px; max-height:100px; overflow-y:auto;">
-                        <span style="color:#fff; font-size: 12px;">Nenhum aliado na mesa...</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- INPUT TOTAL ROLADO E BOTÃO LANÇAR -->
-            <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 15px;">
-                <input type="number" id="slot${numSlot}-total-rolado" class="editavel-slot${numSlot}" placeholder="[   ]" style="text-align:center; font-size: 18px; padding: 10px; border-color:#d4af37; color:#fff; width: 60px; background: rgba(0,0,0,0.8); border-radius: 4px;">
-                <div style="color:#b89c72; font-size: 12px; flex: 1; text-align: left; line-height: 1.2;">Total Rolado<br>(Dado + Bônus)</div>
-            </div>
-
-            <div style="display:flex; gap:10px; margin-bottom:20px;">
-                <button onclick="jogadorExecutarAcao(${numSlot})" id="btn-acao-principal-slot${numSlot}" class="btn-acao-intenso neon-attack" style="width:100%; font-size: 16px; padding: 12px;">⚔️ ATACAR</button>
-            </div>
-
-            <!-- PASSIVAS EM VIGOR -->
-            <div style="border-top: 1px dashed #5c3a21; padding-top: 15px;">
-                <label style="color:#b89c72; font-size: 12px; text-transform: uppercase; display:block; text-align:center; margin-bottom:10px;">PASSIVAS EM VIGOR NO COMBATE</label>
-                <div id="passivas-ativas-slot${numSlot}" style="display: flex; gap: 15px; justify-content: center; flex-wrap: wrap;">
-                    <!-- Preenchido via JS -->
-                </div>
-            </div>
-        </div>
-    </div>
-    
-    <!-- GRIMÓRIO MODAL -->
-    <div id="modal-grimorio-slot${numSlot}" class="modal-grimorio-overlay" style="display: none;">
-        <div class="modal-grimorio-content">
-            <button class="btn-fechar-grimorio" onclick="fecharGrimorio(${numSlot})">✖</button>
-            <div class="grimorio-header">
-                <h2 style="color: #d4af37; text-align: center; margin-top: 0; font-family: Georgia, serif; border-bottom: 1px dashed #8b6d43; padding-bottom: 10px;">📜 GRIMÓRIO</h2>
-            </div>
-            <div class="grimorio-tabs">
-                <button id="btn-tab-ativas-slot${numSlot}" class="grimorio-tab active" onclick="mudarTabGrimorio(${numSlot}, 'ativas')">HABILIDADES ATIVAS</button>
-                <button id="btn-tab-passivas-slot${numSlot}" class="grimorio-tab" onclick="mudarTabGrimorio(${numSlot}, 'passivas')">HABILIDADES PASSIVAS</button>
-            </div>
-            <div class="grimorio-body-wrapper">
-                <div id="grimorio-grid-ativas-slot${numSlot}" class="grimorio-grid"></div>
-                <div id="grimorio-grid-passivas-slot${numSlot}" class="grimorio-grid" style="display:none;"></div>
-            </div>
-        </div>
-    </div>
-            <div class="container" id="container-slot${numSlot}-heroi">
-                <div class="header-grid">
-                    <div style="display: flex; flex-direction: column;">
-                        <img id="img-foto-slot${numSlot}" class="foto-personagem" src="" alt="Sem foto">
-                        <label class="btn-upload editavel-slot${numSlot}-label esconder-jogador">📁 Enviar do PC<input type="file" class="editavel-slot${numSlot}" accept="image/png, image/jpeg, image/webp" style="display:none;" onchange="processarUploadOtimizado(event, ${numSlot})"></label>
-                    </div>
-                    <div class="info-grid">
-                        <div style="display: flex; gap: 10px; grid-column: span 2; align-items: center; border-bottom: 1px dashed #3a2212; padding-bottom: 10px;">
-                            <div style="flex: 1;"><label>Nome do Personagem</label><input type="text" id="slot${numSlot}-nome" class="editavel-slot${numSlot}"></div>
-                            <div style="width: 130px; text-align: center;">
-                                <label style="color:#d4af37; font-size: 14px; letter-spacing: 2px;">NÍVEL</label>
-                                <div class="level-display" id="slot${numSlot}-level-display" data-current-level="1" style="font-size: 26px;">LV. <span id="slot${numSlot}-num-level">1</span></div>
-                            </div>
-                        </div>
-                        <div><label>Jogador</label><input type="text" id="slot${numSlot}-jogador" class="editavel-slot${numSlot}" readonly></div>
-                        <div>
-                            <label>Raça</label>
-                            <select id="slot${numSlot}-raca" class="editavel-slot${numSlot}">
-                                <option value="">Nenhuma</option>
-                                <option value="Humanos">Humanos</option>
-                                <option value="Elfo">Elfo</option>
-                                <option value="Anão">Anão</option>
-                                <option value="Orc">Orc</option>
-                                <option value="Gnomo">Gnomo</option>
-                                <option value="Halfiling">Halfiling</option>
-                                <option value="Khajiit">Khajiit</option>
-                                <option value="Argoniano">Argoniano</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label>Classe</label>
-                            <select id="slot${numSlot}-classe" class="editavel-slot${numSlot}">
-                                <option value="">Nenhuma</option>
-                                <option value="Guerreiro">Guerreiro</option>
-                                <option value="Paladino">Paladino</option>
-                                <option value="Druida">Druida</option>
-                                <option value="Bárbaro">Bárbaro</option>
-                                <option value="Arqueiro">Arqueiro</option>
-                                <option value="Ladino">Ladino</option>
-                                <option value="Mago">Mago</option>
-                                <option value="Curandeiro">Curandeiro</option>
-                                <option value="Bardo">Bardo</option>
-                                <option value="Monge">Monge</option>
-                            </select>
-                        </div>
-                        <div><label>Gênero</label><input type="text" id="slot${numSlot}-genero" class="editavel-slot${numSlot}"></div>
-                        <div style="grid-column: span 2; margin-top: 5px; text-align: center;">
-                            <button class="btn-mini-acao editavel-slot${numSlot}" onclick="abrirArvoreHabilidades('${numSlot}')" style="width: 100%; padding: 8px; font-size: 14px; border-color: #d4af37; color: #d4af37; box-shadow: 0 0 10px rgba(212, 175, 55, 0.2); background: rgba(0,0,0,0.5);">📜 ÁRVORE DE HABILIDADES</button>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="section-title">Essência Vital</div>
-                <div class="status-grid">
-                    <div id="caixa-hp-slot${numSlot}" class="caixa-status">
-                        <label style="color: #27ae60; text-align: center;">HP</label>
-                        <div class="fraction-input">
-                            <input type="number" id="slot${numSlot}-hp-atual" class="editavel-slot${numSlot}" style="color: #27ae60;"><span>/</span><span id="slot${numSlot}-hp-efetivo" style="color: #27ae60; font-size: 20px; font-weight: bold; width:40px; display:inline-block; text-align:left;">20</span>
-                        </div>
-                        <div class="mestre-only-flex" style="display: none;">
-                            <label style="margin:0; color:#9c8464;">Base Máx (Mestre):</label>
-                            <input type="number" id="slot${numSlot}-hp-max" class="editavel-slot${numSlot} mestre-unlocked" title="Vida Base Máxima (Padrão 20)" style="width:50px; padding:2px; font-size:11px;">
-                        </div>
-                        <div class="bar-bg"><div class="bar-fill hp-fill" id="bar-hp-slot${numSlot}" style="width: 100%;"></div></div>
-                    </div>
-                    
-                    <div class="caixa-status">
-                        <label style="color: #2980b9; text-align: center;">MANA</label>
-                        <div class="fraction-input">
-                            <input type="number" id="slot${numSlot}-mana-atual" class="editavel-slot${numSlot}" style="color: #2980b9;"><span>/</span><span id="slot${numSlot}-mana-efetivo" style="color: #2980b9; font-size: 20px; font-weight: bold; width:40px; display:inline-block; text-align:left;">20</span>
-                        </div>
-                        <div class="mestre-only-flex" style="display: none;">
-                            <label style="margin:0; color:#9c8464;">Base Máx (Mestre):</label>
-                            <input type="number" id="slot${numSlot}-mana-max" class="editavel-slot${numSlot} mestre-unlocked" title="Mana Base Máxima (Padrão 20)" style="width:50px; padding:2px; font-size:11px;">
-                        </div>
-                        <div class="bar-bg"><div class="bar-fill mana-fill" id="bar-mana-slot${numSlot}" style="width: 100%;"></div></div>
-                    </div>
-
-                    <div class="caixa-status" style="grid-column: span 2; padding: 0 10px;">
-                        <div style="display:flex; justify-content: space-between; align-items: flex-end; margin-bottom: 5px;">
-                            <label style="color: #ffd700; margin: 0; text-shadow: 1px 1px 2px black;">EXPERIÊNCIA</label>
-                            <div id="slot${numSlot}-exp-text" class="exp-text">0 / 100</div>
-                        </div>
-                        <div class="bar-bg" style="height: 14px; position: relative;">
-                            <div class="bar-fill exp-fill" id="bar-exp-slot${numSlot}" style="width: 0%;"></div>
-                        </div>
-                    </div>
-
-                    <div><label>Ação (AP)</label><input type="number" id="slot${numSlot}-ap" class="editavel-slot${numSlot}" style="color:#d99c57;"></div>
-                    <div><label>Moedas de Ouro</label><input type="number" id="slot${numSlot}-ouro" class="editavel-slot${numSlot}" style="color:#d4af37;"></div>
-                    <div style="grid-column: span 2;"><label>Condição Física</label><input type="text" id="slot${numSlot}-condicao" class="editavel-slot${numSlot}"></div>
-                </div>
-
-                <div class="section-title">Atributos <span id="slot${numSlot}-pts-livres" style="font-size: 14px; color: #ffd700; font-weight: bold;">( 0 / 10 )</span></div>
-                <div class="atributos-grid">
-                    <div class="attr-box"><label>FOR</label><input type="number" id="slot${numSlot}-for" class="editavel-slot${numSlot}"></div>
-                    <div class="attr-box"><label>DES</label><input type="number" id="slot${numSlot}-des" class="editavel-slot${numSlot}"></div>
-                    <div class="attr-box"><label>CON</label><input type="number" id="slot${numSlot}-con" class="editavel-slot${numSlot}"></div>
-                    <div class="attr-box"><label>INT</label><input type="number" id="slot${numSlot}-int" class="editavel-slot${numSlot}"></div>
-                    <div class="attr-box"><label>SAB</label><input type="number" id="slot${numSlot}-sab" class="editavel-slot${numSlot}"></div>
-                    <div class="attr-box"><label>CAR</label><input type="number" id="slot${numSlot}-car" class="editavel-slot${numSlot}"></div>
-                    <div class="attr-box"><label>PER</label><input type="number" id="slot${numSlot}-per" class="editavel-slot${numSlot}"></div>
-                </div>
-
-                <div class="section-title">Itens Equipados (Máx 5)</div>
-                <div class="equipamentos-container">${eqHtml}</div>
-
-                <div class="section-title">Buff e Debuff</div>
-                <div class="buff-container">
-                    <div class="buff-input-grid esconder-jogador">
-                        <input type="text" id="slot${numSlot}-novo-buff-nome" class="editavel-slot${numSlot}" placeholder="Nome">
-                        <input type="number" id="slot${numSlot}-novo-buff-hp" class="editavel-slot${numSlot}" placeholder="HP/T">
-                        <input type="number" id="slot${numSlot}-novo-buff-mana" class="editavel-slot${numSlot}" placeholder="MN/T">
-                        <select id="slot${numSlot}-novo-buff-attr" class="editavel-slot${numSlot}"><option value="">Nenhum</option><option value="for">FOR</option><option value="des">DES</option><option value="con">CON</option><option value="int">INT</option><option value="sab">SAB</option><option value="car">CAR</option><option value="per">PER</option></select>
-                        <input type="number" id="slot${numSlot}-novo-buff-mod" class="editavel-slot${numSlot}" placeholder="Mod">
-                        <input type="number" id="slot${numSlot}-novo-buff-turnos" class="editavel-slot${numSlot}" placeholder="Turnos">
-                        <button class="editavel-slot${numSlot}" onclick="adicionarEfeito(${numSlot})" style="padding: 5px;">ADD</button>
-                    </div>
-                    <div id="lista-efeitos-slot${numSlot}"></div>
-                </div>
-
-                <div class="section-title">Descrições</div>
-                <div class="info-grid">
-                    <div style="grid-column: span 2;"><textarea id="slot${numSlot}-extra" class="editavel-slot${numSlot}" rows="6" placeholder="Anotações livres..."></textarea></div>
+function gerarHtmlHeroi(numSlot) {
+    let optionsAttrs = `<option value="">Atributo</option><option value="hp-max">HP Máx</option><option value="mana-max">Mana Máx</option><option value="for">FOR</option><option value="des">DES</option><option value="con">CON</option><option value="int">INT</option><option value="sab">SAB</option><option value="car">CAR</option><option value="per">PER</option>`;
+    let eqHtml = '';
+    for(let i=1; i<=5; i++){
+        eqHtml += `
+            <div class="equipamento-slot">
+                <span class="slot-num">${i}</span>
+                <input type="text" id="slot${numSlot}-item${i}-nome" class="editavel-slot${numSlot}" placeholder="Nome do Item">
+                <div style="display: flex; align-items: center; gap: 5px;">
+                    <button onclick="mudarQtdItem(${numSlot}, ${i}, -1)" class="btn-qtd editavel-slot${numSlot}">-</button>
+                    <input type="number" id="slot${numSlot}-item${i}-qtd" class="editavel-slot${numSlot}" value="0" readonly style="width: 40px; text-align: center; background: rgba(0,0,0,0.8); border: 1px solid #3a2212; color: #fff;">
+                    <button onclick="mudarQtdItem(${numSlot}, ${i}, 1)" class="btn-qtd editavel-slot${numSlot}">+</button>
                 </div>
             </div>`;
-        }
+    }
+    let sidebarHtml = '';
+    if (numSlot === 1) {
+        sidebarHtml = `
+    <!-- LATERAL ESQUERDA (GRIMÓRIO E COMBATE) -->
+    <div id="sidebar-jogador-slot${numSlot}" class="sidebar-mestre sidebar-fechada sidebar-jogador-custom">
+        <button id="btn-toggle-jogador-slot${numSlot}" class="btn-toggle-sidebar-jogador" onclick="toggleSidebarJogador(${numSlot})">▶</button>
+        <div class="sidebar-header" style="text-align: center; font-size: 18px; margin-bottom: 20px; color:#d4af37;">Ações e Combate</div>
+        
+        <div style="overflow-y:auto; padding:0 15px; flex:1; margin-bottom:20px;">
+            <!-- TAB: COMBATE -->
+            <div class="buff-container" style="border-color:#8c1c13; background:rgba(20, 5, 5, 0.6);">
+                <div style="margin-bottom: 15px;">
+                    <label style="color:#d95757; font-weight:bold;">Ameaça na Mesa:</label>
+                    <span id="nome-ameaca-ativa-slot${numSlot}" style="color:#fff;">Nenhuma ameaça na mesa no momento...</span>
+                </div>
+                
+                <div style="margin-bottom: 10px;">
+                    <label style="color:#b89c72;">Alvos Disponíveis</label>
+                    <div id="alvos-combate-slot${numSlot}" style="background: rgba(0,0,0,0.5); border: 1px solid #5c1818; padding: 5px; border-radius: 4px; overflow-y:auto; max-height:130px; display:flex; flex-direction:column; gap:5px;">
+                        <!-- Populated via JS dynamically -->
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 15px;">
+                    <label style="color:#b89c72; margin:0;">Dano</label>
+                    <input type="number" id="slot${numSlot}-jogador-ataque-dano" class="editavel-slot${numSlot}" placeholder="Valor" style="text-align:center; font-size: 16px; padding: 5px; border-color:#d4af37; color:#fff; width: 70px;">
+                    
+                    <label class="checkbox-alvo" style="padding: 5px; border:1px dashed #d95757; border-radius:4px; flex: 1; display:flex; justify-content:center;"><input type="checkbox" id="slot${numSlot}-jogador-critico"> 🔥 Crítico</label>
+                </div>
+
+                <div style="display:flex; gap:10px; margin-top:15px;">
+                    <button onclick="jogadorAtacar(${numSlot}, false)" class="btn-acao-intenso" style="width:100%; font-size: 16px;">⚔️ ATACAR</button>
+                </div>
+            </div>
+        </div>
+    </div>`;
+    }
+
+    return sidebarHtml + `
+    <!-- FICHA PRINCIPAL -->
+    <div class="container" id="container-slot${numSlot}-heroi">
+        <div class="header-grid" style="align-items: flex-start;">
+            <!-- Coluna Esquerda: Foto -->
+            <div style="display: flex; flex-direction: column; align-items: center;">
+                <img id="img-foto-slot${numSlot}" class="foto-personagem" src="" alt="Sem foto">
+                <label class="btn-upload editavel-slot${numSlot}-label">📁 Enviar do PC<input type="file" class="editavel-slot${numSlot}" accept="image/*" style="display:none;" onchange="processarUploadOtimizado(event, ${numSlot})"></label>
+            </div>
+            
+            <!-- Coluna Direita: Info -->
+            <div class="info-grid">
+                <div style="display: flex; gap: 10px; grid-column: span 2; align-items: center; border-bottom: 1px dashed #3a2212; padding-bottom: 10px;">
+                    <div style="flex: 1;"><label>Nome do Personagem</label><input type="text" id="slot${numSlot}-nome" class="editavel-slot${numSlot}"></div>
+                    <div style="width: 130px; text-align: center;">
+                        <label style="color:#d4af37; font-size: 14px; letter-spacing: 2px;">NÍVEL</label>
+                        <div class="level-display" id="slot${numSlot}-level-display" data-current-level="1" style="font-size: 26px;">LV. <span id="slot${numSlot}-num-level">1</span></div>
+                    </div>
+                </div>
+                <div><label>Jogador</label><input type="text" id="slot${numSlot}-jogador" class="editavel-slot${numSlot}" readonly></div>
+                <div>
+                    <label>Raça</label>
+                    <select id="slot${numSlot}-raca" class="editavel-slot${numSlot}">
+                        <option value="">Nenhuma</option>
+                        <option value="Humanos">Humanos</option>
+                        <option value="Elfo">Elfo</option>
+                        <option value="Anão">Anão</option>
+                        <option value="Orc">Orc</option>
+                        <option value="Gnomo">Gnomo</option>
+                        <option value="Halfiling">Halfiling</option>
+                        <option value="Khajiit">Khajiit</option>
+                        <option value="Argoniano">Argoniano</option>
+                    </select>
+                </div>
+                <div>
+                    <label>Classe</label>
+                    <select id="slot${numSlot}-classe" class="editavel-slot${numSlot}">
+                        <option value="">Nenhuma</option>
+                        <option value="Guerreiro">Guerreiro</option>
+                        <option value="Paladino">Paladino</option>
+                        <option value="Druida">Druida</option>
+                        <option value="Bárbaro">Bárbaro</option>
+                        <option value="Arqueiro">Arqueiro</option>
+                        <option value="Ladino">Ladino</option>
+                        <option value="Mago">Mago</option>
+                        <option value="Curandeiro">Curandeiro</option>
+                        <option value="Bardo">Bardo</option>
+                        <option value="Monge">Monge</option>
+                    </select>
+                </div>
+                <div><label>Gênero</label><input type="text" id="slot${numSlot}-genero" class="editavel-slot${numSlot}"></div>
+                
+                <!-- Árvore logo abaixo das caixas de texto -->
+                <div style="grid-column: span 2; margin-top: 15px;">
+                    <button class="btn-mini-acao editavel-slot${numSlot}" onclick="abrirArvoreHabilidades('${numSlot}')" style="width: 100%; padding: 12px; font-size: 16px; border-color: #d4af37; color: #d4af37; box-shadow: 0 0 15px rgba(212, 175, 55, 0.3); background: rgba(0,0,0,0.6); letter-spacing: 1px;">📜 ÁRVORE DE HABILIDADES</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="section-title" style="margin-top: 15px; margin-bottom: 0;">Essência Vital</div>
+        <div class="status-grid" style="grid-template-columns: repeat(2, 1fr); gap: 15px; margin: 5px 0 20px 0; padding: 20px;">
+            <div id="caixa-hp-slot${numSlot}" class="caixa-status" style="grid-column: span 1;">
+                <label style="color: #27ae60; text-align: center;">HP</label>
+                <div class="fraction-input" style="justify-content: center;">
+                    <input type="number" id="slot${numSlot}-hp-atual" class="editavel-slot${numSlot}" style="color: #27ae60;"><span>/</span><span id="slot${numSlot}-hp-efetivo" style="color: #27ae60; font-size: 20px; font-weight: bold; width:40px; display:inline-block; text-align:left;">20</span>
+                </div>
+                <div class="mestre-only-flex" style="display: none; justify-content: center;">
+                    <label style="margin:0; color:#9c8464;">Base Máx (Mestre):</label>
+                    <input type="number" id="slot${numSlot}-hp-max" class="editavel-slot${numSlot} mestre-unlocked" title="Vida Base Máxima (Padrão 20)" style="width:50px; padding:2px; font-size:11px;">
+                </div>
+                <div class="bar-bg"><div class="bar-fill hp-fill" id="bar-hp-slot${numSlot}" style="width: 100%;"></div><div class="shield-fill" id="bar-shield-slot${numSlot}" style="width: 0%;"></div><div class="hp-text-overlay" id="txt-escudo-slot${numSlot}"></div></div>
+            </div>
+            <div class="caixa-status" style="grid-column: span 1;">
+                <label style="color: #2980b9; text-align: center;">MANA</label>
+                <div class="fraction-input" style="justify-content: center;">
+                    <input type="number" id="slot${numSlot}-mana-atual" class="editavel-slot${numSlot}" style="color: #2980b9;"><span>/</span><span id="slot${numSlot}-mana-efetivo" style="color: #2980b9; font-size: 20px; font-weight: bold; width:40px; display:inline-block; text-align:left;">20</span>
+                </div>
+                <div class="mestre-only-flex" style="display: none; justify-content: center;">
+                    <label style="margin:0; color:#9c8464;">Base Máx (Mestre):</label>
+                    <input type="number" id="slot${numSlot}-mana-max" class="editavel-slot${numSlot} mestre-unlocked" title="Mana Base Máxima (Padrão 20)" style="width:50px; padding:2px; font-size:11px;">
+                </div>
+                <div class="bar-bg"><div class="bar-fill mana-fill" id="bar-mana-slot${numSlot}" style="width: 100%;"></div></div>
+            </div>
+            <div class="caixa-status" style="padding: 10px; grid-column: span 2;">
+                <div style="display:flex; justify-content: space-between; align-items: flex-end; margin-bottom: 5px;">
+                    <label style="color: #ffd700; margin: 0; text-shadow: 1px 1px 2px black;">EXPERIÊNCIA</label>
+                    <div id="slot${numSlot}-exp-text" class="exp-text">0 / 100</div>
+                </div>
+                <div class="bar-bg" style="height: 14px; position: relative;">
+                    <div class="bar-fill exp-fill" id="bar-exp-slot${numSlot}" style="width: 0%;"></div>
+                </div>
+            </div>
+            <div style="text-align: center;"><label>Ação (AP)</label><input type="number" id="slot${numSlot}-ap" class="editavel-slot${numSlot}" style="color:#d99c57; width: 60%; margin: 0 auto; display: block; text-align: center;"></div>
+            <div style="text-align: center;"><label>Moedas de Ouro</label><input type="number" id="slot${numSlot}-ouro" class="editavel-slot${numSlot}" style="color:#d4af37; width: 60%; margin: 0 auto; display: block; text-align: center;"></div>
+            <div style="grid-column: span 2;"><label>Condição Física</label><input type="text" id="slot${numSlot}-condicao" class="editavel-slot${numSlot}"></div>
+        </div>
+
+        <div class="section-title">Atributos <span id="slot${numSlot}-pts-livres" style="font-size: 14px; color: #ffd700; font-weight: bold;">( 0 / 10 )</span></div>
+        <div class="atributos-grid">
+            <div class="attr-box"><label>FOR</label><input type="number" id="slot${numSlot}-for" class="editavel-slot${numSlot}"></div>
+            <div class="attr-box"><label>DES</label><input type="number" id="slot${numSlot}-des" class="editavel-slot${numSlot}"></div>
+            <div class="attr-box"><label>CON</label><input type="number" id="slot${numSlot}-con" class="editavel-slot${numSlot}"></div>
+            <div class="attr-box"><label>INT</label><input type="number" id="slot${numSlot}-int" class="editavel-slot${numSlot}"></div>
+            <div class="attr-box"><label>SAB</label><input type="number" id="slot${numSlot}-sab" class="editavel-slot${numSlot}"></div>
+            <div class="attr-box"><label>CAR</label><input type="number" id="slot${numSlot}-car" class="editavel-slot${numSlot}"></div>
+            <div class="attr-box"><label>PER</label><input type="number" id="slot${numSlot}-per" class="editavel-slot${numSlot}"></div>
+        </div>
+
+        <div class="section-title">Itens Equipados</div>
+        <div class="equipamentos-container">${eqHtml}</div>
+
+        <div class="section-title">Buff e Debuff</div>
+        <div class="buff-container">
+            <div class="buff-input-grid esconder-jogador">
+                <input type="text" id="slot${numSlot}-novo-buff-nome" class="editavel-slot${numSlot}" placeholder="Nome">
+                <input type="number" id="slot${numSlot}-novo-buff-hp" class="editavel-slot${numSlot}" placeholder="HP/T">
+                <input type="number" id="slot${numSlot}-novo-buff-mana" class="editavel-slot${numSlot}" placeholder="MN/T">
+                <select id="slot${numSlot}-novo-buff-attr" class="editavel-slot${numSlot}"><option value="">Nenhum</option><option value="for">FOR</option><option value="des">DES</option><option value="con">CON</option><option value="int">INT</option><option value="sab">SAB</option><option value="car">CAR</option><option value="per">PER</option></select>
+                <input type="number" id="slot${numSlot}-novo-buff-mod" class="editavel-slot${numSlot}" placeholder="Mod">
+                <input type="number" id="slot${numSlot}-novo-buff-turnos" class="editavel-slot${numSlot}" placeholder="Turnos">
+                <button class="editavel-slot${numSlot}" onclick="adicionarEfeito(${numSlot})" style="padding: 5px;">ADD</button>
+            </div>
+            <div id="lista-efeitos-slot${numSlot}"></div>
+        </div>
+
+        <div class="section-title">Descrições</div>
+        <div class="info-grid" style="grid-template-columns: 1fr;">
+            <textarea id="slot${numSlot}-extra" class="editavel-slot${numSlot}" rows="6" placeholder="Anotações livres..."></textarea>
+        </div>
+
+    </div>`;
+}
+
+window.toggleSidebarJogador = function(numSlot) {
+    const sidebar = document.getElementById(`sidebar-jogador-slot${numSlot}`);
+    const btn = document.getElementById(`btn-toggle-jogador-slot${numSlot}`);
+    if (sidebar.classList.contains('sidebar-fechada')) {
+        sidebar.classList.remove('sidebar-fechada');
+        btn.innerText = '<';
+    } else {
+        sidebar.classList.add('sidebar-fechada');
+        btn.innerText = '>';
+    }
+}
+window.toggleSidebarJogador = function(numSlot) {
+    const sidebar = document.getElementById(`sidebar-jogador-slot${numSlot}`);
+    const btn = document.getElementById(`btn-toggle-jogador-slot${numSlot}`);
+    if (sidebar.classList.contains('sidebar-fechada')) {
+        sidebar.classList.remove('sidebar-fechada');
+        btn.innerText = '<';
+    } else {
+        sidebar.classList.add('sidebar-fechada');
+        btn.innerText = '>';
+    }
+}
 
         function gerarHtmlMonstro(numSlot) {
             let alvosHtml = playersList.map(p => `<label class="checkbox-alvo"><input type="checkbox" value="${p}" class="alvo-ataque-slot${numSlot}"> ${p}</label>`).join('');
@@ -325,7 +279,7 @@
                 <div class="header-grid" style="grid-template-columns: 100px 1fr;">
                     <div style="display: flex; flex-direction: column;">
                         <img id="img-foto-monstro-slot${numSlot}" class="foto-personagem" src="" alt="Sem foto" style="width:100px; height:100px;">
-                        <label class="btn-upload editavel-slot${numSlot}-label esconder-jogador">📷 Upload<input type="file" class="editavel-slot${numSlot}" accept="image/png, image/jpeg, image/webp" style="display:none;" onchange="processarUploadOtimizado(event, ${numSlot})"></label>
+                        <label class="btn-upload editavel-slot${numSlot}-label esconder-jogador">📷 Upload<input type="file" class="editavel-slot${numSlot}" accept="image/*" style="display:none;" onchange="processarUploadOtimizado(event, ${numSlot})"></label>
                     </div>
                     <div style="display: flex; flex-direction: column; justify-content: center; position: relative;">
                         <div class="mestre-acoes-ficha esconder-jogador" style="position: absolute; top: -10px; right: 0; display: flex; gap: 5px;">
@@ -345,7 +299,7 @@
                         <div class="fraction-input">
                             <input type="number" id="slot${numSlot}-monstro-hp-atual" class="editavel-slot${numSlot}" style="color: #27ae60;"><span>/</span><input type="number" id="slot${numSlot}-monstro-hp-max" class="editavel-slot${numSlot} mestre-unlocked" style="color: #27ae60;">
                         </div>
-                        <div class="bar-bg"><div class="bar-fill hp-fill" id="bar-hp-monstro-slot${numSlot}" style="width: 100%;"></div></div>
+                        <div class="bar-bg"><div class="bar-fill hp-fill" id="bar-hp-monstro-slot${numSlot}" style="width: 100%;"></div><div class="shield-fill" id="bar-shield-monstro-slot${numSlot}" style="width: 0%;"></div><div class="hp-text-overlay" id="txt-escudo-monstro-slot${numSlot}"></div></div>
                     </div>
                     <div class="caixa-status">
                         <label style="color: #2980b9; text-align: center;">MANA</label>
@@ -358,23 +312,14 @@
                 </div>
 
                 <div class="section-title esconder-jogador">Ação Ofensiva (Mestre)</div>
-                <div class="buff-container esconder-jogador" style="display: flex; flex-direction: column;">
-                    <div style="width: 100%; margin-bottom: 15px;">
-                        <label style="color: #b89c72;">Alvos Disponíveis (Players e Monstros)</label>
-                        <div id="alvos-mestre-slot${numSlot}" style="display: flex; gap: 15px; flex-wrap: wrap; background: rgba(20, 10, 5, 0.8); padding: 15px; border: 1px solid #5c3a21; border-radius: 4px; min-height: 50px; align-items: center;">
-                            ${alvosHtml}
+                <div class="buff-container esconder-jogador">
+                    <div style="display: flex; gap: 15px; align-items: flex-end; flex-wrap: wrap;">
+                        <div><label style="color: #d95757;">Dano</label><input type="number" id="slot${numSlot}-ataque-dano" class="editavel-slot${numSlot}" placeholder="Valor" style="width: 80px; text-align: center; font-size: 16px; border-color: #8c1c13; color: #fff;"></div>
+                        <div style="flex: 1;">
+                            <label style="color: #b89c72;">Alvos (Players)</label>
+                            <div style="display: flex; gap: 15px; flex-wrap: wrap; background: rgba(20, 10, 5, 0.8); padding: 10px; border: 1px solid #5c3a21; border-radius: 4px; min-height: 20px; align-items: center;">${alvosHtml}</div>
                         </div>
-                    </div>
-                    <div style="display: flex; gap: 15px; align-items: center; width: 100%;">
-                        <div>
-                            <label style="color: #d95757;">Dano</label><br>
-                            <input type="number" id="slot${numSlot}-ataque-dano" class="editavel-slot${numSlot}" placeholder="Valor" style="width: 80px; text-align: center; font-size: 16px; border-color: #8c1c13; color: #fff;">
-                        </div>
-                        <div style="margin-left: 10px;">
-                            <label style="color: #ffd700;">Crítico?</label><br>
-                            <input type="checkbox" id="slot${numSlot}-ataque-critico" class="editavel-slot${numSlot}" style="transform: scale(1.5); margin-top: 10px; margin-left: 15px;">
-                        </div>
-                        <button class="editavel-slot${numSlot}" onclick="executarAtaque(${numSlot})" style="flex: 1; background: linear-gradient(to bottom, #8c1c13, #4a1111); border-color:#d95757; color: #fff; padding: 10px 20px; font-weight: bold; font-size: 16px; text-shadow: 1px 1px 2px black;">⚔️ ATACAR</button>
+                        <button class="editavel-slot${numSlot}" onclick="executarAtaque(${numSlot})" style="background: linear-gradient(to bottom, #8c1c13, #4a1111); border-color:#d95757; color: #fff; padding: 10px 20px; font-weight: bold; text-shadow: 1px 1px 2px black;">⚔️ ATACAR</button>
                     </div>
                 </div>
                 
@@ -459,20 +404,12 @@
         function iniciarOuvintesGerais() {
             onValue(ref(database, 'lista_monstros'), (snapshot) => {
                 monstrosNoBanco = snapshot.val() || {};
-                if(usuarioAtual.cargo === "Mestre") {
-                    atualizarSidebarMestre();
-                    if(typeof atualizarAlvosMestre === 'function') { atualizarAlvosMestre(1); atualizarAlvosMestre(2); }
-                }
-                if(typeof atualizarSidebarJogador === 'function') { atualizarSidebarJogador(1); atualizarSidebarJogador(2); }
+                if(usuarioAtual.cargo === "Mestre") atualizarSidebarMestre();
             });
 
             onValue(ref(database, 'hordas'), (snapshot) => {
                 hordasNoBanco = snapshot.val() || {};
-                if(usuarioAtual.cargo === "Mestre") {
-                    atualizarSidebarMestre();
-                    if(typeof atualizarAlvosMestre === 'function') { atualizarAlvosMestre(1); atualizarAlvosMestre(2); }
-                }
-                if(typeof atualizarSidebarJogador === 'function') { atualizarSidebarJogador(1); atualizarSidebarJogador(2); }
+                if(usuarioAtual.cargo === "Mestre") atualizarSidebarMestre();
             });
 
             onValue(ref(database, 'estado_combate/ativo'), (snapshot) => {
@@ -485,17 +422,75 @@
                     } else {
                         limparSlot(2);
                     }
+                    atualizarAlvosJogador(ameacaEmCombateGlobal);
                 }
                 if (usuarioAtual.cargo === "Mestre") {
                     // Sem ação no momento, estado combate livre para Mestre
                 }
-                if(typeof atualizarSidebarJogador === 'function') { atualizarSidebarJogador(1); atualizarSidebarJogador(2); }
             });
         }
 
         // ==========================================
         // GESTÃO DE MENUS E SLOTS DO MESTRE (NOVO)
         // ==========================================
+        let ouvinteAlvoJogador = null;
+        let refAlvoJogador = null;
+
+        function atualizarAlvosJogador(ameacaId) {
+            let nomeSpan = document.getElementById(`nome-ameaca-ativa-slot1`);
+            let alvosDiv = document.getElementById(`alvos-combate-slot1`);
+            if(!nomeSpan || !alvosDiv) return;
+
+            if(typeof ouvinteAlvoJogador === 'function') {
+                ouvinteAlvoJogador();
+            }
+
+            if(!ameacaId) {
+                nomeSpan.innerText = "Nenhuma ameaça na mesa no momento...";
+                alvosDiv.innerHTML = "";
+                return;
+            }
+
+            if(ameacaId.startsWith('horda_')) {
+                refAlvoJogador = ref(database, 'hordas/' + ameacaId);
+                ouvinteAlvoJogador = onValue(refAlvoJogador, (snap) => {
+                    if(snap.exists()) {
+                        let horda = snap.val();
+                        nomeSpan.innerText = horda.nome || 'Horda';
+                        let html = '';
+                        for(let mId in horda.membros) {
+                            let hpAtual = Number(horda.membros[mId]['hp-atual']) || 0;
+                            if(hpAtual > 0) {
+                                html += `<label class="checkbox-alvo" style="color:#d95757; font-size:12px; margin-bottom:2px;"><input type="checkbox" value="${ameacaId}_${mId}"> ${horda.nome || 'Horda'} #${mId} (HP: ${hpAtual})</label>`;
+                            }
+                        }
+                        alvosDiv.innerHTML = html;
+                    } else {
+                        nomeSpan.innerText = "Ameaça removida.";
+                        alvosDiv.innerHTML = "";
+                    }
+                });
+            } else {
+                refAlvoJogador = ref(database, 'fichas/' + ameacaId);
+                ouvinteAlvoJogador = onValue(refAlvoJogador, (snap) => {
+                    if(snap.exists()) {
+                        let m = snap.val();
+                        let hpAtual = Number(m['hp-atual']) || 0;
+                        if(hpAtual > 0) {
+                            nomeSpan.innerText = m.nome || 'Monstro';
+                            alvosDiv.innerHTML = `<label class="checkbox-alvo" style="color:#d95757; font-size:12px;"><input type="checkbox" value="${ameacaId}"> ${m.nome || 'Monstro'} (HP: ${hpAtual})</label>`;
+                        } else {
+                            nomeSpan.innerText = (m.nome || 'Monstro') + " (Derrotado)";
+                            alvosDiv.innerHTML = "";
+                        }
+                    } else {
+                        nomeSpan.innerText = "Ameaça removida.";
+                        alvosDiv.innerHTML = "";
+                    }
+                });
+            }
+        }
+
         function atualizarSidebarMestre() {
             if(usuarioAtual.cargo !== "Mestre") return;
             
@@ -546,7 +541,7 @@
         }
 
         window.mudarQtdItem = async function(numSlot, i, delta) {
-            if(usuarioAtual.cargo !== "Mestre" && usuarioAtual.nome !== slotsDeVisao[numSlot].idFicha) return;
+            if(usuarioAtual.cargo !== "Mestre" && usuarioAtual.idFicha !== slotsDeVisao[numSlot].idFicha) return;
             
             let inputId = `slot${numSlot}-item${i}-qtd`;
             let input = document.getElementById(inputId);
@@ -663,7 +658,7 @@
                                     <input type="number" id="horda-${mId}-hp-atual" class="horda-compact-input editavel-slot${numSlot}" value="${hpAtual}" style="width:50px; color:#27ae60; padding:2px; font-size: 12px; text-align: center;"> / 
                                     <input type="number" id="horda-${mId}-hp-max" class="horda-compact-input mestre-unlocked" value="${hpMax}" style="width:50px; color:#27ae60; padding:2px; font-size: 12px; text-align: center;" disabled>
                                 </div>
-                                <div class="bar-bg" style="height: 6px; margin-top: 4px;"><div class="bar-fill hp-fill" id="bar-hp-horda-${mId}" style="width: ${percHp}%;"></div></div>
+                                <div class="bar-bg" style="height: 6px; margin-top: 4px;"><div class="bar-fill hp-fill" id="bar-hp-horda-${mId}" style="width: ${percHp}%;"></div><div class="shield-fill" id="bar-shield-horda-${mId}" style="width: 0%;"></div><div class="hp-text-overlay" id="txt-escudo-horda-${mId}" style="font-size: 9px;"></div></div>
                             </div>
                             
                             <div id="caixa-mana-horda-${mId}" class="caixa-status" style="padding: 2px; flex: 1;">
@@ -986,6 +981,16 @@
                             if(barHp) barHp.style.width = percHp + '%';
                             if(barMana) barMana.style.width = percMana + '%';
                             
+                            let escudo = Number(mData['escudo']) || 0;
+                            let barShield = document.getElementById(`bar-shield-horda-${mId}`);
+                            let txtEscudo = document.getElementById(`txt-escudo-horda-${mId}`);
+                            if(barShield) {
+                                let percEscudo = (escudo / hpMax) * 100;
+                                if(percEscudo > 100) percEscudo = 100;
+                                barShield.style.width = escudo > 0 ? percEscudo + '%' : '0%';
+                            }
+                            if(txtEscudo) txtEscudo.innerText = escudo > 0 ? `+${escudo}` : '';
+                            
                             let caixaHp = document.getElementById(`caixa-hp-horda-${mId}`);
                             if(caixaHp) {
                                 if(percHp <= 10 && hpMax > 0 && hpAtual > 0) caixaHp.classList.add('alerta-morte');
@@ -1000,7 +1005,7 @@
                 }
 
                 for(let chave in dados) {
-                    if(chave === 'efeitos') continue;
+                    if(chave === 'efeitos' || chave === 'grimorio') continue;
                     let idHTML = formatarIdElemento(numSlot, tipo, chave);
                     let el = document.getElementById(idHTML);
                     if(el && document.activeElement !== el) el.value = dados[chave];
@@ -1042,7 +1047,7 @@
                     let expText = document.getElementById(`slot${numSlot}-exp-text`);
                     expText.innerText = `${levelData.currentExp} / ${levelData.requiredForNext}`;
                     let glow = percExp / 6;
-                                        expText.style.textShadow = `0 0 ${glow}px rgba(255, 215, 0, 0.9), 1px 1px 2px black`;
+                    expText.style.textShadow = `0 0 ${glow}px rgba(255, 215, 0, 0.9), 1px 1px 2px black`;
                     
                     // Lógica para Ouro Derretido que cresce com XP
                     const elBarra = document.getElementById(`bar-exp-slot${numSlot}`);
@@ -1055,29 +1060,62 @@
                         elBarra.style.setProperty('--brilho-xp-spread', spread + 'px');
                     }
 
-                    let baseMax = (dados.raca === 'Humanos') ? 13 : 10;
-                    let maxAtributos = baseMax + (levelData.level - 1);
-                    let ptsAtuais = 0;
+                    let maxAtributos = 10 + (levelData.level - 1);
+                    
+                    let baseBonus = { for:0, des:0, con:0, int:0, sab:0, car:0, per:0 };
+                    let raca = dados.raca || '';
+                    let vocacao = dados.classe || '';
+                    
+                    if(typeof RACES !== 'undefined' && RACES[raca]) {
+                        if(RACES[raca].points) maxAtributos += RACES[raca].points;
+                        else {
+                            for(let a in baseBonus) if(RACES[raca][a]) baseBonus[a] += RACES[raca][a];
+                        }
+                    }
+                    if(typeof CLASSES !== 'undefined' && CLASSES[vocacao]) {
+                        for(let a in baseBonus) if(CLASSES[vocacao][a]) baseBonus[a] += CLASSES[vocacao][a];
+                    }
+
+                    let ptsDistribuidos = 0;
                     ['for', 'des', 'con', 'int', 'sab', 'car', 'per'].forEach(a => {
                         let val = Number(dados[a]) || 0;
-                        let minVal = getBaseAttribute(a, dados.raca, dados.classe);
-                        if (val > minVal) ptsAtuais += (val - minVal);
+                        let minVal = baseBonus[a];
+                        
+                        // Restringir a caixa de texto
+                        let inputEl = document.getElementById(`slot${numSlot}-${a}`);
+                        if(inputEl) {
+                            inputEl.min = minVal;
+                            // Se o valor estiver menor que o mínimo nativo, forçamos o valor mínimo visualmente
+                            // O banco de dados pode ter ficado atrasado se ele apenas mudou a raça.
+                            if(val < minVal) {
+                                inputEl.value = minVal;
+                                val = minVal;
+                                update(refFicha, { [a]: minVal });
+                            }
+                        }
+                        
+                        ptsDistribuidos += Math.max(0, val - minVal);
                     });
-                    let ptsLivres = maxAtributos - ptsAtuais;
+                    
+                    let ptsLivres = maxAtributos - ptsDistribuidos;
 
                     let spanPts = document.getElementById(`slot${numSlot}-pts-livres`);
                     if(spanPts) {
                         spanPts.innerText = `( ${ptsLivres} / ${maxAtributos} )`;
                         spanPts.style.color = ptsLivres > 0 ? '#27ae60' : (ptsLivres === 0 ? '#b89c72' : '#d95757');
                     }
-
-                                        let elSlot5 = document.getElementById(`slot${numSlot}-item5-container`);
-                    if(elSlot5) {
-                        elSlot5.style.display = (dados.raca === 'Gnomo') ? 'none' : 'flex';
+                    
+                    // Lógica do Gnomo para Inventário
+                    let slot5El = document.getElementById(`slot${numSlot}-item5-nome`);
+                    if(slot5El) {
+                        let slotDiv = slot5El.closest('.equipamento-slot');
+                        if(slotDiv) {
+                            slotDiv.style.display = (raca === 'Gnomo') ? 'none' : '';
+                        }
                     }
 
                     for(let i=1; i<=5; i++) {
-                        let isEquipado = dados[item${i}-equipado] || false;
+                        let isEquipado = dados[`item${i}-equipado`] || false;
                         let btn = document.getElementById(`slot${numSlot}-btn-equip-${i}`);
                         if(!btn) continue;
                         if(isEquipado) {
@@ -1094,9 +1132,9 @@
                 }
 
                 renderizarEfeitosNoSlot(numSlot, tipo, dados.efeitos || []);
+                if(tipo === 'heroi') renderizarGrimorioNoSlot(numSlot, dados.grimorio || {});
                 atualizarBarrasEAlertaNoSlot(numSlot, tipo);
                 atualizarTooltipsAtributosNoSlot(numSlot, tipo, dados);
-                if (tipo === 'heroi') renderizarGrimorioNoSlot(numSlot, dados.grimorio || {});
             });
 
             slotsDeVisao[numSlot].ouvinte = novoOuvinte;
@@ -1117,34 +1155,59 @@
 
                         let novoValor = e.target.value;
 
-                                                if (tipo === 'heroi' && ['for', 'des', 'con', 'int', 'sab', 'car', 'per'].includes(chaveDoBanco)) {
-                            novoValor = Number(novoValor);
-                            let dadosAntigos = slotsDeVisao[numSlot].dados || {};
-                            let raca = dadosAntigos['raca'];
-                            let classe = dadosAntigos['classe'];
+                        let dadosAntigos = slotsDeVisao[numSlot].dados || {};
+                        
+                        let baseAtual = {for:0, des:0, con:0, int:0, sab:0, car:0, per:0};
+                        let oldRaca = dadosAntigos.raca || '';
+                        let oldClasse = dadosAntigos.classe || '';
+                        if(typeof RACES !== 'undefined' && RACES[oldRaca] && !RACES[oldRaca].points) {
+                            for(let a in baseAtual) if(RACES[oldRaca][a]) baseAtual[a] += RACES[oldRaca][a];
+                        }
+                        if(typeof CLASSES !== 'undefined' && CLASSES[oldClasse]) {
+                            for(let a in baseAtual) if(CLASSES[oldClasse][a]) baseAtual[a] += CLASSES[oldClasse][a];
+                        }
+
+                        if (tipo === 'heroi' && (chaveDoBanco === 'raca' || chaveDoBanco === 'classe')) {
+                            let newRaca = chaveDoBanco === 'raca' ? novoValor : oldRaca;
+                            let newClasse = chaveDoBanco === 'classe' ? novoValor : oldClasse;
                             
-                            let minPermitido = getBaseAttribute(chaveDoBanco, raca, classe);
-                            if (novoValor < minPermitido) novoValor = minPermitido;
-                            if (novoValor > 20) novoValor = 20;
-
-                            let expT = Number(dadosAntigos['expTotal']) || 0;
-                            let lvl = getLevelData(expT).level;
-                            let baseMax = (raca === 'Humanos') ? 13 : 10;
-                            let maxA = baseMax + (lvl - 1);
-
-                            let sumOthers = 0;
-                            ['for', 'des', 'con', 'int', 'sab', 'car', 'per'].forEach(a => {
-                                if(a !== chaveDoBanco) {
-                                    let v = Number(dadosAntigos[a]) || 0;
-                                    let min = getBaseAttribute(a, raca, classe);
-                                    if(v > min) sumOthers += (v - min);
+                            let newBase = {for:0, des:0, con:0, int:0, sab:0, car:0, per:0};
+                            if(typeof RACES !== 'undefined' && RACES[newRaca] && !RACES[newRaca].points) {
+                                for(let a in newBase) if(RACES[newRaca][a]) newBase[a] += RACES[newRaca][a];
+                            }
+                            if(typeof CLASSES !== 'undefined' && CLASSES[newClasse]) {
+                                for(let a in newBase) if(CLASSES[newClasse][a]) newBase[a] += CLASSES[newClasse][a];
+                            }
+                            
+                            let updates = { [chaveDoBanco]: novoValor };
+                            ['for', 'des', 'con', 'int', 'sab', 'car', 'per'].forEach(attr => {
+                                let delta = newBase[attr] - baseAtual[attr];
+                                if(delta !== 0) {
+                                    updates[attr] = (Number(dadosAntigos[attr]) || 0) + delta;
                                 }
                             });
-                            
-                            let maxPermitidoParaEste = minPermitido + (maxA - sumOthers);
+                            update(ref(database, 'fichas/' + idFicha), updates);
+                            return; // Terminamos
+                        }
 
-                            if (novoValor > maxPermitidoParaEste && usuarioAtual.cargo !== "Mestre") {
-                                e.target.value = dadosAntigos[chaveDoBanco] || minPermitido; 
+                        if (tipo === 'heroi' && ['for', 'des', 'con', 'int', 'sab', 'car', 'per'].includes(chaveDoBanco)) {
+                            novoValor = Number(novoValor);
+                            let minG = baseAtual[chaveDoBanco];
+                            if (novoValor < minG) novoValor = minG;
+                            
+                            let expT = Number(dadosAntigos['expTotal']) || 0;
+                            let lvl = getLevelData(expT).level;
+                            let maxA = 10 + (lvl - 1);
+                            if(typeof RACES !== 'undefined' && RACES[oldRaca] && RACES[oldRaca].points) maxA += RACES[oldRaca].points;
+
+                            let ptsGastos = 0;
+                            ['for', 'des', 'con', 'int', 'sab', 'car', 'per'].forEach(a => {
+                                let valDaVez = (a === chaveDoBanco) ? novoValor : (Number(dadosAntigos[a]) || 0);
+                                ptsGastos += Math.max(0, valDaVez - baseAtual[a]);
+                            });
+
+                            if (ptsGastos > maxA && usuarioAtual.cargo !== "Mestre") {
+                                e.target.value = dadosAntigos[chaveDoBanco] || 0; 
                                 return; 
                             }
                             e.target.value = novoValor; 
@@ -1161,34 +1224,6 @@
                                 if (novoValor > maxVal) novoValor = maxVal;
                                 e.target.value = novoValor;
                             }
-                        }
-                        
-                        if (tipo === 'heroi' && (chaveDoBanco === 'raca' || chaveDoBanco === 'classe')) {
-                            let dadosAntigos = slotsDeVisao[numSlot].dados || {};
-                            let oldRaca = dadosAntigos.raca || '';
-                            let oldClasse = dadosAntigos.classe || '';
-                            let newRaca = chaveDoBanco === 'raca' ? novoValor : oldRaca;
-                            let newClasse = chaveDoBanco === 'classe' ? novoValor : oldClasse;
-
-                                                        let updates = { [chaveDoBanco]: novoValor };
-                                                        ['for', 'des', 'con', 'int', 'sab', 'car', 'per'].forEach(attr => {
-                                let baseAtual = getBaseAttribute(attr, oldRaca, oldClasse);
-                                let newBase = getBaseAttribute(attr, newRaca, newClasse);
-                                let delta = newBase - baseAtual;
-                                if(delta !== 0) {
-                                    updates[attr] = (Number(dadosAntigos[attr]) || 0) + delta;
-                                }
-                            });
-
-                            let newGrimorio = {};
-                            if(typeof NATIVE_SKILLS !== 'undefined') {
-                                if(NATIVE_SKILLS[newRaca]) NATIVE_SKILLS[newRaca].forEach(h => newGrimorio[h.id] = h);
-                                if(NATIVE_SKILLS[newClasse]) NATIVE_SKILLS[newClasse].forEach(h => newGrimorio[h.id] = h);
-                            }
-                            updates['grimorio'] = newGrimorio;
-
-                            update(ref(database, 'fichas/' + idFicha), updates);
-                            return;
                         }
                         
                         update(ref(database, 'fichas/' + idFicha), { [chaveDoBanco]: novoValor });
@@ -1223,6 +1258,21 @@
             if (barHpElement) barHpElement.style.width = percHp + '%';
             if (barManaElement) barManaElement.style.width = percMana + '%';
 
+            let escudo = Number(slotsDeVisao[numSlot].dados?.escudo) || 0;
+            let barIdShield = tipo === 'heroi' ? `bar-shield-slot${numSlot}` : `bar-shield-monstro-slot${numSlot}`;
+            let txtIdShield = tipo === 'heroi' ? `txt-escudo-slot${numSlot}` : `txt-escudo-monstro-slot${numSlot}`;
+            let barShieldElement = document.getElementById(barIdShield);
+            let txtShieldElement = document.getElementById(txtIdShield);
+
+            if(barShieldElement) {
+                let percEscudo = (escudo / hpMax) * 100;
+                if(percEscudo > 100) percEscudo = 100;
+                barShieldElement.style.width = escudo > 0 ? percEscudo + '%' : '0%';
+            }
+            if(txtShieldElement) {
+                txtShieldElement.innerText = escudo > 0 ? `+${escudo}` : '';
+            }
+
             const caixaHp = document.getElementById(caixaHpId);
             if(caixaHp) {
                 if (percHp <= 10 && hpMax > 0 && hpAtual > 0) {
@@ -1244,7 +1294,7 @@
                 const img = new Image();
                 img.onload = function() {
                     const canvas = document.createElement('canvas');
-                    const MAX_SIZE = 300; 
+                    const MAX_SIZE = 400; 
                     let width = img.width; let height = img.height;
                     if (width > height) { if (width > MAX_SIZE) { height *= MAX_SIZE / width; width = MAX_SIZE; } } 
                     else { if (height > MAX_SIZE) { width *= MAX_SIZE / height; height = MAX_SIZE; } }
@@ -1252,8 +1302,12 @@
                     const ctx = canvas.getContext('2d');
                     ctx.drawImage(img, 0, 0, width, height);
 
-                    const dataUrlUltraLeve = canvas.toDataURL('image/webp', 0.9); 
-                    const idFicha = slotsDeVisao[numSlot].idFicha;
+                    const dataUrlUltraLeve = canvas.toDataURL('image/webp', 0.85); 
+                    const idFicha = slotsDeVisao[numSlot]?.idFicha;
+                    const tipo = slotsDeVisao[numSlot]?.tipo || 'heroi';
+                    const imgEl = tipo === 'heroi' ? document.getElementById(`img-foto-slot${numSlot}`) : document.getElementById(`img-foto-monstro-slot${numSlot}`);
+                    if (imgEl) imgEl.src = dataUrlUltraLeve;
+                    
                     if(idFicha) update(ref(database, 'fotos/' + idFicha), { base64: dataUrlUltraLeve });
                 }
                 img.src = e.target.result;
@@ -1416,6 +1470,18 @@
             const atributos = ['for', 'des', 'con', 'int', 'sab', 'car', 'per'];
             const prefixo = tipo === 'heroi' ? `slot${numSlot}` : `slot${numSlot}-monstro`;
             
+            let baseBonus = {for:0, des:0, con:0, int:0, sab:0, car:0, per:0};
+            if(tipo === 'heroi') {
+                let raca = dados.raca || '';
+                let vocacao = dados.classe || '';
+                if(typeof RACES !== 'undefined' && RACES[raca] && !RACES[raca].points) {
+                    for(let a in baseBonus) if(RACES[raca][a]) baseBonus[a] += RACES[raca][a];
+                }
+                if(typeof CLASSES !== 'undefined' && CLASSES[vocacao]) {
+                    for(let a in baseBonus) if(CLASSES[vocacao][a]) baseBonus[a] += CLASSES[vocacao][a];
+                }
+            }
+
             let modsItens = {for:0, des:0, con:0, int:0, sab:0, car:0, per:0};
             if(tipo === 'heroi') {
                 for(let i=1; i<=5; i++) {
@@ -1437,11 +1503,13 @@
                 let total = Number(dados[attr]) || 0;
                 let mItem = modsItens[attr] || 0;
                 let mBuff = modsBuffs[attr] || 0;
-                let base = total - mItem - mBuff;
+                let mNat = baseBonus[attr] || 0;
+                let baseTotal = total - mItem - mBuff;
+                let ptsDistribuidos = baseTotal - mNat;
                 
-                let inputEl = document.getElementById(prefixo + '-' + attr);
+                let inputEl = document.getElementById(`${prefixo}-${attr}`);
                 if(inputEl && inputEl.parentElement) {
-                    let txt = 'Nativo: ' + base + '\nItens: ' + (mItem > 0 ? '+' + mItem : mItem) + '\nEfeitos: ' + (mBuff > 0 ? '+' + mBuff : mBuff);
+                    let txt = `Distrib.: ${ptsDistribuidos > 0 ? '+'+ptsDistribuidos : ptsDistribuidos}\nNativo (Raça/Classe): ${mNat > 0 ? '+'+mNat : mNat}\nItens: ${mItem > 0 ? '+'+mItem : mItem}\nEfeitos: ${mBuff > 0 ? '+'+mBuff : mBuff}`;
                     inputEl.parentElement.title = txt;
                     inputEl.title = txt;
                 }
@@ -1449,42 +1517,43 @@
         }
 
         window.executarAtaque = async function(numSlot) {
-            const inputDano = document.getElementById('slot' + numSlot + '-ataque-dano');
-            const criticoCheckbox = document.getElementById('slot' + numSlot + '-ataque-critico');
-            let dano = Number(inputDano.value);
+            const inputDano = document.getElementById(`slot${numSlot}-ataque-dano`);
+            const dano = Number(inputDano.value);
             
             if(!dano || dano <= 0) return alert("Insira um valor de dano válido!");
-            
-            if (criticoCheckbox && criticoCheckbox.checked) {
-                dano = dano * 2;
-            }
 
-            const checkboxes = document.querySelectorAll('.alvo-ataque-slot' + numSlot + ':checked');
+            const checkboxes = document.querySelectorAll(`.alvo-ataque-slot${numSlot}:checked`);
             if(checkboxes.length === 0) return alert("Selecione pelo menos um alvo para o ataque!");
 
             const alvos = Array.from(checkboxes).map(cb => cb.value);
 
             for(let alvo of alvos) {
-                const isHorda = alvo.startsWith('horda_');
-                const path = isHorda ? 'hordas/' + alvo : 'fichas/' + alvo;
-                
-                if (isHorda) {
-                    alert("Ataque em área contra hordas ainda não suportado diretamente aqui.");
-                    continue;
-                }
-
-                const refFicha = ref(database, path);
+                const refFicha = ref(database, 'fichas/' + alvo);
                 const snapshot = await get(refFicha);
                 let dados = snapshot.val() || {};
                 let hpAtual = Number(dados['hp-atual']) || 0;
+                let escudo = Number(dados['escudo']) || 0;
                 
-                hpAtual -= dano;
-                if(hpAtual < 0) hpAtual = 0;
-                update(refFicha, { 'hp-atual': hpAtual });
+                let danoRestante = dano;
+                if(escudo > 0) {
+                    if(escudo >= danoRestante) {
+                        escudo -= danoRestante;
+                        danoRestante = 0;
+                    } else {
+                        danoRestante -= escudo;
+                        escudo = 0;
+                    }
+                    update(refFicha, { 'escudo': escudo });
+                }
+                
+                if(danoRestante > 0) {
+                    hpAtual -= danoRestante;
+                    if(hpAtual < 0) hpAtual = 0;
+                    update(refFicha, { 'hp-atual': hpAtual });
+                }
             }
             
             inputDano.value = '';
-            if (criticoCheckbox) criticoCheckbox.checked = false;
             checkboxes.forEach(cb => cb.checked = false);
         };
 
@@ -1633,250 +1702,171 @@
             }
         }
 
+        window.renderizarGrimorioNoSlot = function(numSlot, grimorio) {
+            const divAtivas = document.getElementById(`lista-habilidades-ativas-slot${numSlot}`);
+            const divPassivas = document.getElementById(`lista-habilidades-passivas-slot${numSlot}`);
+            if(!divAtivas || !divPassivas) return;
+            
+            divAtivas.innerHTML = '';
+            divPassivas.innerHTML = '';
+            
+            const temPermissao = (usuarioAtual.cargo === "Mestre") || (usuarioAtual.idFicha === slotsDeVisao[numSlot].idFicha);
+            
+            for(let habId in grimorio) {
+                let hab = grimorio[habId];
+                let corBorda = '#d4af37';
+                let icon = '✨';
+                if(hab.tipo === 'ativa') { corBorda = '#d95757'; icon = '⚔️'; }
+                else if(hab.tipo === 'cura') { corBorda = '#27ae60'; icon = '🌿'; }
+                else if(hab.tipo === 'passiva') { corBorda = '#b89c72'; icon = '🛡️'; }
+                
+                let btnHtml = '';
+                if(hab.tipo !== 'passiva') {
+                    btnHtml = `<button onclick="usarHabilidade(${numSlot}, '${habId}')" style="background: rgba(0,0,0,0.5); border: 1px solid ${corBorda}; color: ${corBorda}; padding: 3px 8px; font-weight: bold; cursor: pointer;">${icon} USAR</button>`;
+                }
+                
+                let delHtml = temPermissao ? `<button onclick="deletarHabilidade(${numSlot}, '${habId}')" style="background: none; border: none; color: #8c1c13; cursor: pointer; font-size: 14px; margin-left: 10px;" title="Apagar Habilidade">🗑️</button>` : '';
+                
+                let div = document.createElement('div');
+                div.style.cssText = `border: 1px solid ${corBorda}; padding: 10px; margin-bottom: 10px; background: rgba(10, 5, 2, 0.8); border-radius: 4px;`;
+                div.innerHTML = `
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 5px;">
+                        <div>
+                            <strong style="color: ${corBorda}; font-size: 16px;">${hab.nome}</strong>
+                            <div style="font-size: 11px; color: #b89c72;">Custo: <span style="color:#d99c57;">${hab.ap} AP</span> | <span style="color:#2980b9;">${hab.mana} Mana</span></div>
+                        </div>
+                        <div style="display: flex; align-items: center;">
+                            ${btnHtml}
+                            ${delHtml}
+                        </div>
+                    </div>
+                    <div style="font-size: 12px; color: #dcd0ba; margin-top: 5px; font-style: italic;">
+                        ${hab.desc}
+                    </div>
+                `;
+                
+                if(hab.tipo === 'passiva') divPassivas.appendChild(div);
+                else divAtivas.appendChild(div);
+            }
+        };
+
         window.atualizarHudMestre = function(jogadorId, campo, valor) {
             if(valor === "") return;
             update(ref(database, 'fichas/' + jogadorId), { [campo]: Number(valor) });
         }
 
-
-        window.renderizarGrimorioNoSlot = function(numSlot, grimorio) {
-            const gridAtivas = document.getElementById(`grimorio-grid-ativas-slot${numSlot}`);
-            const gridPassivas = document.getElementById(`grimorio-grid-passivas-slot${numSlot}`);
-            const passivasContainer = document.getElementById(`passivas-ativas-slot${numSlot}`);
+        window.jogadorAtacar = async function(numSlot, area) {
+            const inputDano = document.getElementById(`slot${numSlot}-jogador-ataque-dano`);
+            const critico = document.getElementById(`slot${numSlot}-jogador-critico`);
+            let dano = Number(inputDano.value) || 0;
+            if(dano <= 0) return alert("Insira um valor de dano base válido!");
+            if(critico.checked) dano = dano * 2;
             
-            if (!gridAtivas || !gridPassivas || !passivasContainer) return;
-
-            gridAtivas.innerHTML = "";
-            gridPassivas.innerHTML = "";
-            passivasContainer.innerHTML = "";
-
-            if (!grimorio) return;
+            const checkboxes = document.querySelectorAll(`#alvos-combate-slot${numSlot} input[type="checkbox"]:checked`);
+            if(checkboxes.length === 0) return alert("Selecione pelo menos um alvo!");
             
-            let magiaEquipada = slotsDeVisao[numSlot].dados?.magiaEquipada;
-
-            Object.values(grimorio).forEach(magia => {
-                if (magia.tipo === "Ativa") {
-                    let isEquipada = (magiaEquipada && magiaEquipada.id === magia.id);
-                    let equipadoText = isEquipada ? "Equipada" : "Equipar";
-                    let equipadoStyle = isEquipada ? "background: #d4af37; color: #000;" : "";
-                    
-                    gridAtivas.innerHTML += `
-                        <div class="card-magia">
-                            <img src="${magia.img}" alt="${magia.nome}" onerror="this.style.display='none'">
-                            <div class="card-magia-info">
-                                <div class="card-magia-nome">${magia.nome}</div>
-                                <div class="card-magia-stats">
-                                    ${magia.custo ? `<span class="stat-mana">💧 ${magia.custo}</span>` : ""}
-                                    ${magia.efeito ? `<span class="stat-efeito">🔥 ${magia.efeito}</span>` : ""}
-                                </div>
-                                <button class="btn-equipar" style="${equipadoStyle}" onclick="equiparMagia(${numSlot}, '${magia.id}', '${magia.nome}', '${magia.custo || ""}', '${magia.efeito || ""}', '${magia.tipo}')">${equipadoText}</button>
-                            </div>
-                        </div>
-                    `;
+            inputDano.value = '';
+            critico.checked = false;
+            
+            for(let cb of checkboxes) {
+                let idAlvo = cb.value;
+                if(idAlvo.startsWith("horda_")) {
+                    let hordaId = ameacaEmCombateGlobal;
+                    let mId = idAlvo.replace(hordaId + "_", "");
+                    let refMembro = ref(database, `hordas/${hordaId}/membros/${mId}`);
+                    let snap = await get(refMembro);
+                    if(snap.exists()) {
+                        let mDados = snap.val();
+                        let hpAtual = Number(mDados['hp-atual']) || 0;
+                        let escudo = Number(mDados['escudo']) || 0;
+                        let danoRestante = dano;
+                        if(escudo > 0) {
+                            if(escudo >= danoRestante) { escudo -= danoRestante; danoRestante = 0; }
+                            else { danoRestante -= escudo; escudo = 0; }
+                            update(refMembro, { escudo: escudo });
+                        }
+                        if(danoRestante > 0) {
+                            hpAtual -= danoRestante;
+                            if(hpAtual < 0) hpAtual = 0;
+                            update(refMembro, { 'hp-atual': hpAtual });
+                        }
+                    }
                 } else {
-                    gridPassivas.innerHTML += `
-                        <div class="card-magia">
-                            <img src="${magia.img}" alt="${magia.nome}" onerror="this.style.display='none'">
-                            <div class="card-magia-info">
-                                <div class="card-magia-nome">${magia.nome}</div>
-                                <div class="card-magia-stats">
-                                    <span class="stat-passiva">🛡️ ${magia.efeito || ""}</span>
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                    passivasContainer.innerHTML += `
-                        <div class="passiva-icone-container">
-                            <img src="${magia.img}" alt="${magia.nome}" class="passiva-icone" onerror="this.style.display='none'">
-                            <div class="passiva-nome">${magia.nome}</div>
-                        </div>
-                    `;
+                    let refMonstro = ref(database, `fichas/${idAlvo}`);
+                    let snap = await get(refMonstro);
+                    if(snap.exists()) {
+                        let mDados = snap.val();
+                        let hpAtual = Number(mDados['hp-atual']) || 0;
+                        let escudo = Number(mDados['escudo']) || 0;
+                        let danoRestante = dano;
+                        if(escudo > 0) {
+                            if(escudo >= danoRestante) { escudo -= danoRestante; danoRestante = 0; }
+                            else { danoRestante -= escudo; escudo = 0; }
+                            update(refMonstro, { escudo: escudo });
+                        }
+                        if(danoRestante > 0) {
+                            hpAtual -= danoRestante;
+                            if(hpAtual < 0) hpAtual = 0;
+                            update(refMonstro, { 'hp-atual': hpAtual });
+                        }
+                    }
                 }
-            });
-
-            const btnMagia = document.getElementById(`btn-magia-engatilhada-slot${numSlot}`);
-            const custoMagia = document.getElementById(`magia-engatilhada-custo-slot${numSlot}`);
+            }
             
-            if (magiaEquipada && magiaEquipada.nome) {
-                let imgHtml = "";
-                let m = Object.values(grimorio).find(x => x.id === magiaEquipada.id);
-                if (m && m.img) {
-                    imgHtml = `<img src="${m.img}" style="width:20px; height:20px; border-radius:50%; object-fit:cover; border:1px solid #4a90e2;" onerror="this.style.display='none'"> `;
-                }
-                btnMagia.innerHTML = imgHtml + magiaEquipada.nome;
-                custoMagia.innerHTML = `💧 ${magiaEquipada.custo || "0 Mana"}`;
-            } else {
-                btnMagia.innerHTML = "Nenhuma Magia Selecionada <span>(Clique)</span>";
-                custoMagia.innerHTML = "💧 0 Mana";
-            }
+            checkboxes.forEach(cb => cb.checked = false);
         };
-
-        window.abrirGrimorio = function(numSlot) {
-            const modal = document.getElementById(`modal-grimorio-slot${numSlot}`);
-            if (modal) modal.style.display = "flex";
-        };
-
-        window.fecharGrimorio = function(numSlot) {
-            const modal = document.getElementById(`modal-grimorio-slot${numSlot}`);
-            if (modal) modal.style.display = "none";
-        };
-
-        window.mudarTabGrimorio = function(numSlot, tab) {
-            document.getElementById(`btn-tab-ativas-slot${numSlot}`).classList.remove("active");
-            document.getElementById(`btn-tab-passivas-slot${numSlot}`).classList.remove("active");
-            document.getElementById(`grimorio-grid-ativas-slot${numSlot}`).style.display = "none";
-            document.getElementById(`grimorio-grid-passivas-slot${numSlot}`).style.display = "none";
-
-            document.getElementById(`btn-tab-${tab}-slot${numSlot}`).classList.add("active");
-            document.getElementById(`grimorio-grid-${tab}-slot${numSlot}`).style.display = "flex";
-        };
-
-        window.equiparMagia = function(numSlot, idMagia, nome, custo, efeito, tipo) {
-            let idFicha = slotsDeVisao[numSlot]?.idFicha;
-            if (!idFicha) return;
+        
+        window.adicionarHabilidade = function(numSlot) {
+            let nome = document.getElementById(`slot${numSlot}-hab-nome`).value;
+            let ap = Number(document.getElementById(`slot${numSlot}-hab-ap`).value) || 0;
+            let mana = Number(document.getElementById(`slot${numSlot}-hab-mana`).value) || 0;
+            let tipo = document.getElementById(`slot${numSlot}-hab-tipo`).value;
+            let desc = document.getElementById(`slot${numSlot}-hab-desc`).value;
             
-            let btn = event.currentTarget;
-            if (btn.disabled) return;
-            btn.disabled = true;
-
-            update(ref(database, `fichas/${idFicha}`), {
-                magiaEquipada: { id: idMagia, nome: nome, custo: custo || "0 Mana", efeito: efeito || "", tipo: tipo }
-            }).then(() => {
-                fecharGrimorio(numSlot);
-            }).catch(() => {
-                btn.disabled = false;
-            });
-        };
-
-        window.mudarModoCombate = function(numSlot) {
-            const modos = document.getElementsByName(`modo-combate-slot${numSlot}`);
-            let modoAtivo = "ataque";
-            modos.forEach(m => { if(m.checked) modoAtivo = m.value; });
-
-            const btnAcao = document.getElementById(`btn-acao-principal-slot${numSlot}`);
-            const contMagia = document.getElementById(`magia-engatilhada-container-slot${numSlot}`);
-
-            if (modoAtivo === "magia") {
-                btnAcao.innerText = "LANÇAR FEITIÇO";
-                btnAcao.className = "btn-acao-intenso neon-magic";
-                contMagia.style.display = "block";
-            } else {
-                btnAcao.innerText = "⚔️ ATACAR";
-                btnAcao.className = "btn-acao-intenso neon-attack";
-                contMagia.style.display = "none";
-            }
-        };
-
-        window.toggleSidebarJogador = function(numSlot) {
-            const sidebar = document.getElementById(`sidebar-jogador-slot${numSlot}`);
-            const btn = document.getElementById(`btn-toggle-jogador-slot${numSlot}`);
-            if (sidebar.classList.contains("sidebar-fechada")) {
-                sidebar.classList.remove("sidebar-fechada");
-                sidebar.style.transform = "translateX(0)";
-                btn.innerText = "◀";
-            } else {
-                sidebar.classList.add("sidebar-fechada");
-                sidebar.style.transform = "translateX(-100%)";
-                btn.innerText = "▶";
-            }
-        };
-
-        window.jogadorExecutarAcao = function(numSlot) {
+            if(!nome) return alert("Habilidade precisa de um nome!");
+            
             const idFicha = slotsDeVisao[numSlot].idFicha;
-            if(!idFicha) return;
+            const habId = "hab_" + Date.now();
             
-            const totalRolado = Number(document.getElementById(`slot${numSlot}-total-rolado`).value) || 0;
-            const modos = document.getElementsByName(`modo-combate-slot${numSlot}`);
-            let modoAtivo = "ataque";
-            modos.forEach(m => { if(m.checked) modoAtivo = m.value; });
-
-            if(totalRolado <= 0) return alert("Por favor, insira o total rolado no dado para a ação!");
-
-            if(modoAtivo === "magia") {
-                let magiaEquipada = slotsDeVisao[numSlot].dados?.magiaEquipada;
-                if(!magiaEquipada || !magiaEquipada.id) return alert("Por favor, equipe uma magia no grimório primeiro!");
-                
-                let nome = magiaEquipada.nome;
-                let dano = prompt(`Você rolou ${totalRolado} para lançar a magia ${nome}. Qual foi o dano ou valor do efeito da magia (em números)?`);
-                if(dano === null || isNaN(Number(dano))) return;
-                
-                alert(`A Magia ${nome} foi lançada com valor final de efeito/dano: ${dano}`);
-            } else {
-                let dano = prompt(`Você rolou ${totalRolado} para atacar! Qual foi o DANO final (após modificadores)?`);
-                if(dano === null || isNaN(Number(dano))) return;
-                
-                let isCritico = confirm("Foi um acerto crítico?");
-                
-                alert(`Ataque realizado com Dano: ${dano}` + (isCritico ? " (CRÍTICO!)" : ""));
-            }
-            
-            document.getElementById(`slot${numSlot}-total-rolado`).value = "";
-        };
-
-
-
-        window.atualizarAlvosMestre = function(numSlot) {
-            const container = document.getElementById(`alvos-mestre-slot${numSlot}`);
-            if (!container) return;
-            
-            let html = "";
-            playersList.forEach(p => {
-                let nome = usuarios[p] ? usuarios[p].nome : p;
-                html += `<label class="checkbox-alvo"><input type="checkbox" value="${p}" class="alvo-ataque-slot${numSlot}"> 🛡️ ${nome}</label>`;
+            update(ref(database, `fichas/${idFicha}/grimorio/${habId}`), {
+                nome, ap, mana, tipo, desc
             });
-
-            for (let mId in monstrosNoBanco) {
-                html += `<label class="checkbox-alvo"><input type="checkbox" value="${mId}" class="alvo-ataque-slot${numSlot}"> 💀 ${monstrosNoBanco[mId].nome || mId}</label>`;
-            }
-
-            for (let hId in hordasNoBanco) {
-                html += `<label class="checkbox-alvo"><input type="checkbox" value="${hId}" class="alvo-ataque-slot${numSlot}"> 🛡️ ${hordasNoBanco[hId].nome || hId} (Horda)</label>`;
-            }
-
-            container.innerHTML = html;
+            
+            document.getElementById(`slot${numSlot}-hab-nome`).value = '';
+            document.getElementById(`slot${numSlot}-hab-ap`).value = '0';
+            document.getElementById(`slot${numSlot}-hab-mana`).value = '0';
+            document.getElementById(`slot${numSlot}-hab-desc`).value = '';
         };
 
-
-
-        window.atualizarSidebarJogador = function(numSlot) {
-            let ameacaContainer = document.getElementById(`alvos-combate-slot${numSlot}`);
-            let aliadosContainer = document.getElementById(`aliados-combate-slot${numSlot}`);
-            if(!ameacaContainer || !aliadosContainer) return;
-
-            let htmlAmeaca = "";
-            if(ameacaEmCombateGlobal) {
-                let isHorda = ameacaEmCombateGlobal.startsWith("horda_");
-                let nome = isHorda ? (hordasNoBanco[ameacaEmCombateGlobal]?.nome || ameacaEmCombateGlobal) : (monstrosNoBanco[ameacaEmCombateGlobal]?.nome || ameacaEmCombateGlobal);
-                htmlAmeaca = `<span id="nome-ameaca-ativa-slot${numSlot}" style="color:#fff; font-size: 12px;">💀 ${nome}</span>`;
-            } else {
-                htmlAmeaca = `<span id="nome-ameaca-ativa-slot${numSlot}" style="color:#fff; font-size: 12px;">Nenhuma ameaça na mesa...</span>`;
+        window.deletarHabilidade = function(numSlot, habId) {
+            if(confirm("Tem certeza que deseja apagar essa habilidade do grimório?")) {
+                const idFicha = slotsDeVisao[numSlot].idFicha;
+                remove(ref(database, `fichas/${idFicha}/grimorio/${habId}`));
             }
-            ameacaContainer.innerHTML = htmlAmeaca;
+        };
 
-            let htmlAliados = "";
-            playersList.forEach(p => {
-                if (usuarios[p]) htmlAliados += `<span style="color:#fff; font-size: 12px;">🛡️ ${usuarios[p].nome}</span>`;
+        window.usarHabilidade = function(numSlot, habId) {
+            const idFicha = slotsDeVisao[numSlot].idFicha;
+            get(ref(database, `fichas/${idFicha}/grimorio/${habId}`)).then(snap => {
+                if(snap.exists()) {
+                    let hab = snap.val();
+                    let manaAtual = Number(document.getElementById(`slot${numSlot}-mana-atual`).value) || 0;
+                    let apAtual = Number(document.getElementById(`slot${numSlot}-ap`).value) || 0;
+                    
+                    if(hab.mana > manaAtual) return alert("Mana insuficiente para usar " + hab.nome + "!");
+                    if(hab.ap > apAtual) return alert("AP insuficiente para usar " + hab.nome + "!");
+                    
+                    update(ref(database, `fichas/${idFicha}`), {
+                        'mana-atual': manaAtual - hab.mana,
+                        'ap': apAtual - hab.ap
+                    });
+                    
+                    // Se for de ataque, move o jogador para a aba de combate
+                    if(hab.tipo === 'ativa') {
+                        alternarAbaHeroi(numSlot, 'combate');
+                    } else {
+                        alert(`Habilidade ${hab.nome} usada!`);
+                    }
+                }
             });
-            aliadosContainer.innerHTML = htmlAliados;
         };
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
