@@ -92,6 +92,32 @@
         </div>
     </div>
 
+    <!-- MODAL GRIMÓRIO VISUAL -->
+    <div id="modal-grimorio">
+        <div class="grimorio-book-container">
+            <button class="btn-fechar-grimorio" onclick="fecharGrimorio()">✖</button>
+            <div class="grimorio-header">
+                <h2 class="grimorio-titulo">GRIMÓRIO</h2>
+            </div>
+            <div class="grimorio-book-pages">
+                <!-- PÁGINA ESQUERDA: ATIVAS -->
+                <div class="grimorio-page page-left">
+                    <h3 class="page-title">HABILIDADES ATIVAS</h3>
+                    <div class="grimorio-list" id="grimorio-lista-ativas">
+                        <!-- Injetado dinamicamente -->
+                    </div>
+                </div>
+                <!-- PÁGINA DIREITA: PASSIVAS -->
+                <div class="grimorio-page page-right">
+                    <h3 class="page-title">HABILIDADES PASSIVAS</h3>
+                    <div class="grimorio-list" id="grimorio-lista-passivas">
+                        <!-- Injetado dinamicamente -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- MODAL ÁRVORE DE HABILIDADES -->
     <div id="modal-arvore">
         <div class="arvore-container">
