@@ -1677,7 +1677,7 @@ window.toggleSidebarJogador = function(numSlot) {
                         htmlPassivas += `
                             <div class="passiva-mini" title="${hab.desc}">
                                 <div class="passiva-mini-icon">
-                                    <img src="${(function(){ let b = hab.race || hab.class || ''; if(b==='Halfiling') b='Halfling'; if(b==='Humanos') b='Humano'; return b ? 'Imagens/Habilidades ' + b + '.png' : ''; })()}" style="width:100%; height:100%; object-fit:cover; position:absolute; z-index:2;" onerror="this.style.display='none'">
+                                    <img src="${(function(){ let b = hab.race || hab.class || ''; if(b==='Halfiling') b='Halfling'; if(b==='Humanos') b='Humano'; return b ? 'Imagens/' + encodeURIComponent('Habilidades ' + b + '.png') : ''; })()}" style="width:100%; height:100%; object-fit:cover; position:absolute; z-index:2;" onerror="this.style.display='none'">
                                     <div style="z-index:1;">${icon}</div>
                                 </div>
                                 <div class="passiva-mini-nome">${hab.nome}</div>
@@ -1733,7 +1733,7 @@ window.toggleSidebarJogador = function(numSlot) {
                     <div class="skill-card-visual ${isEquipada ? 'equipada' : ''} tipo-${hab.tipo}">
                         ${delHtml}
                         <div class="skill-icon-container">
-                            <img src="${(function(){ let b = hab.race || hab.class || ''; if(b==='Halfiling') b='Halfling'; if(b==='Humanos') b='Humano'; return b ? 'Imagens/Habilidades ' + b + '.png' : ''; })()}" class="skill-img-real" onerror="this.style.display='none'">
+                            <img src="${(function(){ let b = hab.race || hab.class || ''; if(b==='Halfiling') b='Halfling'; if(b==='Humanos') b='Humano'; return b ? 'Imagens/' + encodeURIComponent('Habilidades ' + b + '.png') : ''; })()}" class="skill-img-real" onerror="this.style.display='none'">
                             <div class="skill-icon-glow">${icon}</div>
                         </div>
                         <div class="skill-data-visual">
