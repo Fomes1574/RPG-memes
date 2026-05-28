@@ -22,6 +22,30 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
             "arthur": { nome: "Arthur", cargo: "Jogador", idFicha: "arthur" }
         };
 
+        const RACES = {
+            "Humanos": { points: 3 },
+            "Elfo": { des: 2, int: 1, per: 1, sab: 1, con: -2, for: -1 },
+            "Anão": { con: 2, for: 1, des: -2 },
+            "Orc": { for: 2, con: 1, car: -2, sab: -1 },
+            "Gnomo": { int: 2, sab: 1, for: -2, con: -1 },
+            "Halfling": { des: 2, car: 1, int: -3, for: -1 },
+            "Khajiit": { des: 4, int: -3, car: -1 },
+            "Argoniano": { con: 3, des: 1, car: -4, per: -1 }
+        };
+
+        const CLASSES = {
+            "Guerreiro": { for: 2, con: 1 },
+            "Paladino": { con: 2, car: 1 },
+            "Druida": { sab: 2, car: 1 },
+            "Bárbaro": { for: 2, con: 1 },
+            "Arqueiro": { des: 2, per: 1 },
+            "Ladino": { des: 3, per: 1 },
+            "Mago": { int: 2, sab: 1 },
+            "Curandeiro": { sab: 2, int: 1 },
+            "Bardo": { car: 3 },
+            "Monge": { con: 1, des: 1, sab: 1 }
+        };
+
         const playersList = ['lais', 'gomes', 'kamy', 'arthur'];
 
         let usuarioAtual = null; 
@@ -36,601 +60,216 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
         };
 
         // ==========================================
-        // ESTADO DO MODAL DO GRIMÓRIO
-        // ==========================================
-        let _grimorioModal = {
-            aberto: false,
-            numSlot: null,
-            idFicha: null,
-            abaAtiva: 'ativas',
-            ouvinte: null,
-            equiparLock: false
-        };
-
-        // ==========================================
-        // MAPEAMENTO DE RAÇAS E CLASSES (Extraído do PDF)
-        // ==========================================
-        const RACAS = {
-            "Humano": {
-                habilidades: [
-                    { nome: "Adaptável", tipo: "Ativa", desc: "Pode refazer 1 teste por sessão" }
-                ]
-            },
-            "Elfo": {
-                habilidades: [
-                    { nome: "Visão Aguçada", tipo: "Passiva", desc: "Enxerga no escuro" },
-                    { nome: "Afinidade Arcana", tipo: "Passiva", desc: "Bônus em testes mágicos" }
-                ]
-            },
-            "Anão": {
-                habilidades: [
-                    { nome: "Resistência Anã", tipo: "Passiva", desc: "Resistência contra efeitos negativos (debuffs)" }
-                ]
-            },
-            "Orc": {
-                habilidades: [
-                    { nome: "Fúria", tipo: "Ativa", desc: "Pode causar dano extra por alguns turnos" }
-                ]
-            },
-            "Gnomo": {
-                habilidades: [
-                    { nome: "Natureza Mística", tipo: "Passiva", desc: "Bônus em magia ou criação de poções" },
-                    { nome: "Mente Rápida", tipo: "Passiva", desc: "Vantagem contra ilusões ou efeitos mentais; +2 Percepção" }
-                ]
-            },
-            "Halfling": {
-                habilidades: [
-                    { nome: "Sorte Incrível", tipo: "Ativa", desc: "Pode rerrolar 1 dado por sessão" }
-                ]
-            },
-            "Khajiit": {
-                habilidades: [
-                    { nome: "Sentidos Felinos", tipo: "Passiva", desc: "Bônus em percepção e visão noturna; +2 Percepção" },
-                    { nome: "Garras Naturais", tipo: "Passiva", desc: "Ataque desarmado causa dano extra" }
-                ]
-            },
-            "Argoniano": {
-                habilidades: [
-                    { nome: "Regeneração", tipo: "Passiva", desc: "Recupera pequena quantidade de vida ao longo do tempo" },
-                    { nome: "Anfíbio", tipo: "Passiva", desc: "Respira debaixo d'água e nada com facilidade; +2 Destreza (quando debaixo d'água)" },
-                    { nome: "Resistência Natural", tipo: "Passiva", desc: "Bônus contra doenças e venenos" }
-                ]
-            }
-        };
-
-        const CLASSES = {
-            "Guerreiro": {
-                habilidades: [
-                    { nome: "Especialista em Combate", tipo: "Passiva", desc: "Bônus com todas as armas" },
-                    { nome: "Postura Defensiva", tipo: "Ativa", desc: "Reduz dano recebido por alguns turnos" }
-                ]
-            },
-            "Paladino": {
-                habilidades: [
-                    { nome: "Golpe Sagrado", tipo: "Passiva", desc: "Causa dano extra contra inimigos malignos" },
-                    { nome: "Cura Divina", tipo: "Ativa", desc: "Pode curar a si ou aliados" }
-                ]
-            },
-            "Druida": {
-                habilidades: [
-                    { nome: "Forma Selvagem", tipo: "Ativa", desc: "Transforma-se em animal temporariamente (até 3 vezes por sessão)" },
-                    { nome: "Vínculo com a Natureza", tipo: "Passiva", desc: "Conhecimento com plantas, cogumelos e ervas; pode conversar com animais" }
-                ]
-            },
-            "Bárbaro": {
-                habilidades: [
-                    { nome: "Fúria", tipo: "Ativa", desc: "Aumenta dano e resistência por alguns turnos" },
-                    { nome: "Resistência Brutal", tipo: "Passiva", desc: "Reduz dano físico recebido" }
-                ]
-            },
-            "Arqueiro": {
-                habilidades: [
-                    { nome: "Tiro Preciso", tipo: "Passiva", desc: "Maior chance de acerto crítico" },
-                    { nome: "Olho de Águia", tipo: "Passiva", desc: "Acerta o alvo com facilidade" }
-                ]
-            },
-            "Ladino": {
-                habilidades: [
-                    { nome: "Ataque Furtivo", tipo: "Passiva", desc: "Causa dano crítico ao atacar desprevenido" },
-                    { nome: "Evasão", tipo: "Passiva", desc: "Maior chance de esquivar" },
-                    { nome: "Especialista em Perícias", tipo: "Passiva", desc: "Bônus em furtividade, lockpick, etc." }
-                ]
-            },
-            "Mago": {
-                habilidades: [
-                    { nome: "Regeneração de Mana", tipo: "Passiva", desc: "Recupera mana mais rápido" }
-                ]
-            },
-            "Curandeiro": {
-                habilidades: [
-                    { nome: "Cura Maior", tipo: "Ativa", desc: "Recupera vida de aliados" },
-                    { nome: "Proteção Espiritual", tipo: "Passiva", desc: "Reduz dano recebido pelo grupo" },
-                    { nome: "Purificação", tipo: "Ativa", desc: "Remove efeitos negativos" }
-                ]
-            },
-            "Bardo": {
-                habilidades: [
-                    { nome: "Inspiração", tipo: "Passiva", desc: "Concede bônus a aliados" },
-                    { nome: "Canção Arcana", tipo: "Passiva", desc: "Pode causar efeitos mágicos variados" },
-                    { nome: "Manipulação Social", tipo: "Passiva", desc: "Bônus em diálogo" }
-                ]
-            },
-            "Monge": {
-                habilidades: [
-                    { nome: "Golpes Rápidos", tipo: "Passiva", desc: "Múltiplos ataques por turno" },
-                    { nome: "Ki Interior", tipo: "Ativa", desc: "Usa energia para aumentar a resistência" },
-                    { nome: "Esquiva Suprema", tipo: "Passiva", desc: "Alta evasão" }
-                ]
-            }
-        };
-
-        // ==========================================
-        // ESTADO DE DEBOUNCE E RACE CONDITION
-        // ==========================================
-        const _habilidadeDebounceTimers = {};
-        const _habilidadeLock = {};
-
-        // ==========================================
-        // HELPERS DE HABILIDADES
-        // ==========================================
-        function _normalizarNomeParaKey(nome) {
-            return nome.trim().toLowerCase()
-                .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-                .replace(/[^a-z0-9]/g, '_');
-        }
-
-        function _gerarHabilidadesDoPersonagem(racaNome, classeNome) {
-            const habs = {};
-            const racaData = RACAS[racaNome];
-            const classeData = CLASSES[classeNome];
-
-            if (racaData) {
-                racaData.habilidades.forEach(h => {
-                    const key = 'raca_' + _normalizarNomeParaKey(h.nome);
-                    habs[key] = { nome: h.nome, tipo: h.tipo, desc: h.desc, origem: 'raca', origemNome: racaNome };
-                });
-            }
-            if (classeData) {
-                classeData.habilidades.forEach(h => {
-                    const key = 'classe_' + _normalizarNomeParaKey(h.nome);
-                    habs[key] = { nome: h.nome, tipo: h.tipo, desc: h.desc, origem: 'classe', origemNome: classeNome };
-                });
-            }
-            return habs;
-        }
-
-        function _validarRacaClasse(raca, classe) {
-            const racaValida = !raca || !!RACAS[raca];
-            const classeValida = !classe || !!CLASSES[classe];
-            return { racaValida, classeValida };
-        }
-
-        async function _sincronizarHabilidadesNoFirebase(idFicha, racaNome, classeNome) {
-            if (_habilidadeLock[idFicha]) return;
-            _habilidadeLock[idFicha] = true;
-
-            try {
-                const { racaValida, classeValida } = _validarRacaClasse(racaNome, classeNome);
-                if (!racaValida || !classeValida) {
-                    console.warn('[Habilidades] Raça ou classe inválida:', racaNome, classeNome);
-                    return;
-                }
-
-                const refHabs = ref(database, `fichas/${idFicha}/habilidades`);
-
-                // 1. Remove TODAS as habilidades antigas
-                await remove(refHabs);
-
-                // 2. Gera novas habilidades
-                const novasHabs = _gerarHabilidadesDoPersonagem(racaNome, classeNome);
-
-                // 3. Insere as novas habilidades (se houver)
-                if (Object.keys(novasHabs).length > 0) {
-                    await update(refHabs, novasHabs);
-                }
-
-                console.log('[Habilidades] Sincronizado:', idFicha, '| Raça:', racaNome, '| Classe:', classeNome, '| Total:', Object.keys(novasHabs).length);
-            } catch (err) {
-                console.error('[Habilidades] Erro ao sincronizar:', err);
-            } finally {
-                _habilidadeLock[idFicha] = false;
-            }
-        }
-
-        function _agendarSincronizacaoHabilidades(idFicha, racaNome, classeNome, delay = 600) {
-            const key = `${idFicha}_habs`;
-            if (_habilidadeDebounceTimers[key]) clearTimeout(_habilidadeDebounceTimers[key]);
-            _habilidadeDebounceTimers[key] = setTimeout(() => {
-                _sincronizarHabilidadesNoFirebase(idFicha, racaNome, classeNome);
-                delete _habilidadeDebounceTimers[key];
-            }, delay);
-        }
-
-        function _atualizarUIHabilidades(numSlot, racaNome, classeNome) {
-            _renderizarGrimorio(numSlot, racaNome, classeNome);
-            _renderizarPassivas(numSlot, racaNome, classeNome);
-        }
-
-        function _renderizarGrimorio(numSlot, racaNome, classeNome) {
-            const elGrimorio = document.getElementById(`slot${numSlot}-grimorio-lista`);
-            if (!elGrimorio) return;
-
-            const racaData = RACAS[racaNome];
-            const classeData = CLASSES[classeNome];
-            const todasHabs = [];
-
-            if (racaData) {
-                racaData.habilidades
-                    .filter(h => h.tipo === 'Ativa')
-                    .forEach(h => todasHabs.push({ ...h, origem: racaNome }));
-            }
-            if (classeData) {
-                classeData.habilidades
-                    .filter(h => h.tipo === 'Ativa')
-                    .forEach(h => todasHabs.push({ ...h, origem: classeNome }));
-            }
-
-            if (todasHabs.length === 0) {
-                elGrimorio.innerHTML = `<div style="color:#5c3a21; font-style:italic; font-size:12px; text-align:center; padding:10px;">Nenhuma habilidade ativa.</div>`;
-                return;
-            }
-
-            elGrimorio.innerHTML = todasHabs.map(h => `
-                <div class="hab-item hab-ativa" title="${h.desc}">
-                    <span class="hab-origem">[${h.origem}]</span>
-                    <strong class="hab-nome">${h.nome}</strong>
-                    <span class="hab-tipo hab-tipo-ativa">⚡ Ativa</span>
-                    <p class="hab-desc">${h.desc}</p>
-                </div>
-            `).join('');
-        }
-
-        function _renderizarPassivas(numSlot, racaNome, classeNome) {
-            const elPassivas = document.getElementById(`slot${numSlot}-passivas-lista`);
-            if (!elPassivas) return;
-
-            const racaData = RACAS[racaNome];
-            const classeData = CLASSES[classeNome];
-            const todasPassivas = [];
-
-            if (racaData) {
-                racaData.habilidades
-                    .filter(h => h.tipo === 'Passiva')
-                    .forEach(h => todasPassivas.push({ ...h, origem: racaNome }));
-            }
-            if (classeData) {
-                classeData.habilidades
-                    .filter(h => h.tipo === 'Passiva')
-                    .forEach(h => todasPassivas.push({ ...h, origem: classeNome }));
-            }
-
-            if (todasPassivas.length === 0) {
-                elPassivas.innerHTML = `<div style="color:#5c3a21; font-style:italic; font-size:12px; text-align:center; padding:10px;">Nenhuma passiva ativa.</div>`;
-                return;
-            }
-
-            elPassivas.innerHTML = todasPassivas.map(h => `
-                <div class="hab-item hab-passiva" title="${h.desc}">
-                    <span class="hab-origem">[${h.origem}]</span>
-                    <strong class="hab-nome">${h.nome}</strong>
-                    <span class="hab-tipo hab-tipo-passiva">🛡️ Passiva</span>
-                    <p class="hab-desc">${h.desc}</p>
-                </div>
-            `).join('');
-        }
-
-        // ==========================================
-        // MODAL DO GRIMÓRIO — IMPLEMENTAÇÃO COMPLETA
-        // ==========================================
-        function _criarDomModal() {
-            if (document.getElementById('grimorio-modal')) return;
-            const el = document.createElement('div');
-            el.id = 'grimorio-modal';
-            el.innerHTML = `
-                <div id="grimorio-modal-inner">
-                    <div id="grimorio-modal-header">
-                        <span id="grimorio-modal-titulo">📖 Grimório</span>
-                        <button id="grimorio-modal-fechar" onclick="fecharGrimorio()" title="Fechar">✕</button>
-                    </div>
-                    <div id="grimorio-modal-abas">
-                        <button id="grimorio-aba-ativas"  class="grimorio-aba grimorio-aba-on" onclick="_grimorioTrocarAba('ativas')">⚡ Ativas</button>
-                        <button id="grimorio-aba-passivas" class="grimorio-aba"               onclick="_grimorioTrocarAba('passivas')">🛡️ Passivas</button>
-                    </div>
-                    <div id="grimorio-modal-corpo"></div>
-                </div>
-            `;
-            document.body.appendChild(el);
-            // Fechar ao clicar no backdrop
-            el.addEventListener('mousedown', (e) => { if (e.target === el) fecharGrimorio(); });
-            document.addEventListener('keydown', _grimorioEscHandler);
-        }
-
-        function _grimorioEscHandler(e) {
-            if (e.key === 'Escape' && _grimorioModal.aberto) fecharGrimorio();
-        }
-
-        function _normalizarParaImagem(nome) {
-            return nome.trim().toLowerCase()
-                .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-                .replace(/[^a-z0-9]+/g, '_')
-                .replace(/^_+|_+$/g, '');
-        }
-
-        function _buildCard(h, idFicha, numSlot) {
-            const imgKey  = _normalizarParaImagem(h.nome);
-            const imgPath = `Imagens/${imgKey}.png`;
-            const isAtiva = h.tipo === 'Ativa';
-            const nomeEsc = (h.nome || '').replace(/'/g, "\\'");
-            const inicial = (h.nome || '?').charAt(0).toUpperCase();
-            return `
-                <div class="grimo-card ${isAtiva ? 'grimo-card-ativa' : 'grimo-card-passiva'}">
-                    <div class="grimo-card-icon-wrap">
-                        <img class="grimo-card-icon" src="${imgPath}" alt="${h.nome}"
-                            onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
-                        <div class="grimo-card-icon-fallback" style="display:none;">${inicial}</div>
-                    </div>
-                    <div class="grimo-card-body">
-                        <div class="grimo-card-origem">[${h.origemNome || h.origem || ''}]</div>
-                        <div class="grimo-card-nome">${h.nome}</div>
-                        <div class="grimo-card-desc">${h.desc || ''}</div>
-                        <div class="grimo-card-stats">
-                            <span class="grimo-stat grimo-stat-mana" title="Custo de Mana">💧 ${h.custoMana !== undefined ? h.custoMana : '—'}</span>
-                            <span class="grimo-stat grimo-stat-dano" title="Dano / Cura">⚔️ ${h.danoCura !== undefined ? h.danoCura : '—'}</span>
-                        </div>
-                    </div>
-                    ${isAtiva ? `<button class="grimo-card-btn-equipar"
-                        onclick="_grimorioEquipar(this,'${idFicha}',${numSlot},'${nomeEsc}')">Equipar</button>` : ''}
-                </div>`;
-        }
-
-        function _grimorioRenderizarCorpo() {
-            const corpo = document.getElementById('grimorio-modal-corpo');
-            if (!corpo) return;
-            const { idFicha, numSlot, abaAtiva } = _grimorioModal;
-            const dados = slotsDeVisao[numSlot]?.dados || {};
-            
-            const racaNome = dados.raca || '';
-            const classeNome = dados.classe || '';
-            const racaData = RACAS[racaNome];
-            const classeData = CLASSES[classeNome];
-
-            const lista = [];
-            const addHabilidades = (dataObj, origemName) => {
-                if (!dataObj) return;
-                dataObj.habilidades.forEach(h => {
-                    if ((abaAtiva === 'ativas' && h.tipo === 'Ativa') || (abaAtiva === 'passivas' && h.tipo === 'Passiva')) {
-                        lista.push({ ...h, origemNome: origemName });
-                    }
-                });
-            };
-            addHabilidades(racaData, racaNome);
-            addHabilidades(classeData, classeNome);
-
-            if (lista.length === 0) {
-                corpo.innerHTML = `<div class="grimo-empty">Nenhuma habilidade ${abaAtiva === 'ativas' ? 'ativa' : 'passiva'}.<br><small>Defina a raça e classe do personagem.</small></div>`;
-                return;
-            }
-            corpo.innerHTML = lista.map(h => _buildCard(h, idFicha, numSlot)).join('');
-            _grimorioAtualizarBotoes();
-        }
-
-        // Atualiza botões (idempotente para onValue) sem re-renderizar todo o corpo e perder scroll
-        function _grimorioAtualizarBotoes() {
-            const corpo = document.getElementById('grimorio-modal-corpo');
-            if (!corpo || !_grimorioModal.aberto) return;
-            const dados = slotsDeVisao[_grimorioModal.numSlot]?.dados || {};
-            const equipada = dados.habilidadeEquipada || null;
-            
-            corpo.querySelectorAll('.grimo-card').forEach(card => {
-                const btn = card.querySelector('.grimo-card-btn-equipar');
-                if (!btn) return;
-                if (card.querySelector('.grimo-card-nome')?.textContent === equipada) {
-                    btn.textContent = '✓ Equipada';
-                    btn.classList.add('grimo-equipada');
-                } else {
-                    btn.textContent = 'Equipar';
-                    btn.classList.remove('grimo-equipada');
-                }
-            });
-        }
-
-        window._grimorioTrocarAba = function(aba) {
-            _grimorioModal.abaAtiva = aba;
-            document.querySelectorAll('.grimorio-aba').forEach(b => b.classList.remove('grimorio-aba-on'));
-            document.getElementById(`grimorio-aba-${aba}`)?.classList.add('grimorio-aba-on');
-            _grimorioRenderizarCorpo();
-        };
-
-        window._grimorioEquipar = async function(btnEl, idFicha, numSlot, nomeHab) {
-            if (_grimorioModal.equiparLock) return;
-            _grimorioModal.equiparLock = true;
-            btnEl.disabled = true;
-            try {
-                await update(ref(database, `fichas/${idFicha}`), { habilidadeEquipada: nomeHab });
-                btnEl.textContent = '✓ Equipada';
-                btnEl.classList.add('grimo-equipada');
-                setTimeout(() => fecharGrimorio(), 500);
-            } catch(err) {
-                console.error('[Grimório] Erro ao equipar:', err);
-                btnEl.disabled = false;
-            } finally {
-                setTimeout(() => { _grimorioModal.equiparLock = false; }, 700);
-            }
-        };
-
-        window.abrirGrimorio = function(numSlot) {
-            const slot = slotsDeVisao[numSlot];
-            if (!slot || !slot.idFicha || slot.tipo !== 'heroi') return;
-            // Toggle se mesmo slot
-            if (_grimorioModal.aberto && _grimorioModal.numSlot === numSlot) { fecharGrimorio(); return; }
-            if (_grimorioModal.aberto) fecharGrimorio();
-
-            _criarDomModal();
-            _grimorioModal.aberto  = true;
-            _grimorioModal.numSlot = numSlot;
-            _grimorioModal.idFicha = slot.idFicha;
-            _grimorioModal.abaAtiva = 'ativas';
-
-            // Posicionar ao lado esquerdo da ficha (position:fixed, sem reflow)
-            const container = document.getElementById(`container-slot${numSlot}-heroi`);
-            if (container) {
-                const rect  = container.getBoundingClientRect();
-                const inner = document.getElementById('grimorio-modal-inner');
-                const topVal  = Math.max(rect.top + window.scrollY, 10);
-                const leftVal = Math.max(rect.left - 330, 10);
-                inner.style.top  = topVal + 'px';
-                inner.style.left = leftVal + 'px';
-            }
-
-            // Resetar abas para "Ativas"
-            document.querySelectorAll('.grimorio-aba').forEach(b => b.classList.remove('grimorio-aba-on'));
-            document.getElementById('grimorio-aba-ativas')?.classList.add('grimorio-aba-on');
-
-            document.getElementById('grimorio-modal').classList.add('grimorio-aberto');
-            _grimorioRenderizarCorpo();
-        };
-
-        window.fecharGrimorio = function() {
-            const modal = document.getElementById('grimorio-modal');
-            if (!modal) return;
-            modal.classList.remove('grimorio-aberto');
-            _grimorioModal.aberto  = false;
-            _grimorioModal.numSlot = null;
-            _grimorioModal.idFicha = null;
-        };
-
-
-
-        // ==========================================
         // GERAÇÃO DE HTML DOS SLOTS
         // ==========================================
-        function gerarHtmlHeroi(numSlot) {
-            let optionsAttrs = `<option value="">Atributo</option><option value="hp-max">HP Máx</option><option value="mana-max">Mana Máx</option><option value="for">FOR</option><option value="des">DES</option><option value="con">CON</option><option value="int">INT</option><option value="sab">SAB</option><option value="car">CAR</option><option value="per">PER</option>`;
-            let eqHtml = '';
-            for(let i=1; i<=5; i++){
-                eqHtml += `
-                    <div class="equipamento-slot">
-                        <span class="slot-num">${i}</span>
-                        <input type="text" id="slot${numSlot}-item${i}-nome" class="editavel-slot${numSlot}" placeholder="Nome do Item">
-                        <select id="slot${numSlot}-item${i}-attr1" class="editavel-slot${numSlot}">${optionsAttrs}</select>
-                        <input type="number" id="slot${numSlot}-item${i}-mod1" class="editavel-slot${numSlot}" placeholder="+Mod">
-                        <select id="slot${numSlot}-item${i}-attr2" class="editavel-slot${numSlot}">${optionsAttrs}</select>
-                        <input type="number" id="slot${numSlot}-item${i}-mod2" class="editavel-slot${numSlot}" placeholder="+Mod">
-                        <button id="slot${numSlot}-btn-equip-${i}" onclick="toggleEquipar(${numSlot}, ${i})" class="editavel-slot${numSlot} btn-equipar">Equipar</button>
-                    </div>`;
-            }
-
-            return `
-            <div class="container" id="container-slot${numSlot}-heroi">
-                <div class="header-grid">
-                    <div style="display: flex; flex-direction: column;">
-                        <img id="img-foto-slot${numSlot}" class="foto-personagem" src="" alt="Sem foto">
-                        <label class="btn-upload editavel-slot${numSlot}-label esconder-jogador">📁 Enviar do PC<input type="file" class="editavel-slot${numSlot}" accept="image/png, image/jpeg, image/webp" style="display:none;" onchange="processarUploadOtimizado(event, ${numSlot})"></label>
-                    </div>
-                    <div class="info-grid">
-                        <div style="display: flex; gap: 10px; grid-column: span 2; align-items: center; border-bottom: 1px dashed #3a2212; padding-bottom: 10px;">
-                            <div style="flex: 1;"><label>Nome do Herói</label><input type="text" id="slot${numSlot}-nome" class="editavel-slot${numSlot}"></div>
-                            <div style="width: 130px; text-align: center;">
-                                <label style="color:#d4af37; font-size: 12px;">NÍVEL</label>
-                                <div class="level-display" id="slot${numSlot}-level-display" data-current-level="1">LV. <span id="slot${numSlot}-num-level">1</span></div>
-                            </div>
-                        </div>
-                        <div><label>Jogador</label><input type="text" id="slot${numSlot}-jogador" class="editavel-slot${numSlot}" readonly></div>
-                        <div><label>Linhagem / Raça</label><input type="text" id="slot${numSlot}-raca" class="editavel-slot${numSlot}"></div>
-                        <div><label>Vocação / Classe</label><input type="text" id="slot${numSlot}-classe" class="editavel-slot${numSlot}"></div>
-                        <div><label>Gênero</label><input type="text" id="slot${numSlot}-genero" class="editavel-slot${numSlot}"></div>
-                    </div>
-                </div>
-
-                <div class="section-title">Essência Vital</div>
-                <div class="status-grid">
-                    <div id="caixa-hp-slot${numSlot}" class="caixa-status">
-                        <label style="color: #27ae60; text-align: center;">HP</label>
-                        <div class="fraction-input">
-                            <input type="number" id="slot${numSlot}-hp-atual" class="editavel-slot${numSlot}" style="color: #27ae60;"><span>/</span><span id="slot${numSlot}-hp-efetivo" style="color: #27ae60; font-size: 20px; font-weight: bold; width:40px; display:inline-block; text-align:left;">20</span>
-                        </div>
-                        <div class="mestre-only-flex" style="justify-content:center; align-items:center; margin-top:5px; gap:5px;">
-                            <label style="margin:0; color:#9c8464;">Base Máx (Mestre):</label>
-                            <input type="number" id="slot${numSlot}-hp-max" class="editavel-slot${numSlot} mestre-unlocked" title="Vida Base Máxima (Padrão 20)" style="width:50px; padding:2px; font-size:11px;">
-                        </div>
-                        <div class="bar-bg"><div class="bar-fill hp-fill" id="bar-hp-slot${numSlot}" style="width: 100%;"></div></div>
-                    </div>
-                    
-                    <div class="caixa-status">
-                        <label style="color: #2980b9; text-align: center;">MANA</label>
-                        <div class="fraction-input">
-                            <input type="number" id="slot${numSlot}-mana-atual" class="editavel-slot${numSlot}" style="color: #2980b9;"><span>/</span><span id="slot${numSlot}-mana-efetivo" style="color: #2980b9; font-size: 20px; font-weight: bold; width:40px; display:inline-block; text-align:left;">20</span>
-                        </div>
-                        <div class="mestre-only-flex" style="justify-content:center; align-items:center; margin-top:5px; gap:5px;">
-                            <label style="margin:0; color:#9c8464;">Base Máx (Mestre):</label>
-                            <input type="number" id="slot${numSlot}-mana-max" class="editavel-slot${numSlot} mestre-unlocked" title="Mana Base Máxima (Padrão 20)" style="width:50px; padding:2px; font-size:11px;">
-                        </div>
-                        <div class="bar-bg"><div class="bar-fill mana-fill" id="bar-mana-slot${numSlot}" style="width: 100%;"></div></div>
-                    </div>
-
-                    <div class="caixa-status" style="grid-column: span 2; padding: 0 10px;">
-                        <div style="display:flex; justify-content: space-between; align-items: flex-end; margin-bottom: 5px;">
-                            <label style="color: #ffd700; margin: 0; text-shadow: 1px 1px 2px black;">EXPERIÊNCIA</label>
-                            <div id="slot${numSlot}-exp-text" class="exp-text">0 / 100</div>
-                        </div>
-                        <div class="bar-bg" style="height: 14px; position: relative;">
-                            <div class="bar-fill exp-fill" id="bar-exp-slot${numSlot}" style="width: 0%;"></div>
-                        </div>
-                    </div>
-
-                    <div><label>Ação (AP)</label><input type="number" id="slot${numSlot}-ap" class="editavel-slot${numSlot}" style="color:#d99c57;"></div>
-                    <div><label>Moedas de Ouro</label><input type="number" id="slot${numSlot}-ouro" class="editavel-slot${numSlot}" style="color:#d4af37;"></div>
-                    <div style="grid-column: span 2;"><label>Condição Física</label><input type="text" id="slot${numSlot}-condicao" class="editavel-slot${numSlot}"></div>
-                </div>
-
-                <div class="section-title">Atributos Primordiais <span id="slot${numSlot}-pts-livres" style="font-size: 11px; color: #ffd700; font-weight: bold;">(0 Livres)</span></div>
-                <div class="atributos-grid">
-                    <div class="attr-box"><label>FOR</label><input type="number" id="slot${numSlot}-for" class="editavel-slot${numSlot}"></div>
-                    <div class="attr-box"><label>DES</label><input type="number" id="slot${numSlot}-des" class="editavel-slot${numSlot}"></div>
-                    <div class="attr-box"><label>CON</label><input type="number" id="slot${numSlot}-con" class="editavel-slot${numSlot}"></div>
-                    <div class="attr-box"><label>INT</label><input type="number" id="slot${numSlot}-int" class="editavel-slot${numSlot}"></div>
-                    <div class="attr-box"><label>SAB</label><input type="number" id="slot${numSlot}-sab" class="editavel-slot${numSlot}"></div>
-                    <div class="attr-box"><label>CAR</label><input type="number" id="slot${numSlot}-car" class="editavel-slot${numSlot}"></div>
-                    <div class="attr-box"><label>PER</label><input type="number" id="slot${numSlot}-per" class="editavel-slot${numSlot}"></div>
-                </div>
-
-                <div class="section-title">Itens Equipados (Máx 5)</div>
-                <div class="equipamentos-container">${eqHtml}</div>
-
-                <div class="section-title">
-                    <span>📖 Grimório de Habilidades</span>
-                    <button id="slot${numSlot}-btn-grimorio" onclick="abrirGrimorio(${numSlot})" style="font-size:10px; padding:4px 10px; background:linear-gradient(to bottom,#3a2a0a,#1c1208); border-color:#d4af37; color:#d4af37; letter-spacing:1px; margin:0;">✦ Abrir</button>
-                </div>
-                <div id="slot${numSlot}-grimorio-lista" class="hab-container">
-                    <div style="color:#5c3a21; font-style:italic; font-size:12px; text-align:center; padding:10px;">Selecione uma raça e classe.</div>
-                </div>
-
-                <div class="section-title">🛡️ Habilidades Passivas</div>
-                <div id="slot${numSlot}-passivas-lista" class="hab-container">
-                    <div style="color:#5c3a21; font-style:italic; font-size:12px; text-align:center; padding:10px;">Selecione uma raça e classe.</div>
-                </div>
-
-                <div class="section-title">Buff e Debuff</div>
-                <div class="buff-container">
-                    <div class="buff-input-grid esconder-jogador">
-                        <input type="text" id="slot${numSlot}-novo-buff-nome" class="editavel-slot${numSlot}" placeholder="Nome">
-                        <input type="number" id="slot${numSlot}-novo-buff-hp" class="editavel-slot${numSlot}" placeholder="HP/T">
-                        <input type="number" id="slot${numSlot}-novo-buff-mana" class="editavel-slot${numSlot}" placeholder="MN/T">
-                        <select id="slot${numSlot}-novo-buff-attr" class="editavel-slot${numSlot}"><option value="">Nenhum</option><option value="for">FOR</option><option value="des">DES</option><option value="con">CON</option><option value="int">INT</option><option value="sab">SAB</option><option value="car">CAR</option><option value="per">PER</option></select>
-                        <input type="number" id="slot${numSlot}-novo-buff-mod" class="editavel-slot${numSlot}" placeholder="Mod">
-                        <input type="number" id="slot${numSlot}-novo-buff-turnos" class="editavel-slot${numSlot}" placeholder="Turnos">
-                        <button class="editavel-slot${numSlot}" onclick="adicionarEfeito(${numSlot})" style="padding: 5px;">ADD</button>
-                    </div>
-                    <div id="lista-efeitos-slot${numSlot}"></div>
-                </div>
-
-                <div class="section-title">Anotações e Relatos</div>
-                <div class="info-grid">
-                    <div><label>Aparência Física</label><textarea id="slot${numSlot}-aparencia" class="editavel-slot${numSlot}" rows="3"></textarea></div>
-                    <div><label>Anotações do Viajante</label><textarea id="slot${numSlot}-extra" class="editavel-slot${numSlot}" rows="3"></textarea></div>
+function gerarHtmlHeroi(numSlot) {
+    let optionsAttrs = `<option value="">Atributo</option><option value="hp-max">HP Máx</option><option value="mana-max">Mana Máx</option><option value="for">FOR</option><option value="des">DES</option><option value="con">CON</option><option value="int">INT</option><option value="sab">SAB</option><option value="car">CAR</option><option value="per">PER</option>`;
+    let eqHtml = '';
+    for(let i=1; i<=5; i++){
+        eqHtml += `
+            <div class="equipamento-slot">
+                <span class="slot-num">${i}</span>
+                <input type="text" id="slot${numSlot}-item${i}-nome" class="editavel-slot${numSlot}" placeholder="Nome do Item">
+                <div style="display: flex; align-items: center; gap: 5px;">
+                    <button onclick="mudarQtdItem(${numSlot}, ${i}, -1)" class="btn-qtd editavel-slot${numSlot}">-</button>
+                    <input type="number" id="slot${numSlot}-item${i}-qtd" class="editavel-slot${numSlot}" value="0" readonly style="width: 40px; text-align: center; background: rgba(0,0,0,0.8); border: 1px solid #3a2212; color: #fff;">
+                    <button onclick="mudarQtdItem(${numSlot}, ${i}, 1)" class="btn-qtd editavel-slot${numSlot}">+</button>
                 </div>
             </div>`;
-        }
+    }
+    let sidebarHtml = '';
+    if (numSlot === 1) {
+        sidebarHtml = `
+    <!-- LATERAL ESQUERDA (GRIMÓRIO E COMBATE) -->
+    <div id="sidebar-jogador-slot${numSlot}" class="sidebar-mestre sidebar-fechada sidebar-jogador-custom">
+        <button id="btn-toggle-jogador-slot${numSlot}" class="btn-toggle-sidebar-jogador" onclick="toggleSidebarJogador(${numSlot})">▶</button>
+        <div class="sidebar-header" style="text-align: center; font-size: 18px; margin-bottom: 20px; color:#d4af37;">Ações e Combate</div>
+        
+        <div style="overflow-y:auto; padding:0 15px; flex:1; margin-bottom:20px;">
+            <!-- TAB: COMBATE -->
+            <div class="buff-container" style="border-color:#8c1c13; background:rgba(20, 5, 5, 0.6);">
+                <div style="margin-bottom: 15px;">
+                    <label style="color:#d95757; font-weight:bold;">Ameaça na Mesa:</label>
+                    <span id="nome-ameaca-ativa-slot${numSlot}" style="color:#fff;">Nenhuma ameaça na mesa no momento...</span>
+                </div>
+                
+                <div style="margin-bottom: 10px;">
+                    <label style="color:#b89c72;">Alvos Disponíveis</label>
+                    <div id="alvos-combate-slot${numSlot}" style="background: rgba(0,0,0,0.5); border: 1px solid #5c1818; padding: 5px; border-radius: 4px; overflow-y:auto; max-height:130px; display:flex; flex-direction:column; gap:5px;">
+                        <!-- Populated via JS dynamically -->
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 15px;">
+                    <label style="color:#b89c72; margin:0;">Dano</label>
+                    <input type="number" id="slot${numSlot}-jogador-ataque-dano" class="editavel-slot${numSlot}" placeholder="Valor" style="text-align:center; font-size: 16px; padding: 5px; border-color:#d4af37; color:#fff; width: 70px;">
+                    
+                    <label class="checkbox-alvo" style="padding: 5px; border:1px dashed #d95757; border-radius:4px; flex: 1; display:flex; justify-content:center;"><input type="checkbox" id="slot${numSlot}-jogador-critico"> 🔥 Crítico</label>
+                </div>
+
+                <div style="display:flex; gap:10px; margin-top:15px;">
+                    <button onclick="jogadorAtacar(${numSlot}, false)" class="btn-acao-intenso" style="width:100%; font-size: 16px;">⚔️ ATACAR</button>
+                </div>
+            </div>
+        </div>
+    </div>`;
+    }
+
+    return sidebarHtml + `
+    <!-- FICHA PRINCIPAL -->
+    <div class="container" id="container-slot${numSlot}-heroi">
+        <div class="header-grid" style="align-items: flex-start;">
+            <!-- Coluna Esquerda: Foto -->
+            <div style="display: flex; flex-direction: column; align-items: center;">
+                <img id="img-foto-slot${numSlot}" class="foto-personagem" src="" alt="Sem foto">
+                <label class="btn-upload editavel-slot${numSlot}-label">📁 Enviar do PC<input type="file" class="editavel-slot${numSlot}" accept="image/*" style="display:none;" onchange="processarUploadOtimizado(event, ${numSlot})"></label>
+            </div>
+            
+            <!-- Coluna Direita: Info -->
+            <div class="info-grid">
+                <div style="display: flex; gap: 10px; grid-column: span 2; align-items: center; border-bottom: 1px dashed #3a2212; padding-bottom: 10px;">
+                    <div style="flex: 1;"><label>Nome do Personagem</label><input type="text" id="slot${numSlot}-nome" class="editavel-slot${numSlot}"></div>
+                    <div style="width: 130px; text-align: center;">
+                        <label style="color:#d4af37; font-size: 14px; letter-spacing: 2px;">NÍVEL</label>
+                        <div class="level-display" id="slot${numSlot}-level-display" data-current-level="1" style="font-size: 26px;">LV. <span id="slot${numSlot}-num-level">1</span></div>
+                    </div>
+                </div>
+                <div><label>Jogador</label><input type="text" id="slot${numSlot}-jogador" class="editavel-slot${numSlot}" readonly></div>
+                <div>
+                    <label>Raça</label>
+                    <select id="slot${numSlot}-raca" class="editavel-slot${numSlot}">
+                        <option value="">Nenhuma</option>
+                        <option value="Humanos">Humanos</option>
+                        <option value="Elfo">Elfo</option>
+                        <option value="Anão">Anão</option>
+                        <option value="Orc">Orc</option>
+                        <option value="Gnomo">Gnomo</option>
+                        <option value="Halfiling">Halfiling</option>
+                        <option value="Khajiit">Khajiit</option>
+                        <option value="Argoniano">Argoniano</option>
+                    </select>
+                </div>
+                <div>
+                    <label>Classe</label>
+                    <select id="slot${numSlot}-classe" class="editavel-slot${numSlot}">
+                        <option value="">Nenhuma</option>
+                        <option value="Guerreiro">Guerreiro</option>
+                        <option value="Paladino">Paladino</option>
+                        <option value="Druida">Druida</option>
+                        <option value="Bárbaro">Bárbaro</option>
+                        <option value="Arqueiro">Arqueiro</option>
+                        <option value="Ladino">Ladino</option>
+                        <option value="Mago">Mago</option>
+                        <option value="Curandeiro">Curandeiro</option>
+                        <option value="Bardo">Bardo</option>
+                        <option value="Monge">Monge</option>
+                    </select>
+                </div>
+                <div><label>Gênero</label><input type="text" id="slot${numSlot}-genero" class="editavel-slot${numSlot}"></div>
+                
+                <!-- Árvore logo abaixo das caixas de texto -->
+                <div style="grid-column: span 2; margin-top: 15px;">
+                    <button class="btn-mini-acao editavel-slot${numSlot}" onclick="abrirArvoreHabilidades('${numSlot}')" style="width: 100%; padding: 12px; font-size: 16px; border-color: #d4af37; color: #d4af37; box-shadow: 0 0 15px rgba(212, 175, 55, 0.3); background: rgba(0,0,0,0.6); letter-spacing: 1px;">📜 ÁRVORE DE HABILIDADES</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="section-title" style="margin-top: 15px; margin-bottom: 0;">Essência Vital</div>
+        <div class="status-grid" style="grid-template-columns: repeat(2, 1fr); gap: 15px; margin: 5px 0 20px 0; padding: 20px;">
+            <div id="caixa-hp-slot${numSlot}" class="caixa-status" style="grid-column: span 1;">
+                <label style="color: #27ae60; text-align: center;">HP</label>
+                <div class="fraction-input" style="justify-content: center;">
+                    <input type="number" id="slot${numSlot}-hp-atual" class="editavel-slot${numSlot}" style="color: #27ae60;"><span>/</span><span id="slot${numSlot}-hp-efetivo" style="color: #27ae60; font-size: 20px; font-weight: bold; width:40px; display:inline-block; text-align:left;">20</span>
+                </div>
+                <div class="mestre-only-flex" style="display: none; justify-content: center;">
+                    <label style="margin:0; color:#9c8464;">Base Máx (Mestre):</label>
+                    <input type="number" id="slot${numSlot}-hp-max" class="editavel-slot${numSlot} mestre-unlocked" title="Vida Base Máxima (Padrão 20)" style="width:50px; padding:2px; font-size:11px;">
+                </div>
+                <div class="bar-bg"><div class="bar-fill hp-fill" id="bar-hp-slot${numSlot}" style="width: 100%;"></div><div class="shield-fill" id="bar-shield-slot${numSlot}" style="width: 0%;"></div><div class="hp-text-overlay" id="txt-escudo-slot${numSlot}"></div></div>
+            </div>
+            <div class="caixa-status" style="grid-column: span 1;">
+                <label style="color: #2980b9; text-align: center;">MANA</label>
+                <div class="fraction-input" style="justify-content: center;">
+                    <input type="number" id="slot${numSlot}-mana-atual" class="editavel-slot${numSlot}" style="color: #2980b9;"><span>/</span><span id="slot${numSlot}-mana-efetivo" style="color: #2980b9; font-size: 20px; font-weight: bold; width:40px; display:inline-block; text-align:left;">20</span>
+                </div>
+                <div class="mestre-only-flex" style="display: none; justify-content: center;">
+                    <label style="margin:0; color:#9c8464;">Base Máx (Mestre):</label>
+                    <input type="number" id="slot${numSlot}-mana-max" class="editavel-slot${numSlot} mestre-unlocked" title="Mana Base Máxima (Padrão 20)" style="width:50px; padding:2px; font-size:11px;">
+                </div>
+                <div class="bar-bg"><div class="bar-fill mana-fill" id="bar-mana-slot${numSlot}" style="width: 100%;"></div></div>
+            </div>
+            <div class="caixa-status" style="padding: 10px; grid-column: span 2;">
+                <div style="display:flex; justify-content: space-between; align-items: flex-end; margin-bottom: 5px;">
+                    <label style="color: #ffd700; margin: 0; text-shadow: 1px 1px 2px black;">EXPERIÊNCIA</label>
+                    <div id="slot${numSlot}-exp-text" class="exp-text">0 / 100</div>
+                </div>
+                <div class="bar-bg" style="height: 14px; position: relative;">
+                    <div class="bar-fill exp-fill" id="bar-exp-slot${numSlot}" style="width: 0%;"></div>
+                </div>
+            </div>
+            <div style="text-align: center;"><label>Ação (AP)</label><input type="number" id="slot${numSlot}-ap" class="editavel-slot${numSlot}" style="color:#d99c57; width: 60%; margin: 0 auto; display: block; text-align: center;"></div>
+            <div style="text-align: center;"><label>Moedas de Ouro</label><input type="number" id="slot${numSlot}-ouro" class="editavel-slot${numSlot}" style="color:#d4af37; width: 60%; margin: 0 auto; display: block; text-align: center;"></div>
+            <div style="grid-column: span 2;"><label>Condição Física</label><input type="text" id="slot${numSlot}-condicao" class="editavel-slot${numSlot}"></div>
+        </div>
+
+        <div class="section-title">Atributos <span id="slot${numSlot}-pts-livres" style="font-size: 14px; color: #ffd700; font-weight: bold;">( 0 / 10 )</span></div>
+        <div class="atributos-grid">
+            <div class="attr-box"><label>FOR</label><input type="number" id="slot${numSlot}-for" class="editavel-slot${numSlot}"></div>
+            <div class="attr-box"><label>DES</label><input type="number" id="slot${numSlot}-des" class="editavel-slot${numSlot}"></div>
+            <div class="attr-box"><label>CON</label><input type="number" id="slot${numSlot}-con" class="editavel-slot${numSlot}"></div>
+            <div class="attr-box"><label>INT</label><input type="number" id="slot${numSlot}-int" class="editavel-slot${numSlot}"></div>
+            <div class="attr-box"><label>SAB</label><input type="number" id="slot${numSlot}-sab" class="editavel-slot${numSlot}"></div>
+            <div class="attr-box"><label>CAR</label><input type="number" id="slot${numSlot}-car" class="editavel-slot${numSlot}"></div>
+            <div class="attr-box"><label>PER</label><input type="number" id="slot${numSlot}-per" class="editavel-slot${numSlot}"></div>
+        </div>
+
+        <div class="section-title">Itens Equipados</div>
+        <div class="equipamentos-container">${eqHtml}</div>
+
+        <div class="section-title">Buff e Debuff</div>
+        <div class="buff-container">
+            <div class="buff-input-grid esconder-jogador">
+                <input type="text" id="slot${numSlot}-novo-buff-nome" class="editavel-slot${numSlot}" placeholder="Nome">
+                <input type="number" id="slot${numSlot}-novo-buff-hp" class="editavel-slot${numSlot}" placeholder="HP/T">
+                <input type="number" id="slot${numSlot}-novo-buff-mana" class="editavel-slot${numSlot}" placeholder="MN/T">
+                <select id="slot${numSlot}-novo-buff-attr" class="editavel-slot${numSlot}"><option value="">Nenhum</option><option value="for">FOR</option><option value="des">DES</option><option value="con">CON</option><option value="int">INT</option><option value="sab">SAB</option><option value="car">CAR</option><option value="per">PER</option></select>
+                <input type="number" id="slot${numSlot}-novo-buff-mod" class="editavel-slot${numSlot}" placeholder="Mod">
+                <input type="number" id="slot${numSlot}-novo-buff-turnos" class="editavel-slot${numSlot}" placeholder="Turnos">
+                <button class="editavel-slot${numSlot}" onclick="adicionarEfeito(${numSlot})" style="padding: 5px;">ADD</button>
+            </div>
+            <div id="lista-efeitos-slot${numSlot}"></div>
+        </div>
+
+        <div class="section-title">Descrições</div>
+        <div class="info-grid" style="grid-template-columns: 1fr;">
+            <textarea id="slot${numSlot}-extra" class="editavel-slot${numSlot}" rows="6" placeholder="Anotações livres..."></textarea>
+        </div>
+
+    </div>`;
+}
+
+window.toggleSidebarJogador = function(numSlot) {
+    const sidebar = document.getElementById(`sidebar-jogador-slot${numSlot}`);
+    const btn = document.getElementById(`btn-toggle-jogador-slot${numSlot}`);
+    if (sidebar.classList.contains('sidebar-fechada')) {
+        sidebar.classList.remove('sidebar-fechada');
+        btn.innerText = '<';
+    } else {
+        sidebar.classList.add('sidebar-fechada');
+        btn.innerText = '>';
+    }
+}
+window.toggleSidebarJogador = function(numSlot) {
+    const sidebar = document.getElementById(`sidebar-jogador-slot${numSlot}`);
+    const btn = document.getElementById(`btn-toggle-jogador-slot${numSlot}`);
+    if (sidebar.classList.contains('sidebar-fechada')) {
+        sidebar.classList.remove('sidebar-fechada');
+        btn.innerText = '<';
+    } else {
+        sidebar.classList.add('sidebar-fechada');
+        btn.innerText = '>';
+    }
+}
 
         function gerarHtmlMonstro(numSlot) {
             let alvosHtml = playersList.map(p => `<label class="checkbox-alvo"><input type="checkbox" value="${p}" class="alvo-ataque-slot${numSlot}"> ${p}</label>`).join('');
@@ -640,9 +279,14 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
                 <div class="header-grid" style="grid-template-columns: 100px 1fr;">
                     <div style="display: flex; flex-direction: column;">
                         <img id="img-foto-monstro-slot${numSlot}" class="foto-personagem" src="" alt="Sem foto" style="width:100px; height:100px;">
-                        <label class="btn-upload editavel-slot${numSlot}-label esconder-jogador">📁 Upload<input type="file" class="editavel-slot${numSlot}" accept="image/png, image/jpeg, image/webp" style="display:none;" onchange="processarUploadOtimizado(event, ${numSlot})"></label>
+                        <label class="btn-upload editavel-slot${numSlot}-label esconder-jogador">📷 Upload<input type="file" class="editavel-slot${numSlot}" accept="image/*" style="display:none;" onchange="processarUploadOtimizado(event, ${numSlot})"></label>
                     </div>
-                    <div style="display: flex; flex-direction: column; justify-content: center;">
+                    <div style="display: flex; flex-direction: column; justify-content: center; position: relative;">
+                        <div class="mestre-acoes-ficha esconder-jogador" style="position: absolute; top: -10px; right: 0; display: flex; gap: 5px;">
+                            <button onclick="lancarAmeacaFicha(${numSlot})" style="background: rgba(0,0,0,0.5); border: 1px solid #d4af37; color: #d4af37; padding: 3px 8px; font-size: 10px; cursor: pointer;">👁️ Lançar</button>
+                            <button onclick="abaterAmeacaFicha(${numSlot})" style="background: rgba(0,0,0,0.5); border: 1px solid #8c1c13; color: #d95757; padding: 3px 8px; font-size: 10px; cursor: pointer;">🩸 Abater</button>
+                            <button onclick="deletarAmeacaFicha(${numSlot})" style="background: rgba(0,0,0,0.5); border: 1px solid #5c1818; color: #8c1c13; padding: 3px 8px; font-size: 10px; cursor: pointer;">🗑️ Apagar</button>
+                        </div>
                         <label style="color:#a84242; font-size: 14px;">Ameaça</label>
                         <input type="text" id="slot${numSlot}-monstro-nome" class="editavel-slot${numSlot}" style="font-size: 24px; font-weight: bold; margin-bottom: 10px;">
                     </div>
@@ -655,7 +299,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
                         <div class="fraction-input">
                             <input type="number" id="slot${numSlot}-monstro-hp-atual" class="editavel-slot${numSlot}" style="color: #27ae60;"><span>/</span><input type="number" id="slot${numSlot}-monstro-hp-max" class="editavel-slot${numSlot} mestre-unlocked" style="color: #27ae60;">
                         </div>
-                        <div class="bar-bg"><div class="bar-fill hp-fill" id="bar-hp-monstro-slot${numSlot}" style="width: 100%;"></div></div>
+                        <div class="bar-bg"><div class="bar-fill hp-fill" id="bar-hp-monstro-slot${numSlot}" style="width: 100%;"></div><div class="shield-fill" id="bar-shield-monstro-slot${numSlot}" style="width: 0%;"></div><div class="hp-text-overlay" id="txt-escudo-monstro-slot${numSlot}"></div></div>
                     </div>
                     <div class="caixa-status">
                         <label style="color: #2980b9; text-align: center;">MANA</label>
@@ -670,9 +314,12 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
                 <div class="section-title esconder-jogador">Ação Ofensiva (Mestre)</div>
                 <div class="buff-container esconder-jogador">
                     <div style="display: flex; gap: 15px; align-items: flex-end; flex-wrap: wrap;">
-                        <div><label style="color: #d95757;">Dano</label><input type="number" id="slot${numSlot}-ataque-dano" class="editavel-slot${numSlot}" placeholder="Valor" style="width: 80px;"></div>
-                        <div style="flex: 1;"><label style="color: #b89c72;">Alvos (Players)</label><div style="display: flex; gap: 15px; flex-wrap: wrap; background: rgba(0,0,0,0.5); padding: 10px; border: 1px solid #3a2212; border-radius: 4px; min-height: 20px; align-items: center;">${alvosHtml}</div></div>
-                        <button class="editavel-slot${numSlot}" onclick="executarAtaque(${numSlot})" style="background: linear-gradient(to bottom, #752020, #4a1111); border-color:#8c1c13; padding: 10px 20px;">ATACAR ⚔️</button>
+                        <div><label style="color: #d95757;">Dano</label><input type="number" id="slot${numSlot}-ataque-dano" class="editavel-slot${numSlot}" placeholder="Valor" style="width: 80px; text-align: center; font-size: 16px; border-color: #8c1c13; color: #fff;"></div>
+                        <div style="flex: 1;">
+                            <label style="color: #b89c72;">Alvos (Players)</label>
+                            <div style="display: flex; gap: 15px; flex-wrap: wrap; background: rgba(20, 10, 5, 0.8); padding: 10px; border: 1px solid #5c3a21; border-radius: 4px; min-height: 20px; align-items: center;">${alvosHtml}</div>
+                        </div>
+                        <button class="editavel-slot${numSlot}" onclick="executarAtaque(${numSlot})" style="background: linear-gradient(to bottom, #8c1c13, #4a1111); border-color:#d95757; color: #fff; padding: 10px 20px; font-weight: bold; text-shadow: 1px 1px 2px black;">⚔️ ATACAR</button>
                     </div>
                 </div>
                 
@@ -735,8 +382,9 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
                     document.getElementById('badge-cargo').style.borderColor = "#8c1c13";
                     document.getElementById('badge-cargo').style.color = "#a84242";
                     document.getElementById('painel-mestre').style.display = "flex";
+                    document.getElementById('sidebar-mestre').style.display = "flex";
                     document.getElementById('btn-toggle-hud').style.display = "block"; 
-                    preencherDropdownsMestre();
+                    atualizarSidebarMestre();
                     initHudGlobais();
                 } else {
                     document.getElementById('seletor-jogador').style.display = "block";
@@ -756,12 +404,12 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
         function iniciarOuvintesGerais() {
             onValue(ref(database, 'lista_monstros'), (snapshot) => {
                 monstrosNoBanco = snapshot.val() || {};
-                if(usuarioAtual.cargo === "Mestre") preencherDropdownsMestre();
+                if(usuarioAtual.cargo === "Mestre") atualizarSidebarMestre();
             });
 
             onValue(ref(database, 'hordas'), (snapshot) => {
                 hordasNoBanco = snapshot.val() || {};
-                if(usuarioAtual.cargo === "Mestre") preencherDropdownsMestre();
+                if(usuarioAtual.cargo === "Mestre") atualizarSidebarMestre();
             });
 
             onValue(ref(database, 'estado_combate/ativo'), (snapshot) => {
@@ -774,83 +422,185 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
                     } else {
                         limparSlot(2);
                     }
+                    atualizarAlvosJogador(ameacaEmCombateGlobal);
                 }
                 if (usuarioAtual.cargo === "Mestre") {
-                    atualizarBotoesMestre();
+                    // Sem ação no momento, estado combate livre para Mestre
                 }
-                // Sidebar: re-renderizar alvos com nova ameaça
-                if (typeof sbAtualizar === 'function') sbAtualizar();
             });
         }
 
         // ==========================================
-        // GESTÃO DE MENUS E SLOTS DO MESTRE
+        // GESTÃO DE MENUS E SLOTS DO MESTRE (NOVO)
         // ==========================================
-        function preencherDropdownsMestre() {
+        let ouvinteAlvoJogador = null;
+        let refAlvoJogador = null;
+
+        function atualizarAlvosJogador(ameacaId) {
+            let nomeSpan = document.getElementById(`nome-ameaca-ativa-slot1`);
+            let alvosDiv = document.getElementById(`alvos-combate-slot1`);
+            if(!nomeSpan || !alvosDiv) return;
+
+            if(typeof ouvinteAlvoJogador === 'function') {
+                ouvinteAlvoJogador();
+            }
+
+            if(!ameacaId) {
+                nomeSpan.innerText = "Nenhuma ameaça na mesa no momento...";
+                alvosDiv.innerHTML = "";
+                return;
+            }
+
+            if(ameacaId.startsWith('horda_')) {
+                refAlvoJogador = ref(database, 'hordas/' + ameacaId);
+                ouvinteAlvoJogador = onValue(refAlvoJogador, (snap) => {
+                    if(snap.exists()) {
+                        let horda = snap.val();
+                        nomeSpan.innerText = horda.nome || 'Horda';
+                        let html = '';
+                        for(let mId in horda.membros) {
+                            let hpAtual = Number(horda.membros[mId]['hp-atual']) || 0;
+                            if(hpAtual > 0) {
+                                html += `<label class="checkbox-alvo" style="color:#d95757; font-size:12px; margin-bottom:2px;"><input type="checkbox" value="${ameacaId}_${mId}"> ${horda.nome || 'Horda'} #${mId} (HP: ${hpAtual})</label>`;
+                            }
+                        }
+                        alvosDiv.innerHTML = html;
+                    } else {
+                        nomeSpan.innerText = "Ameaça removida.";
+                        alvosDiv.innerHTML = "";
+                    }
+                });
+            } else {
+                refAlvoJogador = ref(database, 'fichas/' + ameacaId);
+                ouvinteAlvoJogador = onValue(refAlvoJogador, (snap) => {
+                    if(snap.exists()) {
+                        let m = snap.val();
+                        let hpAtual = Number(m['hp-atual']) || 0;
+                        if(hpAtual > 0) {
+                            nomeSpan.innerText = m.nome || 'Monstro';
+                            alvosDiv.innerHTML = `<label class="checkbox-alvo" style="color:#d95757; font-size:12px;"><input type="checkbox" value="${ameacaId}"> ${m.nome || 'Monstro'} (HP: ${hpAtual})</label>`;
+                        } else {
+                            nomeSpan.innerText = (m.nome || 'Monstro') + " (Derrotado)";
+                            alvosDiv.innerHTML = "";
+                        }
+                    } else {
+                        nomeSpan.innerText = "Ameaça removida.";
+                        alvosDiv.innerHTML = "";
+                    }
+                });
+            }
+        }
+
+        function atualizarSidebarMestre() {
             if(usuarioAtual.cargo !== "Mestre") return;
             
-            let htmlJogadores = `<option value="">👤 Jogadores...</option>` + playersList.map(p => `<option value="${p}">${p.toUpperCase()}</option>`).join('');
-            let htmlMonstros = `<option value="">💀 Monstros...</option>`;
-            for(let id in monstrosNoBanco) { htmlMonstros += `<option value="${id}">${monstrosNoBanco[id].nome}</option>`; }
-            
-            let htmlHordas = `<option value="">🛡️ Hordas...</option>`;
-            for(let id in hordasNoBanco) { htmlHordas += `<option value="${id}">${hordasNoBanco[id].nome}</option>`; }
-            
-            ['1', '2'].forEach(t => {
-                let sP = document.getElementById(`mestre-t${t}-player`);
-                let sM = document.getElementById(`mestre-t${t}-monstro`);
-                let sH = document.getElementById(`mestre-t${t}-horda`);
-                let vP = sP.value, vM = sM.value, vH = sH.value;
-                
-                sP.innerHTML = htmlJogadores; sP.value = vP;
-                sM.innerHTML = htmlMonstros; sM.value = vM;
-                sH.innerHTML = htmlHordas; sH.value = vH;
+            // Popula Jogadores
+            let htmlJogadores = '';
+            playersList.forEach(p => {
+                htmlJogadores += `
+                    <div class="item-acervo">
+                        <span class="item-acervo-nome">${p.toUpperCase()}</span>
+                        <div class="item-acervo-botoes">
+                            <button class="btn-slot-acervo" onclick="mestreAbrir(1, 'heroi', '${p}')">1</button>
+                            <button class="btn-slot-acervo" onclick="mestreAbrir(2, 'heroi', '${p}')">2</button>
+                        </div>
+                    </div>
+                `;
             });
+            document.getElementById('cat-jogadores').innerHTML = htmlJogadores;
 
-            const selAmeaca = document.getElementById('seletor-ameaca');
-            let vAmeaca = selAmeaca.value;
-            let optMonstros = ``; let optHordas = ``;
-            for(let id in monstrosNoBanco) { optMonstros += `<option value="${id}">💀 ${monstrosNoBanco[id].nome}</option>`; }
-            for(let id in hordasNoBanco) { optHordas += `<option value="${id}">🛡️ ${hordasNoBanco[id].nome}</option>`; }
+            // Popula Monstros
+            let htmlMonstros = '';
+            for(let id in monstrosNoBanco) {
+                htmlMonstros += `
+                    <div class="item-acervo">
+                        <span class="item-acervo-nome">${monstrosNoBanco[id].nome}</span>
+                        <div class="item-acervo-botoes">
+                            <button class="btn-slot-acervo" onclick="mestreAbrir(1, 'monstro', '${id}')">1</button>
+                            <button class="btn-slot-acervo" onclick="mestreAbrir(2, 'monstro', '${id}')">2</button>
+                        </div>
+                    </div>
+                `;
+            }
+            document.getElementById('cat-monstros').innerHTML = htmlMonstros;
+
+            // Popula Hordas
+            let htmlHordas = '';
+            for(let id in hordasNoBanco) {
+                htmlHordas += `
+                    <div class="item-acervo">
+                        <span class="item-acervo-nome">${hordasNoBanco[id].nome}</span>
+                        <div class="item-acervo-botoes">
+                            <button class="btn-slot-acervo" onclick="mestreAbrir(1, 'horda', '${id}')">1</button>
+                            <button class="btn-slot-acervo" onclick="mestreAbrir(2, 'horda', '${id}')">2</button>
+                        </div>
+                    </div>
+                `;
+            }
+            document.getElementById('cat-hordas').innerHTML = htmlHordas;
+        }
+
+        window.mudarQtdItem = async function(numSlot, i, delta) {
+            if(usuarioAtual.cargo !== "Mestre" && usuarioAtual.idFicha !== slotsDeVisao[numSlot].idFicha) return;
             
-            document.getElementById('optgroup-monstros').innerHTML = optMonstros;
-            document.getElementById('optgroup-hordas').innerHTML = optHordas;
+            let inputId = `slot${numSlot}-item${i}-qtd`;
+            let input = document.getElementById(inputId);
+            if(!input) return;
+            let current = Number(input.value) || 0;
+            let newVal = current + delta;
+            if(newVal < 0) newVal = 0;
+            if(newVal === current) return;
+            input.value = newVal;
             
-            if (vAmeaca && (monstrosNoBanco[vAmeaca] || hordasNoBanco[vAmeaca])) {
-                selAmeaca.value = vAmeaca;
+            // Trigger input event to save to Firebase
+            input.dispatchEvent(new Event('input'));
+        }
+
+        window.toggleSidebarMestre = function() {
+            const sidebar = document.getElementById('sidebar-mestre');
+            const seta = document.getElementById('seta-sidebar');
+            if (sidebar.classList.contains('sidebar-fechada')) {
+                sidebar.classList.remove('sidebar-fechada');
+                seta.innerText = '▶';
+            } else {
+                sidebar.classList.add('sidebar-fechada');
+                seta.innerText = '◀';
+            }
+        }
+
+        window.toggleCategoria = function(catId) {
+            let div = document.getElementById(catId);
+            if(!div) return;
+            let btn = div.previousElementSibling;
+            if (div.style.display === 'none') {
+                div.style.display = 'block';
+                if(btn) btn.classList.remove('fechado');
+            } else {
+                div.style.display = 'none';
+                if(btn) btn.classList.add('fechado');
             }
         }
 
         window.mestreAbrir = function(numSlot, tipo, valor) {
             if(!valor) return;
-            if(tipo !== 'heroi') document.getElementById(`mestre-t${numSlot}-player`).value = '';
-            if(tipo !== 'monstro') document.getElementById(`mestre-t${numSlot}-monstro`).value = '';
-            if(tipo !== 'horda') document.getElementById(`mestre-t${numSlot}-horda`).value = '';
+            const outroSlot = numSlot === 1 ? 2 : 1;
+            if (slotsDeVisao[outroSlot].idFicha === valor && slotsDeVisao[outroSlot].tipo === tipo) {
+                limparSlot(outroSlot);
+            }
             abrirFichaNoSlot(numSlot, tipo, valor);
         }
 
         window.mestreLimpar = function(numSlot) {
-            document.getElementById(`mestre-t${numSlot}-player`).value = '';
-            document.getElementById(`mestre-t${numSlot}-monstro`).value = '';
-            document.getElementById(`mestre-t${numSlot}-horda`).value = '';
             limparSlot(numSlot);
         }
 
         function limparSlot(numSlot) {
-            document.getElementById('slot-' + numSlot).innerHTML = '';
-            document.getElementById('slot-' + numSlot).style.display = 'none';
-            if (slotsDeVisao[numSlot] && slotsDeVisao[numSlot].ouvinte) { 
-                slotsDeVisao[numSlot].ouvinte(); 
-                slotsDeVisao[numSlot].ouvinte = null;
-            }
+            document.getElementById(`slot-${numSlot}`).style.display = 'none';
+            document.getElementById(`container-slot${numSlot}-heroi`).style.display = 'none';
+            document.getElementById(`container-slot${numSlot}-monstro`).style.display = 'none';
+            document.getElementById(`container-slot${numSlot}-horda`).style.display = 'none';
+            if (slotsDeVisao[numSlot].ouvinte) { slotsDeVisao[numSlot].ouvinte(); }
             slotsDeVisao[numSlot] = { ouvinte: null, idFicha: null, tipo: null, dados: {} };
-
-            // Cleanup: estado órfão do modal
-            if (typeof _grimorioModal !== 'undefined' && _grimorioModal.aberto && _grimorioModal.numSlot === numSlot) {
-                if (typeof fecharGrimorio === 'function') fecharGrimorio();
-            }
-            // Atualizar sidebar se fechar o slot de herói
-            if (typeof sbAtualizar === 'function') sbAtualizar();
         }
 
         function formatarIdElemento(numSlot, tipoFicha, campoDB) {
@@ -869,7 +619,16 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
 
         function renderizarHtmlHordaDinamico(idHorda, membros, numSlot) {
             let nomeHorda = hordasNoBanco[idHorda] ? hordasNoBanco[idHorda].nome : "Horda";
-            let h = `<div class="section-title" style="color:#d4af37; border-color:#8b6d43; margin-top:0;">🛡️ ${nomeHorda}</div>`;
+            let h = `
+            <div style="position: relative;">
+                <div class="mestre-acoes-ficha esconder-jogador" style="position: absolute; top: 5px; right: 5px; display: flex; gap: 5px; z-index: 10;">
+                    <button onclick="lancarAmeacaFicha(${numSlot})" style="background: rgba(0,0,0,0.5); border: 1px solid #d4af37; color: #d4af37; padding: 3px 8px; font-size: 10px; cursor: pointer;">👁️ Lançar</button>
+                    <button onclick="abaterAmeacaFicha(${numSlot})" style="background: rgba(0,0,0,0.5); border: 1px solid #8c1c13; color: #d95757; padding: 3px 8px; font-size: 10px; cursor: pointer;">🩸 Abater</button>
+                    <button onclick="deletarAmeacaFicha(${numSlot})" style="background: rgba(0,0,0,0.5); border: 1px solid #5c1818; color: #8c1c13; padding: 3px 8px; font-size: 10px; cursor: pointer;">🗑️ Apagar</button>
+                </div>
+                <div class="section-title" style="color:#d4af37; border-color:#8b6d43; margin-top:0;">🛡️ ${nomeHorda}</div>
+            </div>
+            `;
             h += `<div style="display:flex; flex-direction:column; gap:15px; margin-top:15px;">`;
             
             for(let mId in membros) {
@@ -888,49 +647,66 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
                 let isAlertaMorte = (percHp <= 10 && hpMax > 0 && hpAtual > 0) ? 'alerta-morte' : '';
 
                 h += `
-                <div class="horda-member-card">
-                    <div style="display:flex; justify-content: start; align-items:center; gap: 20px; margin-bottom: 10px; border-bottom: 1px dashed #5c1818; padding-bottom: 5px;">
-                        <h4 style="color:#a84242; margin:0; text-transform: uppercase; font-size: 14px;">${m.nome}</h4>
+                <div class="horda-member-card" style="display: flex; flex-direction: column; background: rgba(0,0,0,0.3); border: 1px solid #4a2e1b; border-radius: 4px; padding: 10px;">
+                    <div style="display:flex; justify-content: space-between; align-items:center; gap: 20px; flex-wrap: wrap;">
+                        <h4 style="color:#a84242; margin:0; text-transform: uppercase; font-size: 14px; min-width: 100px;">${m.nome}</h4>
                         
-                        <div style="display:flex; gap:12px;">
+                        <div style="display:flex; gap:15px; flex: 1;">
                             <div id="caixa-hp-horda-${mId}" class="caixa-status ${isAlertaMorte}" style="padding: 2px; flex: 1;">
-                                <div style="color:#27ae60; font-size:10px; font-weight:bold; display: flex; justify-content: center; align-items: center; gap: 3px;">
+                                <div style="color:#27ae60; font-size:11px; font-weight:bold; display: flex; justify-content: center; align-items: center; gap: 3px;">
                                     HP: 
-                                    <input type="number" id="horda-${mId}-hp-atual" class="horda-compact-input editavel-slot${numSlot}" value="${hpAtual}" style="width:45px; color:#27ae60; padding:1px; font-size: 10px;"> / 
-                                    <input type="number" id="horda-${mId}-hp-max" class="horda-compact-input mestre-unlocked" value="${hpMax}" style="width:45px; color:#27ae60; padding:1px; font-size: 10px;" disabled>
+                                    <input type="number" id="horda-${mId}-hp-atual" class="horda-compact-input editavel-slot${numSlot}" value="${hpAtual}" style="width:50px; color:#27ae60; padding:2px; font-size: 12px; text-align: center;"> / 
+                                    <input type="number" id="horda-${mId}-hp-max" class="horda-compact-input mestre-unlocked" value="${hpMax}" style="width:50px; color:#27ae60; padding:2px; font-size: 12px; text-align: center;" disabled>
                                 </div>
-                                <div class="bar-bg" style="height: 5px; margin-top: 3px;"><div class="bar-fill hp-fill" id="bar-hp-horda-${mId}" style="width: ${percHp}%;"></div></div>
+                                <div class="bar-bg" style="height: 6px; margin-top: 4px;"><div class="bar-fill hp-fill" id="bar-hp-horda-${mId}" style="width: ${percHp}%;"></div><div class="shield-fill" id="bar-shield-horda-${mId}" style="width: 0%;"></div><div class="hp-text-overlay" id="txt-escudo-horda-${mId}" style="font-size: 9px;"></div></div>
                             </div>
                             
                             <div id="caixa-mana-horda-${mId}" class="caixa-status" style="padding: 2px; flex: 1;">
-                                <div style="color:#2980b9; font-size:10px; font-weight:bold; display: flex; justify-content: center; align-items: center; gap: 3px;">
+                                <div style="color:#2980b9; font-size:11px; font-weight:bold; display: flex; justify-content: center; align-items: center; gap: 3px;">
                                     MP: 
-                                    <input type="number" id="horda-${mId}-mana-atual" class="horda-compact-input editavel-slot${numSlot}" value="${manaAtual}" style="width:45px; color:#2980b9; padding:1px; font-size: 10px;"> / 
-                                    <input type="number" id="horda-${mId}-mana-max" class="horda-compact-input mestre-unlocked" value="${manaMax}" style="width:45px; color:#2980b9; padding:1px; font-size: 10px;" disabled>
+                                    <input type="number" id="horda-${mId}-mana-atual" class="horda-compact-input editavel-slot${numSlot}" value="${manaAtual}" style="width:50px; color:#2980b9; padding:2px; font-size: 12px; text-align: center;"> / 
+                                    <input type="number" id="horda-${mId}-mana-max" class="horda-compact-input mestre-unlocked" value="${manaMax}" style="width:50px; color:#2980b9; padding:2px; font-size: 12px; text-align: center;" disabled>
                                 </div>
-                                <div class="bar-bg" style="height: 5px; margin-top: 3px;"><div class="bar-fill mana-fill" id="bar-mana-horda-${mId}" style="width: ${percMana}%;"></div></div>
+                                <div class="bar-bg" style="height: 6px; margin-top: 4px;"><div class="bar-fill mana-fill" id="bar-mana-horda-${mId}" style="width: ${percMana}%;"></div></div>
                             </div>
                         </div>
                         
-                    </div>
-                    <div class="atributos-grid" style="grid-template-columns: repeat(7, 1fr); gap: 4px; margin-top: 5px;">
-                        <div class="attr-box" style="padding: 4px;"><label style="font-size:9px;">FOR</label><input type="number" id="horda-${mId}-for" class="horda-compact-input editavel-slot${numSlot}" value="${m.for || 0}" style="font-size:12px; width:100%; box-sizing:border-box;"></div>
-                        <div class="attr-box" style="padding: 4px;"><label style="font-size:9px;">DES</label><input type="number" id="horda-${mId}-des" class="horda-compact-input editavel-slot${numSlot}" value="${m.des || 0}" style="font-size:12px; width:100%; box-sizing:border-box;"></div>
-                        <div class="attr-box" style="padding: 4px;"><label style="font-size:9px;">CON</label><input type="number" id="horda-${mId}-con" class="horda-compact-input editavel-slot${numSlot}" value="${m.con || 0}" style="font-size:12px; width:100%; box-sizing:border-box;"></div>
-                        <div class="attr-box" style="padding: 4px;"><label style="font-size:9px;">INT</label><input type="number" id="horda-${mId}-int" class="horda-compact-input editavel-slot${numSlot}" value="${m.int || 0}" style="font-size:12px; width:100%; box-sizing:border-box;"></div>
-                        <div class="attr-box" style="padding: 4px;"><label style="font-size:9px;">SAB</label><input type="number" id="horda-${mId}-sab" class="horda-compact-input editavel-slot${numSlot}" value="${m.sab || 0}" style="font-size:12px; width:100%; box-sizing:border-box;"></div>
-                        <div class="attr-box" style="padding: 4px;"><label style="font-size:9px;">CAR</label><input type="number" id="horda-${mId}-car" class="horda-compact-input editavel-slot${numSlot}" value="${m.car || 0}" style="font-size:12px; width:100%; box-sizing:border-box;"></div>
-                        <div class="attr-box" style="padding: 4px;"><label style="font-size:9px;">PER</label><input type="number" id="horda-${mId}-per" class="horda-compact-input editavel-slot${numSlot}" value="${m.per || 0}" style="font-size:12px; width:100%; box-sizing:border-box;"></div>
-                    </div>
-                    <div class="esconder-jogador" style="margin-top: 15px; display:flex; gap:10px; align-items:center;">
-                        <input type="number" id="ataque-dano-${mId}" placeholder="Dano" style="width: 50px; padding:3px; font-size:10px; background:rgba(0,0,0,0.5); border:1px solid #4a2e1b; color:#fff; text-align:center;">
-                        <div style="display:flex; gap:8px;">${alvosHtmlCheckbox(mId)}</div>
-                        <button onclick="atacarMembroHorda('${mId}')" style="padding: 4px 8px; font-size:9px; background: linear-gradient(to bottom, #752020, #4a1111); border-color:#8c1c13; margin-left:auto;">Atacar ⚔️</button>
+                        <div class="esconder-jogador" style="display:flex; gap:10px; align-items:center;">
+                            <input type="number" id="ataque-dano-${mId}" placeholder="Dano" style="width: 50px; padding:4px; font-size:11px; background:rgba(0,0,0,0.8); border:1px solid #8c1c13; color:#fff; text-align:center;">
+                            <div style="display:flex; gap:8px;">${alvosHtmlCheckbox(mId)}</div>
+                            <button onclick="atacarMembroHorda('${mId}')" style="padding: 6px 12px; font-size:11px; background: linear-gradient(to bottom, #8c1c13, #4a1111); border-color:#d95757; color: #fff; font-weight: bold;">⚔️ ATACAR</button>
+                        </div>
                     </div>
                 </div>`;
             }
             h += `</div>`;
             return h;
+        }
+
+        window.invocarMonstro = function() {
+            let nome = prompt("Nome da nova ameaça (Monstro/NPC):");
+            if(!nome) return;
+            nome = nome.trim();
+            if(nome === "") return;
+            
+            // Generate a clean ID
+            let id = nome.toLowerCase().replace(/[^a-z0-9]/g, '');
+            if(!id) id = 'monstro_' + Date.now();
+            
+            // Set up basic ficha
+            update(ref(database, 'fichas/' + id), { 
+                nome: nome, 
+                tipo: 'monstro', 
+                'hp-max': 20, 
+                'hp-atual': 20, 
+                'mana-max': 20, 
+                'mana-atual': 20 
+            });
+            // Register in the list
+            update(ref(database, 'lista_monstros/' + id), { 
+                nome: nome,
+                ativo: true 
+            });
         }
 
         window.transformarEmHorda = async function(numSlot) {
@@ -1009,6 +785,79 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
             document.getElementById('exp-amount-input').value = '';
         }
         window.fecharModalExp = function() { document.getElementById('modal-exp').style.display = 'none'; }
+
+        window.baixarBackupJson = async function() {
+            if(usuarioAtual.cargo !== "Mestre") return;
+            const snap = await get(ref(database, '/'));
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(snap.val()));
+            const dlAnchorElem = document.createElement('a');
+            dlAnchorElem.setAttribute("href", dataStr);
+            dlAnchorElem.setAttribute("download", "rpg_backup.json");
+            dlAnchorElem.click();
+        }
+
+        // ==========================================
+        // ÁRVORE DE HABILIDADES
+        // ==========================================
+        const classesRpg = ["Guerreiro", "Paladino", "Druida", "Bárbaro", "Arqueiro", "Ladino", "Mago", "Curandeiro", "Bardo", "Monge"];
+        
+        window.abrirArvoreHabilidades = function(numSlot) {
+            const selectClasse = document.getElementById(`slot${numSlot}-classe`);
+            const classeEscolhida = selectClasse ? selectClasse.value : "";
+            
+            if (!classeEscolhida) {
+                alert("Escolha uma Classe primeiro na ficha para liberar sua árvore de melhorias!");
+                return;
+            }
+
+            const tabsContainer = document.getElementById("arvore-tabs-container");
+            const viewsContainer = document.getElementById("arvore-views-container");
+            
+            tabsContainer.innerHTML = "";
+            viewsContainer.innerHTML = "";
+
+            classesRpg.forEach(classe => {
+                const isEscolhida = (classe === classeEscolhida);
+                
+                // Criar Aba
+                const tab = document.createElement("button");
+                tab.className = `tab-classe ${isEscolhida ? 'ativa' : 'bloqueada'}`;
+                tab.innerText = classe;
+                tabsContainer.appendChild(tab);
+
+                // Criar Visão da Árvore
+                const view = document.createElement("div");
+                view.className = `arvore-view ${isEscolhida ? 'ativa' : ''}`;
+                
+                // Placeholder para a árvore
+                if (isEscolhida) {
+                    view.innerHTML = `
+                        <div style="text-align: center; margin-bottom: 30px;">
+                            <h3 style="color: #d4af37; margin:0; font-size: 20px;">Caminho do ${classe}</h3>
+                            <p style="color: #9c8464; font-size: 12px;">Habilidades em breve...</p>
+                        </div>
+                        <div class="skill-row">
+                            <div class="skill-node desbloqueada"><span class="skill-icon">I</span></div>
+                        </div>
+                        <div class="skill-linha skill-linha-v" style="position: relative; margin: -20px 0;"></div>
+                        <div class="skill-row">
+                            <div class="skill-node"><span class="skill-icon">II</span></div>
+                            <div class="skill-linha skill-linha-h" style="position: relative; margin: 0 -20px;"></div>
+                            <div class="skill-node"><span class="skill-icon">II</span></div>
+                        </div>
+                    `;
+                }
+                
+                viewsContainer.appendChild(view);
+            });
+
+            document.getElementById('modal-arvore').style.display = "flex";
+        }
+
+        window.fecharArvore = function() {
+            document.getElementById('modal-arvore').style.display = "none";
+        }
+
         window.aplicarExpLote = async function() {
             if(usuarioAtual.cargo !== "Mestre") return;
             const amount = Number(document.getElementById('exp-amount-input').value);
@@ -1093,25 +942,9 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
                     if (contHorda.dataset.chaves !== chavesMembros) {
                         contHorda.innerHTML = renderizarHtmlHordaDinamico(idFicha, dados.membros, numSlot);
                         contHorda.dataset.chaves = chavesMembros;
-                        let debounceHorda = {};
+                        
                         document.querySelectorAll(`.horda-compact-input.editavel-slot${numSlot}`).forEach(input => {
                             if(!input.classList.contains('mestre-unlocked')) { input.disabled = !temPermissao; }
-                            
-                            input.addEventListener('input', (e) => {
-                                if(e.target.disabled) return;
-                                let parts = e.target.id.split('-'); 
-                                let mId = parts[1];
-                                let campo = parts.slice(2).join('-');
-                                let valor = Number(e.target.value);
-                                if (isNaN(valor)) return; // Guard
-                                
-                                let debounceKey = `${mId}-${campo}`;
-                                if (debounceHorda[debounceKey]) clearTimeout(debounceHorda[debounceKey]);
-                                debounceHorda[debounceKey] = setTimeout(() => {
-                                    update(ref(database, `hordas/${idFicha}/membros/${mId}`), { [campo]: valor })
-                                        .catch(err => console.error('[Horda] Erro ao sincronizar', err));
-                                }, 250);
-                            });
                         });
                     } else {
                         for(let mId in dados.membros) {
@@ -1119,7 +952,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
                             
                             for(let campo in mData) {
                                 let el = document.getElementById(`horda-${mId}-${campo}`);
-                                if(el && document.activeElement !== el) {
+                                if(el && document.activeElement !== el && el.value != mData[campo]) {
                                     el.value = mData[campo];
                                 }
                             }
@@ -1139,6 +972,16 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
                             if(barHp) barHp.style.width = percHp + '%';
                             if(barMana) barMana.style.width = percMana + '%';
                             
+                            let escudo = Number(mData['escudo']) || 0;
+                            let barShield = document.getElementById(`bar-shield-horda-${mId}`);
+                            let txtEscudo = document.getElementById(`txt-escudo-horda-${mId}`);
+                            if(barShield) {
+                                let percEscudo = (escudo / hpMax) * 100;
+                                if(percEscudo > 100) percEscudo = 100;
+                                barShield.style.width = escudo > 0 ? percEscudo + '%' : '0%';
+                            }
+                            if(txtEscudo) txtEscudo.innerText = escudo > 0 ? `+${escudo}` : '';
+                            
                             let caixaHp = document.getElementById(`caixa-hp-horda-${mId}`);
                             if(caixaHp) {
                                 if(percHp <= 10 && hpMax > 0 && hpAtual > 0) caixaHp.classList.add('alerta-morte');
@@ -1153,10 +996,10 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
                 }
 
                 for(let chave in dados) {
-                    if(chave === 'efeitos') continue;
+                    if(chave === 'efeitos' || chave === 'grimorio') continue;
                     let idHTML = formatarIdElemento(numSlot, tipo, chave);
                     let el = document.getElementById(idHTML);
-                    if(el && document.activeElement !== el) el.value = dados[chave];
+                    if(el && document.activeElement !== el && el.value != dados[chave]) el.value = dados[chave];
                 }
 
                 if(tipo === 'heroi') {
@@ -1197,20 +1040,69 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
                     let glow = percExp / 6;
                     expText.style.textShadow = `0 0 ${glow}px rgba(255, 215, 0, 0.9), 1px 1px 2px black`;
                     
-                    // Lógica para Brilho Reluzente Dourado que cresce com XP
-                    let glowValue = 5 + (percExp / 100) * 25;
-                    const elContainer = document.getElementById(`container-slot${numSlot}-heroi`);
-                    if(elContainer) elContainer.style.setProperty('--brilho-xp-escala', glowValue.toString());
+                    // Lógica para Ouro Derretido que cresce com XP
+                    const elBarra = document.getElementById(`bar-exp-slot${numSlot}`);
+                    if(elBarra) {
+                        let opacidade = 0.4 + (percExp / 100) * 0.6; // De 0.4 a 1.0
+                        let blur = 10 + (percExp / 100) * 20; // De 10px a 30px
+                        let spread = 2 + (percExp / 100) * 8; // De 2px a 10px
+                        elBarra.style.setProperty('--brilho-xp-opacity', opacidade.toString());
+                        elBarra.style.setProperty('--brilho-xp-blur', blur + 'px');
+                        elBarra.style.setProperty('--brilho-xp-spread', spread + 'px');
+                    }
 
                     let maxAtributos = 10 + (levelData.level - 1);
-                    let ptsAtuais = 0;
-                    ['for', 'des', 'con', 'int', 'sab', 'car', 'per'].forEach(a => ptsAtuais += Number(dados[a]) || 0);
-                    let ptsLivres = maxAtributos - ptsAtuais;
+                    
+                    let baseBonus = { for:0, des:0, con:0, int:0, sab:0, car:0, per:0 };
+                    let raca = dados.raca || '';
+                    let vocacao = dados.classe || '';
+                    
+                    if(typeof RACES !== 'undefined' && RACES[raca]) {
+                        if(RACES[raca].points) maxAtributos += RACES[raca].points;
+                        else {
+                            for(let a in baseBonus) if(RACES[raca][a]) baseBonus[a] += RACES[raca][a];
+                        }
+                    }
+                    if(typeof CLASSES !== 'undefined' && CLASSES[vocacao]) {
+                        for(let a in baseBonus) if(CLASSES[vocacao][a]) baseBonus[a] += CLASSES[vocacao][a];
+                    }
+
+                    let ptsDistribuidos = 0;
+                    ['for', 'des', 'con', 'int', 'sab', 'car', 'per'].forEach(a => {
+                        let val = Number(dados[a]) || 0;
+                        let minVal = baseBonus[a];
+                        
+                        // Restringir a caixa de texto
+                        let inputEl = document.getElementById(`slot${numSlot}-${a}`);
+                        if(inputEl) {
+                            inputEl.min = minVal;
+                            // Se o valor estiver menor que o mínimo nativo, forçamos o valor mínimo visualmente
+                            // O banco de dados pode ter ficado atrasado se ele apenas mudou a raça.
+                            if(val < minVal) {
+                                inputEl.value = minVal;
+                                val = minVal;
+                                update(refFicha, { [a]: minVal });
+                            }
+                        }
+                        
+                        ptsDistribuidos += Math.max(0, val - minVal);
+                    });
+                    
+                    let ptsLivres = maxAtributos - ptsDistribuidos;
 
                     let spanPts = document.getElementById(`slot${numSlot}-pts-livres`);
                     if(spanPts) {
-                        spanPts.innerText = `(${ptsLivres} Livres de ${maxAtributos})`;
+                        spanPts.innerText = `( ${ptsLivres} / ${maxAtributos} )`;
                         spanPts.style.color = ptsLivres > 0 ? '#27ae60' : (ptsLivres === 0 ? '#b89c72' : '#d95757');
+                    }
+                    
+                    // Lógica do Gnomo para Inventário
+                    let slot5El = document.getElementById(`slot${numSlot}-item5-nome`);
+                    if(slot5El) {
+                        let slotDiv = slot5El.closest('.equipamento-slot');
+                        if(slotDiv) {
+                            slotDiv.style.display = (raca === 'Gnomo') ? 'none' : '';
+                        }
                     }
 
                     for(let i=1; i<=5; i++) {
@@ -1231,101 +1123,14 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
                 }
 
                 renderizarEfeitosNoSlot(numSlot, tipo, dados.efeitos || []);
+                if(tipo === 'heroi') renderizarGrimorioNoSlot(numSlot, dados.grimorio || {});
                 atualizarBarrasEAlertaNoSlot(numSlot, tipo);
                 atualizarTooltipsAtributosNoSlot(numSlot, tipo, dados);
-
-                // Atualizar UI de habilidades quando dados da ficha chegam
-                if (tipo === 'heroi') {
-                    const racaAtual = dados['raca'] || '';
-                    const classeAtual = dados['classe'] || '';
-                    _atualizarUIHabilidades(numSlot, racaAtual, classeAtual);
-                    // Atualizar modal (se aberto no slot) para refletir mudança de classe rápida
-                    if (_grimorioModal.aberto && _grimorioModal.numSlot === numSlot) {
-                        _grimorioRenderizarCorpo();
-                    }
-                    // Atualizar sidebar de combate (alvos, passivas, magia)
-                    if (typeof sbAtualizar === 'function') sbAtualizar();
-                }
             });
 
             slotsDeVisao[numSlot].ouvinte = novoOuvinte;
 
-            document.querySelectorAll(`.editavel-slot${numSlot}`).forEach(campo => {
-                if(campo.classList.contains('horda-compact-input')) return; 
-                const novoCampo = campo.cloneNode(true);
-                campo.parentNode.replaceChild(novoCampo, campo);
-                
-                let inputDebounce = {};
-                
-                novoCampo.addEventListener('input', (e) => {
-                    if (e.target.disabled) return;
-                    
-                    let chaveCompleta = e.target.id;
-                    let chaveDoBanco = chaveCompleta.replace(`slot${numSlot}-`, '');
-                    if(tipo === 'monstro') {
-                        chaveDoBanco = chaveDoBanco.replace('monstro-', '');
-                        if(chaveCompleta === `slot${numSlot}-monstro-nome`) chaveDoBanco = 'nome';
-                    }
-
-                    let novoValor = e.target.value;
-
-                    // Validação robusta de Atributos
-                    if (tipo === 'heroi' && ['for', 'des', 'con', 'int', 'sab', 'car', 'per'].includes(chaveDoBanco)) {
-                        novoValor = Number(novoValor);
-                        if (isNaN(novoValor) || novoValor < 0) novoValor = 0;
-                        if (novoValor > 20) novoValor = 20;
-
-                        let dadosAntigos = slotsDeVisao[numSlot]?.dados || {};
-                        let expT = Number(dadosAntigos['expTotal']) || 0;
-                        let lvl = getLevelData(expT).level;
-                        let maxA = 10 + (lvl - 1);
-
-                        let sumOthers = 0;
-                        ['for', 'des', 'con', 'int', 'sab', 'car', 'per'].forEach(a => {
-                            if(a !== chaveDoBanco) sumOthers += Number(dadosAntigos[a]) || 0;
-                        });
-
-                        if (sumOthers + novoValor > maxA && usuarioAtual.cargo !== "Mestre") {
-                            novoValor = Number(dadosAntigos[chaveDoBanco]) || 0; 
-                        }
-                        e.target.value = novoValor; 
-                    }
-                    
-                    // Validação de barras (HP / MANA)
-                    if (usuarioAtual.cargo === 'Jogador' && (chaveDoBanco === 'hp-atual' || chaveDoBanco === 'mana-atual')) {
-                        if (novoValor !== "") {
-                            novoValor = Number(novoValor);
-                            if (isNaN(novoValor) || novoValor < 0) novoValor = 0;
-                            let maxVal = chaveDoBanco === 'hp-atual' ? 
-                                Number(document.getElementById(`slot${numSlot}-hp-efetivo`)?.innerText) || 20 : 
-                                Number(document.getElementById(`slot${numSlot}-mana-efetivo`)?.innerText) || 20;
-                            if (novoValor > maxVal) novoValor = maxVal;
-                            e.target.value = novoValor;
-                        }
-                    }
-                    
-                    // Guards Finais contra corrupção do Firebase
-                    if (novoValor === undefined || novoValor === null) return;
-                    if (typeof novoValor === 'number' && isNaN(novoValor)) return;
-                    
-                    // Debounce state push
-                    if (inputDebounce[chaveDoBanco]) clearTimeout(inputDebounce[chaveDoBanco]);
-                    inputDebounce[chaveDoBanco] = setTimeout(() => {
-                        update(ref(database, 'fichas/' + idFicha), { [chaveDoBanco]: novoValor })
-                            .catch(err => console.error('[Fichas] Sync erro:', err));
-                    }, 250);
-                    
-                    if(chaveDoBanco.includes('hp') || chaveDoBanco.includes('mana')) atualizarBarrasEAlertaNoSlot(numSlot, tipo);
-
-                    // Sincronização UI -> Firebase para Raça/Classe
-                    if (tipo === 'heroi' && (chaveDoBanco === 'raca' || chaveDoBanco === 'classe')) {
-                        const racaVal = document.getElementById(`slot${numSlot}-raca`)?.value.trim() || '';
-                        const classeVal = document.getElementById(`slot${numSlot}-classe`)?.value.trim() || '';
-                        _atualizarUIHabilidades(numSlot, racaVal, classeVal);
-                        _agendarSincronizacaoHabilidades(idFicha, racaVal, classeVal);
-                    }
-                });
-            });
+            // Delegação de eventos foi extraída para o document.addEventListener global (performance ganha)
         }
 
         function atualizarBarrasEAlertaNoSlot(numSlot, tipo) {
@@ -1353,10 +1158,30 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
             if (barHpElement) barHpElement.style.width = percHp + '%';
             if (barManaElement) barManaElement.style.width = percMana + '%';
 
+            let escudo = Number(slotsDeVisao[numSlot].dados?.escudo) || 0;
+            let barIdShield = tipo === 'heroi' ? `bar-shield-slot${numSlot}` : `bar-shield-monstro-slot${numSlot}`;
+            let txtIdShield = tipo === 'heroi' ? `txt-escudo-slot${numSlot}` : `txt-escudo-monstro-slot${numSlot}`;
+            let barShieldElement = document.getElementById(barIdShield);
+            let txtShieldElement = document.getElementById(txtIdShield);
+
+            if(barShieldElement) {
+                let percEscudo = (escudo / hpMax) * 100;
+                if(percEscudo > 100) percEscudo = 100;
+                barShieldElement.style.width = escudo > 0 ? percEscudo + '%' : '0%';
+            }
+            if(txtShieldElement) {
+                txtShieldElement.innerText = escudo > 0 ? `+${escudo}` : '';
+            }
+
             const caixaHp = document.getElementById(caixaHpId);
             if(caixaHp) {
-                if (percHp <= 10 && hpMax > 0 && hpAtual > 0) { caixaHp.classList.add('alerta-morte'); } 
-                else { caixaHp.classList.remove('alerta-morte'); }
+                if (percHp <= 10 && hpMax > 0 && hpAtual > 0) {
+                    caixaHp.classList.add('alerta-morte');
+                    if (barHpElement && tipo === 'heroi') barHpElement.classList.add('alerta-morte');
+                } else {
+                    caixaHp.classList.remove('alerta-morte');
+                    if (barHpElement && tipo === 'heroi') barHpElement.classList.remove('alerta-morte');
+                }
             }
         }
 
@@ -1369,7 +1194,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
                 const img = new Image();
                 img.onload = function() {
                     const canvas = document.createElement('canvas');
-                    const MAX_SIZE = 150; 
+                    const MAX_SIZE = 400; 
                     let width = img.width; let height = img.height;
                     if (width > height) { if (width > MAX_SIZE) { height *= MAX_SIZE / width; width = MAX_SIZE; } } 
                     else { if (height > MAX_SIZE) { width *= MAX_SIZE / height; height = MAX_SIZE; } }
@@ -1377,43 +1202,17 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
                     const ctx = canvas.getContext('2d');
                     ctx.drawImage(img, 0, 0, width, height);
 
-                    const dataUrlUltraLeve = canvas.toDataURL('image/webp', 0.6); 
-                    const idFicha = slotsDeVisao[numSlot].idFicha;
+                    const dataUrlUltraLeve = canvas.toDataURL('image/webp', 0.85); 
+                    const idFicha = slotsDeVisao[numSlot]?.idFicha;
+                    const tipo = slotsDeVisao[numSlot]?.tipo || 'heroi';
+                    const imgEl = tipo === 'heroi' ? document.getElementById(`img-foto-slot${numSlot}`) : document.getElementById(`img-foto-monstro-slot${numSlot}`);
+                    if (imgEl) imgEl.src = dataUrlUltraLeve;
+                    
                     if(idFicha) update(ref(database, 'fotos/' + idFicha), { base64: dataUrlUltraLeve });
                 }
                 img.src = e.target.result;
             }
             reader.readAsDataURL(file);
-        }
-
-        window.toggleEquipar = async function(numSlot, slotEq) {
-            if(usuarioAtual.cargo !== "Mestre" && slotsDeVisao[numSlot].tipo !== 'heroi') return;
-            const idFicha = slotsDeVisao[numSlot].idFicha;
-            
-            const refFicha = ref(database, 'fichas/' + idFicha);
-            const snapshot = await get(refFicha);
-            let dados = snapshot.val() || {};
-
-            const isEquipado = dados[`item${slotEq}-equipado`] || false;
-            const attr1 = dados[`item${slotEq}-attr1`];
-            const mod1 = Number(dados[`item${slotEq}-mod1`]) || 0;
-            const attr2 = dados[`item${slotEq}-attr2`];
-            const mod2 = Number(dados[`item${slotEq}-mod2`]) || 0;
-
-            let pacoteAtualizacao = {};
-            pacoteAtualizacao[`item${slotEq}-equipado`] = !isEquipado;
-            let multiplier = isEquipado ? -1 : 1; 
-
-            if (attr1 && mod1 !== 0) {
-                let atual = Number(dados[attr1]) || 0;
-                pacoteAtualizacao[attr1] = atual + (mod1 * multiplier);
-                dados[attr1] = pacoteAtualizacao[attr1]; 
-            }
-            if (attr2 && mod2 !== 0) {
-                let atual = Number(dados[attr2]) || 0;
-                pacoteAtualizacao[attr2] = atual + (mod2 * multiplier);
-            }
-            update(refFicha, pacoteAtualizacao);
         }
 
         window.adicionarEfeito = async function(numSlot, isMonstro) {
@@ -1571,6 +1370,18 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
             const atributos = ['for', 'des', 'con', 'int', 'sab', 'car', 'per'];
             const prefixo = tipo === 'heroi' ? `slot${numSlot}` : `slot${numSlot}-monstro`;
             
+            let baseBonus = {for:0, des:0, con:0, int:0, sab:0, car:0, per:0};
+            if(tipo === 'heroi') {
+                let raca = dados.raca || '';
+                let vocacao = dados.classe || '';
+                if(typeof RACES !== 'undefined' && RACES[raca] && !RACES[raca].points) {
+                    for(let a in baseBonus) if(RACES[raca][a]) baseBonus[a] += RACES[raca][a];
+                }
+                if(typeof CLASSES !== 'undefined' && CLASSES[vocacao]) {
+                    for(let a in baseBonus) if(CLASSES[vocacao][a]) baseBonus[a] += CLASSES[vocacao][a];
+                }
+            }
+
             let modsItens = {for:0, des:0, con:0, int:0, sab:0, car:0, per:0};
             if(tipo === 'heroi') {
                 for(let i=1; i<=5; i++) {
@@ -1592,11 +1403,13 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
                 let total = Number(dados[attr]) || 0;
                 let mItem = modsItens[attr] || 0;
                 let mBuff = modsBuffs[attr] || 0;
-                let base = total - mItem - mBuff;
+                let mNat = baseBonus[attr] || 0;
+                let baseTotal = total - mItem - mBuff;
+                let ptsDistribuidos = baseTotal - mNat;
                 
                 let inputEl = document.getElementById(`${prefixo}-${attr}`);
                 if(inputEl && inputEl.parentElement) {
-                    let txt = `Nativo: ${base}\nItens: ${mItem > 0 ? '+'+mItem : mItem}\nEfeitos: ${mBuff > 0 ? '+'+mBuff : mBuff}`;
+                    let txt = `Distrib.: ${ptsDistribuidos > 0 ? '+'+ptsDistribuidos : ptsDistribuidos}\nNativo (Raça/Classe): ${mNat > 0 ? '+'+mNat : mNat}\nItens: ${mItem > 0 ? '+'+mItem : mItem}\nEfeitos: ${mBuff > 0 ? '+'+mBuff : mBuff}`;
                     inputEl.parentElement.title = txt;
                     inputEl.title = txt;
                 }
@@ -1619,35 +1432,69 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
                 const snapshot = await get(refFicha);
                 let dados = snapshot.val() || {};
                 let hpAtual = Number(dados['hp-atual']) || 0;
+                let escudo = Number(dados['escudo']) || 0;
                 
-                hpAtual -= dano;
-                if(hpAtual < 0) hpAtual = 0;
-                update(refFicha, { 'hp-atual': hpAtual });
+                let danoRestante = dano;
+                if(escudo > 0) {
+                    if(escudo >= danoRestante) {
+                        escudo -= danoRestante;
+                        danoRestante = 0;
+                    } else {
+                        danoRestante -= escudo;
+                        escudo = 0;
+                    }
+                    update(refFicha, { 'escudo': escudo });
+                }
+                
+                if(danoRestante > 0) {
+                    hpAtual -= danoRestante;
+                    if(hpAtual < 0) hpAtual = 0;
+                    update(refFicha, { 'hp-atual': hpAtual });
+                }
             }
             
             inputDano.value = '';
             checkboxes.forEach(cb => cb.checked = false);
         };
 
-        window.selecionarAmeacaMestre = function(idAmeaca) {
-            if(!idAmeaca) return;
-            if(idAmeaca.startsWith('horda_')) {
-                document.getElementById('mestre-t2-horda').value = idAmeaca;
-                mestreAbrir(2, 'horda', idAmeaca);
-            } else {
-                document.getElementById('mestre-t2-monstro').value = idAmeaca;
-                mestreAbrir(2, 'monstro', idAmeaca);
-            }
-            atualizarBotoesMestre();
-        }
-
-        window.lancarAmeaca = function() {
-            const idAlvo = document.getElementById('seletor-ameaca').value;
+        window.lancarAmeacaFicha = function(numSlot) {
+            const idAlvo = slotsDeVisao[numSlot].idFicha;
             if(idAlvo) update(ref(database, 'estado_combate'), { ativo: idAlvo });
         }
         
-        window.ameacaDerrotada = function() {
-            remove(ref(database, 'estado_combate/ativo'));
+        window.abaterAmeacaFicha = function(numSlot) {
+            const idAlvo = slotsDeVisao[numSlot].idFicha;
+            if(idAlvo) {
+                if(ameacaEmCombateGlobal === idAlvo) remove(ref(database, 'estado_combate/ativo'));
+                
+                // Zera HP dependendo se é horda ou monstro
+                if(slotsDeVisao[numSlot].tipo === 'horda') {
+                    // Pra hordas, abater pode significar só remover de combate, mas vamos manter simples
+                    alert("A horda foi removida da mesa. Seus membros permanecem salvos.");
+                } else {
+                    update(ref(database, 'fichas/' + idAlvo), { 'hp-atual': 0 });
+                }
+            }
+        }
+
+        window.deletarAmeacaFicha = function(numSlot) {
+            const idAlvo = slotsDeVisao[numSlot].idFicha;
+            if(!idAlvo) return;
+            
+            if(confirm("Tem certeza que deseja DELETAR esta ameaça para sempre?")) {
+                if(ameacaEmCombateGlobal === idAlvo) remove(ref(database, 'estado_combate/ativo')); 
+                
+                if(idAlvo.startsWith('horda_')) {
+                    remove(ref(database, 'hordas/' + idAlvo));
+                } else {
+                    remove(ref(database, 'fotos/' + idAlvo));
+                    remove(ref(database, 'lista_monstros/' + idAlvo));
+                    remove(ref(database, 'fichas/' + idAlvo));
+                }
+
+                if(slotsDeVisao[1].idFicha === idAlvo) limparSlot(1);
+                if(slotsDeVisao[2].idFicha === idAlvo) limparSlot(2);
+            }
         }
 
         window.deletarAmeaca = function() {
@@ -1672,25 +1519,6 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
             }
         }
 
-        function atualizarBotoesMestre() {
-            if(usuarioAtual.cargo !== "Mestre") return;
-            const btnLancar = document.getElementById('btn-lancar');
-            const btnDerrotado = document.getElementById('btn-derrotado');
-            const btnDeletar = document.getElementById('btn-deletar');
-            const idPainel = document.getElementById('seletor-ameaca').value;
-            
-            if(idPainel) {
-                btnDeletar.style.display = "inline-block";
-                if(ameacaEmCombateGlobal === idPainel) {
-                    btnLancar.style.display = "none"; btnDerrotado.style.display = "inline-block";
-                } else {
-                    btnLancar.style.display = "inline-block"; btnDerrotado.style.display = "none";
-                }
-            } else {
-                btnLancar.style.display = "none"; btnDerrotado.style.display = "none"; btnDeletar.style.display = "none";
-            }
-        }
-
         function initHudGlobais() {
             const listDiv = document.getElementById('hud-players-list');
             if(!listDiv) return;
@@ -1707,7 +1535,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
                                 <span id="hud-${p}-hp-max" style="font-weight:bold; font-size:11px; display:inline-block; width:25px; text-align:left;">20</span>
                             </div>
                         </div>
-                        <div class="hud-mini-bar-bg"><div class="hud-mini-bar-fill" id="hud-${p}-bar-hp" style="background:#27ae60; width:100%;"></div></div>
+                        <div class="hud-mini-bar-bg"><div class="hud-mini-bar-fill hud-hp-fill" id="hud-${p}-bar-hp" style="width:100%;"></div></div>
                         <div class="hud-stats-row" style="margin-top: 5px;">
                             <span style="color:#2980b9; font-weight:bold; font-size:11px;">MP:</span>
                             <div>
@@ -1715,7 +1543,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
                                 <span id="hud-${p}-mana-max" style="font-weight:bold; font-size:11px; display:inline-block; width:25px; text-align:left;">20</span>
                             </div>
                         </div>
-                        <div class="hud-mini-bar-bg"><div class="hud-mini-bar-fill" id="hud-${p}-bar-mana" style="background:#2980b9; width:100%;"></div></div>
+                        <div class="hud-mini-bar-bg"><div class="hud-mini-bar-fill hud-mana-fill" id="hud-${p}-bar-mana" style="width:100%;"></div></div>
                     </div>`;
             });
             listDiv.innerHTML = finalHTML;
@@ -1774,269 +1602,295 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
             }
         }
 
+        window.renderizarGrimorioNoSlot = function(numSlot, grimorio) {
+            const divAtivas = document.getElementById(`lista-habilidades-ativas-slot${numSlot}`);
+            const divPassivas = document.getElementById(`lista-habilidades-passivas-slot${numSlot}`);
+            if(!divAtivas || !divPassivas) return;
+            
+            divAtivas.innerHTML = '';
+            divPassivas.innerHTML = '';
+            
+            const temPermissao = (usuarioAtual.cargo === "Mestre") || (usuarioAtual.idFicha === slotsDeVisao[numSlot].idFicha);
+            
+            for(let habId in grimorio) {
+                let hab = grimorio[habId];
+                let corBorda = '#d4af37';
+                let icon = '✨';
+                if(hab.tipo === 'ativa') { corBorda = '#d95757'; icon = '⚔️'; }
+                else if(hab.tipo === 'cura') { corBorda = '#27ae60'; icon = '🌿'; }
+                else if(hab.tipo === 'passiva') { corBorda = '#b89c72'; icon = '🛡️'; }
+                
+                let btnHtml = '';
+                if(hab.tipo !== 'passiva') {
+                    btnHtml = `<button onclick="usarHabilidade(${numSlot}, '${habId}')" style="background: rgba(0,0,0,0.5); border: 1px solid ${corBorda}; color: ${corBorda}; padding: 3px 8px; font-weight: bold; cursor: pointer;">${icon} USAR</button>`;
+                }
+                
+                let delHtml = temPermissao ? `<button onclick="deletarHabilidade(${numSlot}, '${habId}')" style="background: none; border: none; color: #8c1c13; cursor: pointer; font-size: 14px; margin-left: 10px;" title="Apagar Habilidade">🗑️</button>` : '';
+                
+                let div = document.createElement('div');
+                div.style.cssText = `border: 1px solid ${corBorda}; padding: 10px; margin-bottom: 10px; background: rgba(10, 5, 2, 0.8); border-radius: 4px;`;
+                div.innerHTML = `
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 5px;">
+                        <div>
+                            <strong style="color: ${corBorda}; font-size: 16px;">${hab.nome}</strong>
+                            <div style="font-size: 11px; color: #b89c72;">Custo: <span style="color:#d99c57;">${hab.ap} AP</span> | <span style="color:#2980b9;">${hab.mana} Mana</span></div>
+                        </div>
+                        <div style="display: flex; align-items: center;">
+                            ${btnHtml}
+                            ${delHtml}
+                        </div>
+                    </div>
+                    <div style="font-size: 12px; color: #dcd0ba; margin-top: 5px; font-style: italic;">
+                        ${hab.desc}
+                    </div>
+                `;
+                
+                if(hab.tipo === 'passiva') divPassivas.appendChild(div);
+                else divAtivas.appendChild(div);
+            }
+        };
+
         window.atualizarHudMestre = function(jogadorId, campo, valor) {
             if(valor === "") return;
             update(ref(database, 'fichas/' + jogadorId), { [campo]: Number(valor) });
         }
 
-        // ==========================================
-        // SIDEBAR DE COMBATE — LÓGICA COMPLETA
-        // ==========================================
-
-        let _sbEstado = {
-            modo: 'ataque',          // 'ataque' | 'magia'
-            recolhida: false,
-            acaoLock: false,
-            ouvintesAliados: {},     // idFicha -> unsubscribe fn
-        };
-
-        // --- Toggle recolher ---
-        window.toggleSidebarCombate = function() {
-            const sb  = document.getElementById('sidebar-combate');
-            const btn = document.getElementById('sidebar-toggle-btn');
-            _sbEstado.recolhida = !_sbEstado.recolhida;
-            sb.classList.toggle('sb-recolhida', _sbEstado.recolhida);
-            btn.textContent = _sbEstado.recolhida ? '▶' : '◀';
-        };
-
-        // --- Trocar modo ---
-        window.sbTrocarModo = function(modo) {
-            _sbEstado.modo = modo;
-            document.getElementById('sb-painel-magia').style.display  = modo === 'magia'  ? 'block' : 'none';
-            document.getElementById('sb-painel-ataque').style.display = modo === 'ataque' ? 'block' : 'none';
-        };
-
-        // --- Validar rolagem ---
-        window.sbValidarRolagem = function(input) {
-            let v = parseInt(input.value, 10);
-            if (isNaN(v) || v < 1) { input.value = ''; return; }
-            if (v > 999) { input.value = 999; return; }
-            input.value = v;
-        };
-
-        // --- Ler rolagem válida ---
-        function _sbGetRolagem() {
-            const v = parseInt(document.getElementById('sb-input-rolagem').value, 10);
-            return isNaN(v) || v < 1 ? null : v;
-        }
-
-        // --- Renderizar alvos ---
-        function sbRenderizarAlvos() {
-            const lista = document.getElementById('sb-alvos-lista');
-            if (!lista) return;
-
-            let html = '';
-
-            // Ameaça ativa (mantida do sistema global)
-            if (ameacaEmCombateGlobal) {
-                const nomeAmeaca = ameacaEmCombateGlobal.nome || 'Ameaça';
-                html += `
-                    <label class="sb-alvo-item ameaca">
-                        <input type="checkbox" id="sb-alvo-ameaca" value="ameaca" checked>
-                        <div class="sb-alvo-dot ameaca"></div>
-                        <span>${nomeAmeaca}</span>
-                    </label>`;
-            }
-
-            // Aliados: jogadores com ficha aberta nos slots
-            const alidosVistos = new Set();
-            [1, 2].forEach(numSlot => {
-                const slot = slotsDeVisao[numSlot];
-                if (slot && slot.idFicha && slot.tipo === 'heroi' && slot.dados) {
-                    const id = slot.idFicha;
-                    if (alidosVistos.has(id)) return;
-                    alidosVistos.add(id);
-                    const nome = slot.dados.nome || id;
-                    html += `
-                        <label class="sb-alvo-item aliado">
-                            <input type="checkbox" id="sb-alvo-${id}" value="${id}">
-                            <div class="sb-alvo-dot aliado"></div>
-                            <span>${nome}</span>
-                        </label>`;
-                }
-            });
-
-            // Todos os players do banco (mesmo não abertos nos slots)
-            playersList.forEach(pid => {
-                if (alidosVistos.has(pid)) return;
-                const dadosSlot = Object.values(slotsDeVisao).find(s => s.idFicha === pid);
-                if (dadosSlot) return; // já adicionado
-                html += `
-                    <label class="sb-alvo-item aliado">
-                        <input type="checkbox" id="sb-alvo-${pid}" value="${pid}">
-                        <div class="sb-alvo-dot aliado"></div>
-                        <span>${usuarios[pid]?.nome || pid}</span>
-                    </label>`;
-            });
-
-            if (!html) {
-                html = '<div class="sb-empty">Nenhum alvo disponível.</div>';
-            }
-
-            lista.innerHTML = html;
-        }
-
-        // --- Renderizar passivas deduplicadas ---
-        function sbRenderizarPassivas() {
-            const lista = document.getElementById('sb-passivas-lista');
-            if (!lista) return;
-
-            // Coletar passivas de todos os slots de herói visíveis
-            const vistas = new Set();
-            const passivas = [];
-
-            [1, 2].forEach(numSlot => {
-                const slot = slotsDeVisao[numSlot];
-                if (!slot || slot.tipo !== 'heroi' || !slot.dados) return;
-
-                const raca   = slot.dados.raca   || '';
-                const classe = slot.dados.classe  || '';
-
-                const fontes = [
-                    { fonte: RACAS[raca],   origemNome: raca   },
-                    { fonte: CLASSES[classe], origemNome: classe },
-                ];
-
-                fontes.forEach(({ fonte, origemNome }) => {
-                    if (!fonte) return;
-                    fonte.habilidades
-                        .filter(h => h.tipo === 'Passiva')
-                        .forEach(h => {
-                            const key = h.nome.trim().toLowerCase();
-                            if (vistas.has(key)) return;
-                            vistas.add(key);
-                            passivas.push({ ...h, origemNome });
-                        });
-                });
-            });
-
-            if (passivas.length === 0) {
-                lista.innerHTML = '<div class="sb-empty">Nenhuma passiva ativa.</div>';
-                return;
-            }
-
-            lista.innerHTML = passivas.map(h => {
-                const inicial = h.nome.charAt(0).toUpperCase();
-                return `
-                    <div class="sb-passiva-item">
-                        <div class="sb-passiva-icon">${inicial}</div>
-                        <div class="sb-passiva-body">
-                            <div class="sb-passiva-nome">${h.nome}</div>
-                            <div class="sb-passiva-origem">${h.origemNome}</div>
-                            <div class="sb-passiva-desc">${h.desc || ''}</div>
-                        </div>
-                    </div>`;
-            }).join('');
-        }
-
-        // --- Atualizar magia exibida no painel ---
-        function sbAtualizarMagiaEquipada() {
-            // Pega magia equipada do primeiro slot de herói disponível
-            let magiaEquipada = null;
-            let magiaHab      = null;
-
-            for (const numSlot of [1, 2]) {
-                const slot = slotsDeVisao[numSlot];
-                if (!slot || slot.tipo !== 'heroi' || !slot.dados) continue;
-                const nomeEquipado = slot.dados.habilidadeEquipada;
-                if (!nomeEquipado) continue;
-                // Encontrar os dados da habilidade
-                const habs = slot.dados.habilidades || {};
-                const hab  = Object.values(habs).find(h => h.nome === nomeEquipado && h.tipo === 'Ativa');
-                if (hab) { magiaEquipada = nomeEquipado; magiaHab = hab; break; }
-            }
-
-            const elNome  = document.getElementById('sb-magia-nome');
-            const elCusto = document.getElementById('sb-magia-custo');
-            if (!elNome || !elCusto) return;
-
-            if (magiaEquipada) {
-                elNome.textContent  = magiaEquipada;
-                elCusto.textContent = `💧 Custo: ${magiaHab?.custoMana !== undefined ? magiaHab.custoMana : '—'}`;
-            } else {
-                elNome.textContent  = '—';
-                elCusto.textContent = '💧 Custo: —';
-            }
-        }
-
-        // --- Executar ação (Ataque ou Magia) ---
-        window.sbExecutarAcao = async function(tipo) {
-            if (_sbEstado.acaoLock) return;
-
-            const rolagem = _sbGetRolagem();
-            if (rolagem === null) {
-                const el = document.getElementById('sb-input-rolagem');
-                if (el) { el.focus(); el.style.borderColor = '#8c1c13'; setTimeout(() => el.style.borderColor = '', 1000); }
-                return;
-            }
-
-            // Coletar alvos marcados
-            const checkboxes = document.querySelectorAll('#sb-alvos-lista input[type="checkbox"]:checked');
-            if (checkboxes.length === 0) {
-                const lbl = document.getElementById('sb-alvos-lista');
-                if (lbl) { lbl.style.outline = '1px solid #8c1c13'; setTimeout(() => lbl.style.outline = '', 1000); }
-                return;
-            }
-
-            _sbEstado.acaoLock = true;
-            const btnId = tipo === 'magia' ? 'sb-btn-lancar' : 'sb-btn-atacar';
-            const btn   = document.getElementById(btnId);
-            if (btn) { btn.disabled = true; btn.textContent = '⌛ Aguarde...'; }
-
-            try {
-                const updates = {};
-                checkboxes.forEach(cb => {
-                    const alvoId = cb.value;
-                    if (alvoId === 'ameaca') {
-                        // Registra o ataque na ameaça global (log / flag)
-                        if (ameacaEmCombateGlobal?.idBanco) {
-                            const path = `fichas/${ameacaEmCombateGlobal.idBanco}`;
-                            updates[`${path}/ultimo-ataque`] = rolagem;
-                            updates[`${path}/tipo-ultimo-ataque`] = tipo;
+        window.jogadorAtacar = async function(numSlot, area) {
+            const inputDano = document.getElementById(`slot${numSlot}-jogador-ataque-dano`);
+            const critico = document.getElementById(`slot${numSlot}-jogador-critico`);
+            let dano = Number(inputDano.value) || 0;
+            if(dano <= 0) return alert("Insira um valor de dano base válido!");
+            if(critico.checked) dano = dano * 2;
+            
+            const checkboxes = document.querySelectorAll(`#alvos-combate-slot${numSlot} input[type="checkbox"]:checked`);
+            if(checkboxes.length === 0) return alert("Selecione pelo menos um alvo!");
+            
+            inputDano.value = '';
+            critico.checked = false;
+            
+            for(let cb of checkboxes) {
+                let idAlvo = cb.value;
+                if(idAlvo.startsWith("horda_")) {
+                    let hordaId = ameacaEmCombateGlobal;
+                    let mId = idAlvo.replace(hordaId + "_", "");
+                    let refMembro = ref(database, `hordas/${hordaId}/membros/${mId}`);
+                    let snap = await get(refMembro);
+                    if(snap.exists()) {
+                        let mDados = snap.val();
+                        let hpAtual = Number(mDados['hp-atual']) || 0;
+                        let escudo = Number(mDados['escudo']) || 0;
+                        let danoRestante = dano;
+                        if(escudo > 0) {
+                            if(escudo >= danoRestante) { escudo -= danoRestante; danoRestante = 0; }
+                            else { danoRestante -= escudo; escudo = 0; }
+                            update(refMembro, { escudo: escudo });
                         }
-                    } else {
-                        // Aliado: registrar dano recebido (Mestre atacando aliado, ou aliado sendo curado)
-                        updates[`fichas/${alvoId}/sb-ultimo-hit`] = rolagem;
-                        updates[`fichas/${alvoId}/sb-tipo-hit`]   = tipo;
+                        if(danoRestante > 0) {
+                            hpAtual -= danoRestante;
+                            if(hpAtual < 0) hpAtual = 0;
+                            update(refMembro, { 'hp-atual': hpAtual });
+                        }
                     }
-                });
-
-                if (Object.keys(updates).length > 0) {
-                    await update(ref(database, '/'), updates);
-                }
-
-                // Feedback visual
-                if (btn) {
-                    btn.textContent = tipo === 'magia' ? '✓ Feitiço Lançado!' : '✓ Atacado!';
-                    btn.style.borderColor = '#27ae60';
-                    btn.style.color       = '#27ae60';
-                    setTimeout(() => {
-                        if (btn) {
-                            btn.textContent = tipo === 'magia' ? '✨ Lançar Feitiço' : '⚔️ Atacar';
-                            btn.style.borderColor = '';
-                            btn.style.color       = '';
-                            btn.disabled = false;
+                } else {
+                    let refMonstro = ref(database, `fichas/${idAlvo}`);
+                    let snap = await get(refMonstro);
+                    if(snap.exists()) {
+                        let mDados = snap.val();
+                        let hpAtual = Number(mDados['hp-atual']) || 0;
+                        let escudo = Number(mDados['escudo']) || 0;
+                        let danoRestante = dano;
+                        if(escudo > 0) {
+                            if(escudo >= danoRestante) { escudo -= danoRestante; danoRestante = 0; }
+                            else { danoRestante -= escudo; escudo = 0; }
+                            update(refMonstro, { escudo: escudo });
                         }
-                    }, 1200);
+                        if(danoRestante > 0) {
+                            hpAtual -= danoRestante;
+                            if(hpAtual < 0) hpAtual = 0;
+                            update(refMonstro, { 'hp-atual': hpAtual });
+                        }
+                    }
                 }
-            } catch (err) {
-                console.error('[Sidebar] Erro ao executar ação:', err);
-                if (btn) { btn.disabled = false; btn.textContent = tipo === 'magia' ? '✨ Lançar Feitiço' : '⚔️ Atacar'; }
-            } finally {
-                setTimeout(() => { _sbEstado.acaoLock = false; }, 1300);
+            }
+            
+            checkboxes.forEach(cb => cb.checked = false);
+        };
+        
+        window.adicionarHabilidade = function(numSlot) {
+            let nome = document.getElementById(`slot${numSlot}-hab-nome`).value;
+            let ap = Number(document.getElementById(`slot${numSlot}-hab-ap`).value) || 0;
+            let mana = Number(document.getElementById(`slot${numSlot}-hab-mana`).value) || 0;
+            let tipo = document.getElementById(`slot${numSlot}-hab-tipo`).value;
+            let desc = document.getElementById(`slot${numSlot}-hab-desc`).value;
+            
+            if(!nome) return alert("Habilidade precisa de um nome!");
+            
+            const idFicha = slotsDeVisao[numSlot].idFicha;
+            const habId = "hab_" + Date.now();
+            
+            update(ref(database, `fichas/${idFicha}/grimorio/${habId}`), {
+                nome, ap, mana, tipo, desc
+            });
+            
+            document.getElementById(`slot${numSlot}-hab-nome`).value = '';
+            document.getElementById(`slot${numSlot}-hab-ap`).value = '0';
+            document.getElementById(`slot${numSlot}-hab-mana`).value = '0';
+            document.getElementById(`slot${numSlot}-hab-desc`).value = '';
+        };
+
+        window.deletarHabilidade = function(numSlot, habId) {
+            if(confirm("Tem certeza que deseja apagar essa habilidade do grimório?")) {
+                const idFicha = slotsDeVisao[numSlot].idFicha;
+                remove(ref(database, `fichas/${idFicha}/grimorio/${habId}`));
             }
         };
 
-        // --- Hook público: chamar após abrir/atualizar qualquer slot de herói ---
-        window.sbAtualizar = function() {
-            sbRenderizarAlvos();
-            sbRenderizarPassivas();
-            sbAtualizarMagiaEquipada();
+        window.usarHabilidade = function(numSlot, habId) {
+            const idFicha = slotsDeVisao[numSlot].idFicha;
+            get(ref(database, `fichas/${idFicha}/grimorio/${habId}`)).then(snap => {
+                if(snap.exists()) {
+                    let hab = snap.val();
+                    let manaAtual = Number(document.getElementById(`slot${numSlot}-mana-atual`).value) || 0;
+                    let apAtual = Number(document.getElementById(`slot${numSlot}-ap`).value) || 0;
+                    
+                    if(hab.mana > manaAtual) return alert("Mana insuficiente para usar " + hab.nome + "!");
+                    if(hab.ap > apAtual) return alert("AP insuficiente para usar " + hab.nome + "!");
+                    
+                    update(ref(database, `fichas/${idFicha}`), {
+                        'mana-atual': manaAtual - hab.mana,
+                        'ap': apAtual - hab.ap
+                    });
+                    
+                    // Se for de ataque, move o jogador para a aba de combate
+                    if(hab.tipo === 'ativa') {
+                        if(typeof alternarAbaHeroi === 'function') alternarAbaHeroi(numSlot, 'combate');
+                    } else {
+                        alert(`Habilidade ${hab.nome} usada!`);
+                    }
+                }
+            });
         };
 
-        // Inicialização ao carregar a página
-        document.addEventListener('DOMContentLoaded', () => {
-            sbRenderizarAlvos();
-            sbRenderizarPassivas();
-        });
+        // ==========================================
+        // DELEGAÇÃO DE EVENTOS GLOBAL (PERFORMANCE)
+        // ==========================================
+        document.addEventListener('input', (e) => {
+            if (e.target.disabled) return;
+            const classList = e.target.classList;
+            
+            // 1. Inputs de Horda
+            if (classList.contains('horda-compact-input')) {
+                let numSlot = classList.contains('editavel-slot1') ? 1 : (classList.contains('editavel-slot2') ? 2 : null);
+                if(!numSlot) return;
+                let idFicha = slotsDeVisao[numSlot].idFicha;
+                if(!idFicha) return;
+                
+                let parts = e.target.id.split('-'); 
+                let mId = parts[1];
+                let campo = parts.slice(2).join('-');
+                update(ref(database, `hordas/${idFicha}/membros/${mId}`), { [campo]: Number(e.target.value) });
+                return;
+            }
 
+            // 2. Inputs de Ficha (Herói / Monstro)
+            let isEditavelSlot1 = classList.contains('editavel-slot1');
+            let isEditavelSlot2 = classList.contains('editavel-slot2');
+            
+            if (isEditavelSlot1 || isEditavelSlot2) {
+                if(e.target.type === 'file') return;
+                
+                let numSlot = isEditavelSlot1 ? 1 : 2;
+                let tipo = slotsDeVisao[numSlot].tipo;
+                let idFicha = slotsDeVisao[numSlot].idFicha;
+                if(!idFicha || tipo === 'horda') return;
+
+                let chaveCompleta = e.target.id;
+                if(!chaveCompleta.startsWith(`slot${numSlot}-`)) return;
+                if(chaveCompleta.includes('novo-buff')) return;
+                if(chaveCompleta.includes('jogador-ataque-dano')) return;
+                if(chaveCompleta.includes('ataque-dano')) return;
+                if(chaveCompleta.includes('qtd-horda')) return;
+
+                let chaveDoBanco = chaveCompleta.replace(`slot${numSlot}-`, '');
+                if(tipo === 'monstro') {
+                    chaveDoBanco = chaveDoBanco.replace('monstro-', '');
+                    if(chaveCompleta === `slot${numSlot}-monstro-nome`) chaveDoBanco = 'nome';
+                }
+
+                let novoValor = e.target.value;
+                let dadosAntigos = slotsDeVisao[numSlot].dados || {};
+                
+                let baseAtual = {for:0, des:0, con:0, int:0, sab:0, car:0, per:0};
+                let oldRaca = dadosAntigos.raca || '';
+                let oldClasse = dadosAntigos.classe || '';
+                if(typeof RACES !== 'undefined' && RACES[oldRaca] && !RACES[oldRaca].points) {
+                    for(let a in baseAtual) if(RACES[oldRaca][a]) baseAtual[a] += RACES[oldRaca][a];
+                }
+                if(typeof CLASSES !== 'undefined' && CLASSES[oldClasse]) {
+                    for(let a in baseAtual) if(CLASSES[oldClasse][a]) baseAtual[a] += CLASSES[oldClasse][a];
+                }
+
+                if (tipo === 'heroi' && (chaveDoBanco === 'raca' || chaveDoBanco === 'classe')) {
+                    let newRaca = chaveDoBanco === 'raca' ? novoValor : oldRaca;
+                    let newClasse = chaveDoBanco === 'classe' ? novoValor : oldClasse;
+                    
+                    let newBase = {for:0, des:0, con:0, int:0, sab:0, car:0, per:0};
+                    if(typeof RACES !== 'undefined' && RACES[newRaca] && !RACES[newRaca].points) {
+                        for(let a in newBase) if(RACES[newRaca][a]) newBase[a] += RACES[newRaca][a];
+                    }
+                    if(typeof CLASSES !== 'undefined' && CLASSES[newClasse]) {
+                        for(let a in newBase) if(CLASSES[newClasse][a]) newBase[a] += CLASSES[newClasse][a];
+                    }
+                    
+                    let updates = { [chaveDoBanco]: novoValor };
+                    ['for', 'des', 'con', 'int', 'sab', 'car', 'per'].forEach(attr => {
+                        let delta = newBase[attr] - baseAtual[attr];
+                        if(delta !== 0) {
+                            updates[attr] = (Number(dadosAntigos[attr]) || 0) + delta;
+                        }
+                    });
+                    update(ref(database, 'fichas/' + idFicha), updates);
+                    return; 
+                }
+
+                if (tipo === 'heroi' && ['for', 'des', 'con', 'int', 'sab', 'car', 'per'].includes(chaveDoBanco)) {
+                    novoValor = Number(novoValor);
+                    let minG = baseAtual[chaveDoBanco];
+                    if (novoValor < minG) novoValor = minG;
+                    
+                    let expT = Number(dadosAntigos['expTotal']) || 0;
+                    let lvl = typeof getLevelData === 'function' ? getLevelData(expT).level : 1;
+                    let maxA = 10 + (lvl - 1);
+                    if(typeof RACES !== 'undefined' && RACES[oldRaca] && RACES[oldRaca].points) maxA += RACES[oldRaca].points;
+
+                    let ptsGastos = 0;
+                    ['for', 'des', 'con', 'int', 'sab', 'car', 'per'].forEach(a => {
+                        let valDaVez = (a === chaveDoBanco) ? novoValor : (Number(dadosAntigos[a]) || 0);
+                        ptsGastos += Math.max(0, valDaVez - baseAtual[a]);
+                    });
+
+                    if (ptsGastos > maxA && usuarioAtual.cargo !== "Mestre") {
+                        e.target.value = dadosAntigos[chaveDoBanco] || 0; 
+                        return; 
+                    }
+                    e.target.value = novoValor; 
+                }
+                
+                if (usuarioAtual.cargo === 'Jogador' && (chaveDoBanco === 'hp-atual' || chaveDoBanco === 'mana-atual')) {
+                    if (novoValor !== "") {
+                        novoValor = Number(novoValor);
+                        if (novoValor < 0) novoValor = 0;
+                        let hpEf = document.getElementById(`slot${numSlot}-hp-efetivo`);
+                        let manaEf = document.getElementById(`slot${numSlot}-mana-efetivo`);
+                        let maxVal = chaveDoBanco === 'hp-atual' ? 
+                            (hpEf ? Number(hpEf.innerText) : 20) : 
+                            (manaEf ? Number(manaEf.innerText) : 20);
+                        if (novoValor > maxVal) novoValor = maxVal;
+                        e.target.value = novoValor;
+                    }
+                }
+                
+                update(ref(database, 'fichas/' + idFicha), { [chaveDoBanco]: novoValor });
+                if(chaveDoBanco.includes('hp') || chaveDoBanco.includes('mana')) atualizarBarrasEAlertaNoSlot(numSlot, tipo);
+            }
+        });

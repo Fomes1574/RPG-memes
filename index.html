@@ -31,11 +31,36 @@
     </div>
 
     <div id="tela-login">
-        <h2 style="color: #d4af37; margin-bottom: 5px; letter-spacing: 3px; text-shadow: 2px 2px 5px black; font-size: 28px;">RPG MEMES</h2>
-        <p style="color: #9c8464; font-size: 14px; margin-bottom: 25px; font-style: italic;">Declare sua identidade, viajante</p>
-        <input type="text" id="input-senha" placeholder="Insira seu nome..." style="text-align: center; font-size: 16px; margin-bottom: 20px;">
-        <button style="width: 100%; padding: 14px; font-size: 14px;" onclick="fazerLogin()">Adentrar no mundo</button>
-        <p id="msg-erro" style="color: #8c1c13; font-size: 13px; margin-top: 15px; display: none; font-weight: bold;">As chamas não reconhecem este nome.</p>
+        <h2 id="login-title">O Pacto</h2>
+        <p id="login-subtitle">"Assine com seu sangue ou tinta, viajante, para adentrar os reinos esquecidos..."</p>
+        <input type="text" id="input-senha" placeholder="Sua Assinatura..." autocomplete="off">
+        <button id="btn-login-wax" onclick="fazerLogin()">Assinar & Adentrar</button>
+        <p id="msg-erro" style="color: #8c1c13; font-size: 14px; margin-top: 20px; display: none; font-weight: bold; text-shadow: none;">Assinatura não reconhecida pelo Pacto.</p>
+    </div>
+
+    <!-- SIDEBAR DO MESTRE (ACERVO) -->
+    <div id="sidebar-mestre" class="sidebar-mestre" style="display: none;">
+        <button id="btn-toggle-sidebar" onclick="toggleSidebarMestre()">
+            <span id="seta-sidebar">▶</span>
+        </button>
+        <div class="sidebar-header">
+            <h3>📖 BESTIÁRIO</h3>
+            <button onclick="invocarMonstro()" class="btn-add-sidebar">+ NOVO</button>
+        </div>
+        <div class="sidebar-content">
+            <div class="acervo-categoria">
+                <button class="btn-categoria" onclick="toggleCategoria('cat-jogadores')">👤 Jogadores <span class="seta">▼</span></button>
+                <div id="cat-jogadores" class="categoria-lista" style="display: block;"></div>
+            </div>
+            <div class="acervo-categoria">
+                <button class="btn-categoria" onclick="toggleCategoria('cat-monstros')">💀 Monstros <span class="seta">▼</span></button>
+                <div id="cat-monstros" class="categoria-lista" style="display: block;"></div>
+            </div>
+            <div class="acervo-categoria">
+                <button class="btn-categoria" onclick="toggleCategoria('cat-hordas')">🛡️ Hordas <span class="seta">▼</span></button>
+                <div id="cat-hordas" class="categoria-lista" style="display: block;"></div>
+            </div>
+        </div>
     </div>
 
     <div id="tela-app">
@@ -54,47 +79,9 @@
 
                 <div id="painel-mestre" class="painel-mestre">
                     <button class="btn-exp-master" onclick="abrirModalExp()">✨ Distribuir EXP</button>
-                    <div class="painel-mestre-box" style="margin-left: 10px; border-left: 1px dashed #6b1d1d; padding-left: 15px;">
-                        <label style="margin-bottom: 0; color: #b89c72;">TELA 1:</label>
-                        <select id="mestre-t1-player" onchange="mestreAbrir(1, 'heroi', this.value)">
-                            <option value="">👤 Jogadores...</option>
-                        </select>
-                        <select id="mestre-t1-monstro" onchange="mestreAbrir(1, 'monstro', this.value)">
-                            <option value="">💀 Monstros...</option>
-                        </select>
-                        <select id="mestre-t1-horda" onchange="mestreAbrir(1, 'horda', this.value)">
-                            <option value="">🛡️ Hordas...</option>
-                        </select>
-                        <button class="btn-limpar" onclick="mestreLimpar(1)" title="Fechar Tela 1">❌</button>
-                    </div>
-
-                    <div class="painel-mestre-box">
-                        <label style="margin-bottom: 0; color: #b89c72;">TELA 2:</label>
-                        <select id="mestre-t2-player" onchange="mestreAbrir(2, 'heroi', this.value)">
-                            <option value="">👤 Jogadores...</option>
-                        </select>
-                        <select id="mestre-t2-monstro" onchange="mestreAbrir(2, 'monstro', this.value)">
-                            <option value="">💀 Monstros...</option>
-                        </select>
-                        <select id="mestre-t2-horda" onchange="mestreAbrir(2, 'horda', this.value)">
-                            <option value="">🛡️ Hordas...</option>
-                        </select>
-                        <button class="btn-limpar" onclick="mestreLimpar(2)" title="Fechar Tela 2">❌</button>
-                    </div>
-
-                    <div style="border-left: 1px dashed #6b1d1d; margin-left: 5px; padding-left: 15px;">
-                        <label style="display: inline-block; margin-bottom: 0; color: #a84242;">Ameaça Ativa:</label>
-                        <select id="seletor-ameaca" style="border-color: #6b1d1d; font-size:12px; width: 140px;" onchange="selecionarAmeacaMestre(this.value)">
-                            <option value="" disabled selected>Nenhum...</option>
-                            <optgroup label="Monstros Individuais" id="optgroup-monstros"></optgroup>
-                            <optgroup label="Hordas" id="optgroup-hordas"></optgroup>
-                        </select>
-                    </div>
-                    <button class="btn-invocar" onclick="invocarMonstro()">+ Criar Monstro</button>
-                    <button class="btn-turno-global" onclick="avancarTurnoGlobal()" style="background: linear-gradient(to bottom, #1e5c2e, #11361a); border-color: #27ae60; color: #fff; text-shadow: 1px 1px 2px black;">⏳ Passar Turno Global</button>
-                    <button id="btn-lancar" class="btn-lancar" onclick="lancarAmeaca()" style="display:none;">⚔️ Lançar aos Players</button>
-                    <button id="btn-derrotado" class="btn-derrotado" onclick="ameacaDerrotada()" style="display:none;">💀 Ameaça Derrotada</button>
-                    <button id="btn-deletar" class="btn-deletar" onclick="deletarAmeaca()" style="display:none;">🗑️ Deletar</button>
+                    <button class="btn-turno-global" onclick="avancarTurnoGlobal()" style="margin-left:15px; background: linear-gradient(to bottom, #1e5c2e, #11361a); border-color: #27ae60; color: #fff; text-shadow: 1px 1px 2px black;">⏳ Passar Turno Global</button>
+                    <button class="btn-fechar-telas" onclick="mestreLimpar(1)" style="margin-left: 15px; background: rgba(0,0,0,0.5); border: 1px solid #8c1c13; color: #d95757; padding: 5px 10px; cursor: pointer;">❌ Ficha Esq.</button>
+                    <button class="btn-fechar-telas" onclick="mestreLimpar(2)" style="margin-left: 5px; background: rgba(0,0,0,0.5); border: 1px solid #8c1c13; color: #d95757; padding: 5px 10px; cursor: pointer;">❌ Ficha Dir.</button>
                 </div>
             </div>
         </div>
@@ -105,70 +92,19 @@
         </div>
     </div>
 
-    <!-- SIDEBAR DE COMBATE -->
-    <div id="sidebar-combate">
-        <div id="sidebar-header">
-            <span>⚔️ COMBATE</span>
-            <button id="sidebar-toggle-btn" onclick="toggleSidebarCombate()" title="Recolher">◀</button>
-        </div>
-
-        <!-- MODO -->
-        <div class="sb-section">
-            <div class="sb-label">MODO</div>
-            <div class="sb-radio-group">
-                <label class="sb-radio-label">
-                    <input type="radio" name="sb-modo" id="sb-modo-ataque" value="ataque" checked onchange="sbTrocarModo('ataque')">
-                    <span>⚔️ Ataque Básico</span>
-                </label>
-                <label class="sb-radio-label">
-                    <input type="radio" name="sb-modo" id="sb-modo-magia" value="magia" onchange="sbTrocarModo('magia')">
-                    <span>✨ Magia</span>
-                </label>
+    <!-- MODAL ÁRVORE DE HABILIDADES -->
+    <div id="modal-arvore">
+        <div class="arvore-container">
+            <button class="btn-fechar-arvore" onclick="fecharArvore()">✖ FECHAR</button>
+            <div class="arvore-header">
+                <h2 class="arvore-titulo">Árvore de Habilidades</h2>
+                <div class="arvore-classes-tabs" id="arvore-tabs-container">
+                    <!-- As abas das classes serão injetadas via script -->
+                </div>
             </div>
-        </div>
-
-        <!-- PAINEL MAGIA -->
-        <div id="sb-painel-magia" class="sb-section" style="display:none;">
-            <div class="sb-label">MAGIA EQUIPADA</div>
-            <div id="sb-magia-card">
-                <div id="sb-magia-nome" class="sb-magia-nome">—</div>
-                <div id="sb-magia-custo" class="sb-magia-custo">💧 Custo: —</div>
+            <div class="arvore-content" id="arvore-views-container">
+                <!-- As visões das árvores serão injetadas via script -->
             </div>
-            <button class="sb-btn sb-btn-magia" id="sb-btn-lancar" onclick="sbExecutarAcao('magia')">✨ Lançar Feitiço</button>
-        </div>
-
-        <!-- PAINEL ATAQUE -->
-        <div id="sb-painel-ataque" class="sb-section">
-            <button class="sb-btn sb-btn-ataque" id="sb-btn-atacar" onclick="sbExecutarAcao('ataque')">⚔️ Atacar</button>
-        </div>
-
-        <!-- ROLAGEM -->
-        <div class="sb-section">
-            <div class="sb-label">TOTAL ROLADO</div>
-            <div class="sb-roll-row">
-                <input
-                    type="number"
-                    id="sb-input-rolagem"
-                    class="sb-roll-input"
-                    placeholder="22"
-                    min="1"
-                    max="999"
-                    oninput="sbValidarRolagem(this)"
-                >
-                <span class="sb-roll-icon">🎲</span>
-            </div>
-        </div>
-
-        <!-- ALVOS -->
-        <div class="sb-section">
-            <div class="sb-label">ALVOS</div>
-            <div id="sb-alvos-lista" class="sb-alvos-lista"></div>
-        </div>
-
-        <!-- PASSIVAS -->
-        <div class="sb-section">
-            <div class="sb-label">PASSIVAS ATIVAS</div>
-            <div id="sb-passivas-lista" class="sb-passivas-lista"></div>
         </div>
     </div>
 
