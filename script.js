@@ -46,6 +46,27 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
             "Monge": { con: 1, des: 1, sab: 1 }
         };
 
+        const HABILIDADES_SISTEMA = {
+            "Humanos": { "hum_adaptavel": { nome: "Adaptável", desc: "+1 em qualquer atributo (já aplicado).", tipo: "passiva", alvo: "self", icon: "👤", race: "Humanos" } },
+            "Elfo": { "elf_visao": { nome: "Visão Aguçada", desc: "Vantagem em testes de Percepção baseados em visão.", tipo: "passiva", alvo: "self", icon: "👁️", race: "Elfo" }, "elf_afinidade": { nome: "Afinidade Arcana", desc: "+2 Dano Mágico ou +2 Cura.", tipo: "passiva", alvo: "self", icon: "✨", race: "Elfo" } },
+            "Anão": { "anao_resistencia": { nome: "Resistência Anã", desc: "Reduz qualquer dano físico sofrido em 2.", tipo: "passiva", alvo: "self", icon: "🛡️", race: "Anão" } },
+            "Orc": { "orc_furia": { nome: "Fúria", desc: "+3 em Dano Físico corpo-a-corpo.", tipo: "passiva", alvo: "self", icon: "🩸", race: "Orc" } },
+            "Gnomo": { "gno_natureza": { nome: "Natureza Mística", desc: "Você pode falar com pequenos animais.", tipo: "passiva", alvo: "self", icon: "🐿️", race: "Gnomo" }, "gno_mente": { nome: "Mente Rápida", desc: "Imunidade a magias de sono e confusão.", tipo: "passiva", alvo: "self", icon: "🧠", race: "Gnomo" } },
+            "Halfling": { "hal_sorte": { nome: "Sorte Incrível", desc: "Rola 1d20 com vantagem (2 vezes/sessão).", tipo: "ativa", ap: 0, mana: 0, alvo: "self", icon: "🍀", race: "Halfling" } },
+            "Khajiit": { "kha_sentidos": { nome: "Sentidos Felinos", desc: "Visão no escuro.", tipo: "passiva", alvo: "self", icon: "🐈", race: "Khajiit" }, "kha_garras": { nome: "Garras Naturais", desc: "Ataque desarmado causa 1d6 + DES de dano.", tipo: "ativa", ap: 1, mana: 0, alvo: "any", icon: "🐾", race: "Khajiit" } },
+            "Argoniano": { "arg_regeneracao": { nome: "Regeneração", desc: "Cura 2 HP por rodada.", tipo: "passiva", alvo: "self", icon: "🦎", race: "Argoniano" }, "arg_anfibio": { nome: "Anfíbio", desc: "Respira debaixo d'água.", tipo: "passiva", alvo: "self", icon: "💧", race: "Argoniano" }, "arg_resistencia": { nome: "Resistência Natural", desc: "Imunidade a veneno e doenças.", tipo: "passiva", alvo: "self", icon: "🌿", race: "Argoniano" } },
+            "Guerreiro": { "guer_especialista": { nome: "Especialista em Combate", desc: "+2 de Dano com armas corpo-a-corpo.", tipo: "passiva", alvo: "self", icon: "⚔️", class: "Guerreiro" }, "guer_postura": { nome: "Postura Defensiva", desc: "Ganha +3 de Armadura até o próximo turno.", tipo: "ativa", ap: 1, mana: 5, alvo: "any", icon: "🛡️", class: "Guerreiro" } },
+            "Paladino": { "pal_golpe": { nome: "Golpe Sagrado", desc: "Ataque físico que adiciona 1d8 de Dano Radiante.", tipo: "ativa", ap: 1, mana: 5, alvo: "any", icon: "⚡", class: "Paladino" }, "pal_cura": { nome: "Cura Divina", desc: "Cura 1d8 + SAB de um aliado.", tipo: "cura", ap: 1, mana: 5, alvo: "any", icon: "❤️", class: "Paladino" } },
+            "Druida": { "dru_forma": { nome: "Forma Selvagem", desc: "Transforma-se em um animal (lobo, urso, etc).", tipo: "ativa", ap: 1, mana: 10, alvo: "self", icon: "🐻", class: "Druida" }, "dru_vinculo": { nome: "Vínculo com a Natureza", desc: "+2 Cura e vantagem em testes de sobrevivência.", tipo: "passiva", alvo: "self", icon: "🌳", class: "Druida" } },
+            "Bárbaro": { "bar_furia": { nome: "Fúria", desc: "Recebe metade do dano físico e causa +3 de dano.", tipo: "ativa", ap: 1, mana: 5, alvo: "self", icon: "😡", class: "Bárbaro" }, "bar_resistencia": { nome: "Resistência Brutal", desc: "Pode ignorar 1 golpe que zeraria o HP (1x/sessão).", tipo: "passiva", alvo: "self", icon: "💪", class: "Bárbaro" } },
+            "Arqueiro": { "arq_tiro": { nome: "Tiro Preciso", desc: "Ataque à distância ganha +3 no acerto.", tipo: "ativa", ap: 1, mana: 5, alvo: "any", icon: "🏹", class: "Arqueiro" }, "arq_olho": { nome: "Olho de Águia", desc: "Pode ver e atacar inimigos a longa distância sem penalidade.", tipo: "passiva", alvo: "self", icon: "🦅", class: "Arqueiro" } },
+            "Ladino": { "lad_ataque": { nome: "Ataque Furtivo", desc: "Ataque furtivo causa +1d6 dano (precisa de vantagem).", tipo: "ativa", ap: 1, mana: 5, alvo: "any", icon: "🗡️", class: "Ladino" }, "lad_evasao": { nome: "Evasão", desc: "Metade do dano ao falhar em DES, 0 dano se passar.", tipo: "passiva", alvo: "self", icon: "💨", class: "Ladino" }, "lad_especialista": { nome: "Especialista em Perícias", desc: "Role testes de Ladinagem com vantagem.", tipo: "passiva", alvo: "self", icon: "🕵️", class: "Ladino" } },
+            "Mago": { "mag_mana": { nome: "Regeneração de Mana", desc: "Recupera 1d4 de Mana por turno.", tipo: "passiva", alvo: "self", icon: "🔮", class: "Mago" } },
+            "Curandeiro": { "cur_cura": { nome: "Cura Maior", desc: "Cura 2d8 + SAB.", tipo: "cura", ap: 1, mana: 10, alvo: "any", icon: "🌿", class: "Curandeiro" }, "cur_protecao": { nome: "Proteção Espiritual", desc: "Concede +5 de Escudo ao alvo.", tipo: "suporte", ap: 1, mana: 5, alvo: "any", icon: "🛡️", class: "Curandeiro" }, "cur_purificacao": { nome: "Purificação", desc: "Remove venenos, doenças e debuffs mágicos.", tipo: "suporte", ap: 1, mana: 5, alvo: "any", icon: "✨", class: "Curandeiro" } },
+            "Bardo": { "bar_inspiracao": { nome: "Inspiração", desc: "Dá 1d6 bônus em um teste de um aliado.", tipo: "suporte", ap: 1, mana: 5, alvo: "any", icon: "🎵", class: "Bardo" }, "bar_cancao": { nome: "Canção Arcana", desc: "Causa dano psíquico de 1d6 + CAR.", tipo: "ativa", ap: 1, mana: 5, alvo: "any", icon: "🎸", class: "Bardo" }, "bar_manipulacao": { nome: "Manipulação Social", desc: "Vantagem em testes de Lábia e Enganação.", tipo: "passiva", alvo: "self", icon: "🎭", class: "Bardo" } },
+            "Monge": { "mon_golpes": { nome: "Golpes Rápidos", desc: "Permite 2 ataques desarmados no mesmo AP.", tipo: "ativa", ap: 1, mana: 5, alvo: "any", icon: "👊", class: "Monge" }, "mon_ki": { nome: "Ki Interior", desc: "Pode gastar 5 de Mana para curar 1d8 HP de si mesmo.", tipo: "cura", ap: 0, mana: 5, alvo: "self", icon: "🧘", class: "Monge" }, "mon_esquiva": { nome: "Esquiva Suprema", desc: "Pode usar Reação para ganhar +4 de Defesa contra um ataque.", tipo: "passiva", alvo: "self", icon: "🥋", class: "Monge" } }
+        };
+
         const playersList = ['lais', 'gomes', 'kamy', 'arthur'];
 
         let usuarioAtual = null; 
@@ -447,17 +468,32 @@ window.toggleSidebarJogador = function(numSlot) {
         let refAlvoJogador = null;
 
         function atualizarAlvosJogador(ameacaId) {
-            let nomeSpan = document.getElementById(`nome-ameaca-ativa-slot1`);
-            let alvosDiv = document.getElementById(`alvos-combate-slot1`);
-            if(!nomeSpan || !alvosDiv) return;
+            let nomeSpan1 = document.getElementById(`nome-ameaca-ativa-slot1`);
+            let nomeSpan2 = document.getElementById(`nome-ameaca-ativa-slot2`);
+            let alvosDiv1 = document.getElementById(`alvos-combate-slot1`);
+            let alvosDiv2 = document.getElementById(`alvos-combate-slot2`);
 
             if(typeof ouvinteAlvoJogador === 'function') {
                 ouvinteAlvoJogador();
             }
 
+            const renderizarTodos = (nomeAmeaca, htmlInimigos) => {
+                let htmlPlayers = '';
+                playersList.forEach(p => {
+                    htmlPlayers += `<label class="checkbox-alvo" style="color:#dcd0ba; font-size:12px; margin-bottom:2px;"><input type="checkbox" value="${p}"> Aliado: ${p.toUpperCase()}</label>`;
+                });
+                
+                let separator = `<div style="border-bottom: 1px dashed #5c1818; margin: 5px 0;"></div>`;
+                let finalHtml = htmlPlayers + separator + htmlInimigos;
+
+                if(nomeSpan1) nomeSpan1.innerText = nomeAmeaca;
+                if(nomeSpan2) nomeSpan2.innerText = nomeAmeaca;
+                if(alvosDiv1) alvosDiv1.innerHTML = finalHtml;
+                if(alvosDiv2) alvosDiv2.innerHTML = finalHtml;
+            };
+
             if(!ameacaId) {
-                nomeSpan.innerText = "Nenhuma ameaça na mesa no momento...";
-                alvosDiv.innerHTML = "";
+                renderizarTodos("Nenhuma ameaça na mesa no momento...", `<div style="color:#5c3a21; font-size:10px; font-style:italic;">Nenhum inimigo ativo.</div>`);
                 return;
             }
 
@@ -466,18 +502,17 @@ window.toggleSidebarJogador = function(numSlot) {
                 ouvinteAlvoJogador = onValue(refAlvoJogador, (snap) => {
                     if(snap.exists()) {
                         let horda = snap.val();
-                        nomeSpan.innerText = horda.nome || 'Horda';
+                        let nomeHorda = horda.nome || 'Horda';
                         let html = '';
                         for(let mId in horda.membros) {
                             let hpAtual = Number(horda.membros[mId]['hp-atual']) || 0;
                             if(hpAtual > 0) {
-                                html += `<label class="checkbox-alvo" style="color:#d95757; font-size:12px; margin-bottom:2px;"><input type="checkbox" value="${ameacaId}_${mId}"> ${horda.nome || 'Horda'} #${mId} (HP: ${hpAtual})</label>`;
+                                html += `<label class="checkbox-alvo" style="color:#d95757; font-size:12px; margin-bottom:2px;"><input type="checkbox" value="${ameacaId}_${mId}"> Inimigo: ${nomeHorda} #${mId} (HP: ${hpAtual})</label>`;
                             }
                         }
-                        alvosDiv.innerHTML = html;
+                        renderizarTodos(nomeHorda, html);
                     } else {
-                        nomeSpan.innerText = "Ameaça removida.";
-                        alvosDiv.innerHTML = "";
+                        renderizarTodos("Ameaça removida.", "");
                     }
                 });
             } else {
@@ -487,15 +522,12 @@ window.toggleSidebarJogador = function(numSlot) {
                         let m = snap.val();
                         let hpAtual = Number(m['hp-atual']) || 0;
                         if(hpAtual > 0) {
-                            nomeSpan.innerText = m.nome || 'Monstro';
-                            alvosDiv.innerHTML = `<label class="checkbox-alvo" style="color:#d95757; font-size:12px;"><input type="checkbox" value="${ameacaId}"> ${m.nome || 'Monstro'} (HP: ${hpAtual})</label>`;
+                            renderizarTodos(m.nome || 'Monstro', `<label class="checkbox-alvo" style="color:#d95757; font-size:12px;"><input type="checkbox" value="${ameacaId}"> Inimigo: ${m.nome || 'Monstro'} (HP: ${hpAtual})</label>`);
                         } else {
-                            nomeSpan.innerText = (m.nome || 'Monstro') + " (Derrotado)";
-                            alvosDiv.innerHTML = "";
+                            renderizarTodos((m.nome || 'Monstro') + " (Derrotado)", "");
                         }
                     } else {
-                        nomeSpan.innerText = "Ameaça removida.";
-                        alvosDiv.innerHTML = "";
+                        renderizarTodos("Ameaça removida.", "");
                     }
                 });
             }
@@ -1639,15 +1671,15 @@ window.toggleSidebarJogador = function(numSlot) {
                     let hab = grimorio[habId];
                     if(!hab.equipada) continue;
                     
-                    let icon = '✨';
-                    if(hab.tipo === 'ativa') icon = '🔥';
-                    else if(hab.tipo === 'cura') icon = '🌿';
-                    else if(hab.tipo === 'passiva') icon = '🛡️';
+                    let icon = hab.icon || '✨';
 
                     if(hab.tipo === 'passiva') {
                         htmlPassivas += `
                             <div class="passiva-mini" title="${hab.desc}">
-                                <div class="passiva-mini-icon">${icon}</div>
+                                <div class="passiva-mini-icon">
+                                    <img src="Imagens/${encodeURIComponent(hab.nome)}.png" style="width:100%; height:100%; object-fit:cover; position:absolute; z-index:2;" onerror="this.style.display='none'">
+                                    <div style="z-index:1;">${icon}</div>
+                                </div>
                                 <div class="passiva-mini-nome">${hab.nome}</div>
                             </div>
                         `;
@@ -1687,13 +1719,11 @@ window.toggleSidebarJogador = function(numSlot) {
                 let hab = grimorio[habId];
                 let isEquipada = hab.equipada || false;
                 
-                let icon = '✨'; 
-                if(hab.tipo === 'ativa') { icon = '🔥'; }
-                else if(hab.tipo === 'cura') { icon = '🌿'; }
-                else if(hab.tipo === 'passiva') { icon = '🛡️'; }
+                let icon = hab.icon || '✨'; 
                 
                 let btnEquiparHtml = '';
-                if(temPermissao) {
+                // Passivas nunca recebem botão de equipar (sempre ativas nativamente)
+                if(temPermissao && hab.tipo !== 'passiva') {
                     btnEquiparHtml = `<button onclick="toggleEquiparHabilidade(${numSlot}, '${habId}')" class="btn-equipar-visual">${isEquipada ? 'Desequipar' : 'Equipar'}</button>`;
                 }
                 
@@ -1702,7 +1732,10 @@ window.toggleSidebarJogador = function(numSlot) {
                 let cardHtml = `
                     <div class="skill-card-visual ${isEquipada ? 'equipada' : ''} tipo-${hab.tipo}">
                         ${delHtml}
-                        <div class="skill-icon-glow">${icon}</div>
+                        <div class="skill-icon-container">
+                            <img src="Imagens/${encodeURIComponent(hab.nome)}.png" class="skill-img-real" onerror="this.style.display='none'">
+                            <div class="skill-icon-glow">${icon}</div>
+                        </div>
                         <div class="skill-data-visual">
                             <div class="skill-title-visual">${hab.nome}</div>
                             <div class="skill-stats-visual">
@@ -1868,7 +1901,38 @@ window.toggleSidebarJogador = function(numSlot) {
             }
         };
 
-        // usarHabilidade foi substituído pelo fluxo centralizado de jogadorLancarFeitico
+        window.atualizarHabilidadesSistema = async function(idFicha, numSlot) {
+            const snap = await get(ref(database, `fichas/${idFicha}`));
+            if(!snap.exists()) return;
+            
+            let dados = snap.val();
+            let racaSel = dados.raca || '';
+            let classeSel = dados.classe || '';
+            let grimorioAntigo = dados.grimorio || {};
+            
+            let novoGrimorio = {};
+            
+            // Mantenha habilidades antigas que NÃO SÃO de classe ou raça (por exemplo, upadas à parte)
+            for(let k in grimorioAntigo) {
+                let h = grimorioAntigo[k];
+                if(!h.isSystemObj) novoGrimorio[k] = h;
+            }
+            
+            // Injetar Raça
+            if(HABILIDADES_SISTEMA[racaSel]) {
+                for(let k in HABILIDADES_SISTEMA[racaSel]) {
+                    novoGrimorio[k] = { ...HABILIDADES_SISTEMA[racaSel][k], isSystemObj: true, equipada: HABILIDADES_SISTEMA[racaSel][k].tipo === 'passiva' ? true : false };
+                }
+            }
+            // Injetar Classe
+            if(HABILIDADES_SISTEMA[classeSel]) {
+                for(let k in HABILIDADES_SISTEMA[classeSel]) {
+                    novoGrimorio[k] = { ...HABILIDADES_SISTEMA[classeSel][k], isSystemObj: true, equipada: HABILIDADES_SISTEMA[classeSel][k].tipo === 'passiva' ? true : false };
+                }
+            }
+            
+            await update(ref(database, `fichas/${idFicha}`), { grimorio: novoGrimorio });
+        };
 
         // ==========================================
         // DELEGAÇÃO DE EVENTOS GLOBAL (PERFORMANCE)
@@ -1880,14 +1944,9 @@ window.toggleSidebarJogador = function(numSlot) {
             // 1. Inputs de Horda
             if (classList.contains('horda-compact-input')) {
                 let numSlot = classList.contains('editavel-slot1') ? 1 : (classList.contains('editavel-slot2') ? 2 : null);
-                if(!numSlot) return;
-                let idFicha = slotsDeVisao[numSlot].idFicha;
-                if(!idFicha) return;
-                
+                if(!numSlot || !slotsDeVisao[numSlot].idFicha) return;
                 let parts = e.target.id.split('-'); 
-                let mId = parts[1];
-                let campo = parts.slice(2).join('-');
-                update(ref(database, `hordas/${idFicha}/membros/${mId}`), { [campo]: Number(e.target.value) });
+                update(ref(database, `hordas/${slotsDeVisao[numSlot].idFicha}/membros/${parts[1]}`), { [parts.slice(2).join('-')]: Number(e.target.value) });
                 return;
             }
 
@@ -1948,7 +2007,9 @@ window.toggleSidebarJogador = function(numSlot) {
                             updates[attr] = (Number(dadosAntigos[attr]) || 0) + delta;
                         }
                     });
-                    update(ref(database, 'fichas/' + idFicha), updates);
+                    update(ref(database, 'fichas/' + idFicha), updates).then(() => {
+                        atualizarHabilidadesSistema(idFicha, numSlot);
+                    });
                     return; 
                 }
 
