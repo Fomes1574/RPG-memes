@@ -51,50 +51,73 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
             if (!str) return '';
             return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, '');
         }
-        // Resolve o caminho da imagem de uma habilidade usando sua raça ou classe de origem
+        // Resolve o caminho da imagem sprite da raça ou classe de origem
         function resolverImgHabilidade(hab) {
             const origem = hab.race || hab.class || hab.origem || '';
             if (!origem) return '';
             return 'Imagens/Habilidades' + normalizeImgKey(origem) + '.png';
         }
+        // Calcula o object-position para centralizar o medalão correto dentro do sprite
+        // spriteIdx = 0-based index da habilidade dentro do sprite
+        // totalSprite = total de habilidades no sprite daquela raça/classe
+        function calcSpritePosX(spriteIdx, totalSprite) {
+            if (totalSprite <= 1) return '50%';
+            return ((spriteIdx / (totalSprite - 1)) * 100).toFixed(2) + '%';
+        }
+        // Gera o HTML do icone com posicionamento correto dentro do sprite
+        function gerarHtmlIconeSprite(hab, containerClass) {
+            const imgSrc = resolverImgHabilidade(hab);
+            const posX = calcSpritePosX(hab.spriteIdx || 0, hab.spriteTotal || 1);
+            if (!imgSrc) {
+                return `<div class="skill-icon-glow ${containerClass || ''}">${hab.icon || '✨'}</div>`;
+            }
+            return `
+                <img src="${imgSrc}"
+                     style="width:100%; height:100%; object-fit:cover; object-position:${posX} 50%; position:absolute; top:0; left:0; z-index:2; border-radius:50%;"
+                     onerror="this.style.display='none'">
+                <div class="skill-icon-glow" style="z-index:1;">${hab.icon || '✨'}</div>
+            `;
+        }
 
         const HABILIDADES_SISTEMA = {
-            "Humanos":   { "hum_adaptavel":   { nome: "Adaptável",              desc: "pode refazer 1 teste por sessão.",                                           tipo: "ativa",  alvo: "self", icon: "👤",  race: "Humano"     } },
-            "Elfo":      { "elf_visao":        { nome: "Visão Aguçada",          desc: "enxerga no escuro.",                                                          tipo: "passiva", alvo: "self", icon: "👁️",  race: "Elfo"       },
-                           "elf_afinidade":    { nome: "Afinidade Arcana",        desc: "bônus em testes mágicos.",                                                    tipo: "passiva", alvo: "self", icon: "✨",  race: "Elfo"       } },
-            "Anão":      { "anao_resistencia": { nome: "Resistência Anã",         desc: "Resistência contra efeitos negativos (debuffs).",                           tipo: "passiva", alvo: "self", icon: "🛡️",  race: "Anão"       } },
-            "Orc":       { "orc_furia":        { nome: "Fúria",                   desc: "pode causar dano extra por alguns turnos.",                                  tipo: "ativa",  alvo: "self", icon: "🩸",  race: "Orc"        } },
-            "Gnomo":     { "gno_natureza":     { nome: "Natureza Mística",        desc: "bônus em magia ou criação de poções.",                                       tipo: "passiva", alvo: "self", icon: "🐿️",  race: "Gnomo"      },
-                           "gno_mente":        { nome: "Mente Rápida",            desc: "vantagem contra ilusões ou efeitos mentais; +2 Percepção.",                  tipo: "passiva", alvo: "self", icon: "🧠",  race: "Gnomo"      } },
-            "Halfling":  { "hal_sorte":        { nome: "Sorte Incrível",          desc: "pode rerrolar 1 dado por sessão.",                                           tipo: "ativa",  alvo: "self", icon: "🍀",  race: "Halfling"   } },
-            "Khajiit":   { "kha_sentidos":     { nome: "Sentidos Felinos",        desc: "bônus em percepção e visão noturna; +2 Percepção.",                          tipo: "passiva", alvo: "self", icon: "🐈",  race: "Khajiit"   },
-                           "kha_garras":       { nome: "Garras Naturais",          desc: "ataque desarmado causa dano extra.",                                          tipo: "passiva", alvo: "any",  icon: "🐾",  race: "Khajiit"   } },
-            "Argoniano": { "arg_regeneracao":  { nome: "Regeneração",             desc: "recupera pequena quantidade de vida ao longo do tempo.",                     tipo: "passiva", alvo: "self", icon: "🦎",  race: "Argoniano" },
-                           "arg_anfibio":      { nome: "Anfíbio",                  desc: "respira debaixo d'água e nada com facilidade; +2 Destreza (quando debaixo d'água).", tipo: "passiva", alvo: "self", icon: "💧", race: "Argoniano" },
-                           "arg_resistencia":  { nome: "Resistência Natural",     desc: "bônus contra doenças e venenos.",                                            tipo: "passiva", alvo: "self", icon: "🌿",  race: "Argoniano" } },
-            "Guerreiro": { "guer_especialista":{ nome: "Especialista em Combate", desc: "bônus com todas as armas.",                                                   tipo: "passiva", alvo: "self", icon: "⚔️",  class: "Guerreiro" },
-                           "guer_postura":     { nome: "Postura Defensiva",       desc: "reduz dano recebido por alguns turnos.",                                     tipo: "ativa",  alvo: "self", icon: "🛡️",  class: "Guerreiro" } },
-            "Paladino":  { "pal_golpe":        { nome: "Golpe Sagrado",           desc: "causa dano extra contra inimigos malignos.",                                 tipo: "passiva", alvo: "self", icon: "⚡",  class: "Paladino"  },
-                           "pal_cura":         { nome: "Cura Divina",             desc: "pode curar a si ou aliados.",                                                tipo: "ativa",  alvo: "any",  icon: "❤️",  class: "Paladino"  } },
-            "Druida":    { "dru_forma":        { nome: "Forma Selvagem",          desc: "transforma-se em animal temporariamente (até 3 vezes por sessão).",          tipo: "ativa",  alvo: "self", icon: "🐻",  class: "Druida"    },
-                           "dru_vinculo":      { nome: "Vínculo com a Natureza",  desc: "conhecimento com plantas, cogumelos e ervas, pode conversar com animais.",   tipo: "passiva", alvo: "self", icon: "🌳",  class: "Druida"    } },
-            "Bárbaro":   { "bar_furia":        { nome: "Fúria",                   desc: "aumenta dano e resistência por alguns turnos.",                              tipo: "ativa",  alvo: "self", icon: "😡",  class: "Bárbaro"   },
-                           "bar_resistencia":  { nome: "Resistência Brutal",      desc: "reduz dano físico recebido.",                                                tipo: "passiva", alvo: "self", icon: "💪",  class: "Bárbaro"   } },
-            "Arqueiro":  { "arq_tiro":         { nome: "Tiro Preciso",            desc: "maior chance de acerto crítico.",                                            tipo: "passiva", alvo: "self", icon: "🏹",  class: "Arqueiro"  },
-                           "arq_olho":         { nome: "Olho de Águia",           desc: "acerta o alvo com facilidade.",                                              tipo: "passiva", alvo: "self", icon: "🦅",  class: "Arqueiro"  } },
-            "Ladino":    { "lad_ataque":       { nome: "Ataque Furtivo",          desc: "causa dano crítico ao atacar desprevenido.",                                 tipo: "passiva", alvo: "self", icon: "🗡️",  class: "Ladino"    },
-                           "lad_evasao":       { nome: "Evasão",                  desc: "maior chance de esquivar.",                                                   tipo: "passiva", alvo: "self", icon: "💨",  class: "Ladino"    },
-                           "lad_especialista": { nome: "Especialista em Perícias",desc: "bônus em furtividade, lockpick, etc..",                                      tipo: "passiva", alvo: "self", icon: "🕵️",  class: "Ladino"    } },
-            "Mago":      { "mag_mana":         { nome: "Regeneração de Mana",     desc: "recupera mana mais rápido.",                                                 tipo: "passiva", alvo: "self", icon: "🔮",  class: "Mago"      } },
-            "Curandeiro":{ "cur_cura":         { nome: "Cura Maior",              desc: "recupera vida de aliados.",                                                   tipo: "ativa",  alvo: "any",  icon: "🌿",  class: "Curandeiro"},
-                           "cur_protecao":     { nome: "Proteção Espiritual",     desc: "reduz dano recebido pelo grupo.",                                            tipo: "passiva", alvo: "any",  icon: "🛡️",  class: "Curandeiro"},
-                           "cur_purificacao":  { nome: "Purificação",             desc: "remove efeitos negativos.",                                                   tipo: "ativa",  alvo: "any",  icon: "✨",  class: "Curandeiro"} },
-            "Bardo":     { "bar_inspiracao":   { nome: "Inspiração",              desc: "concede bônus a aliados.",                                                   tipo: "passiva", alvo: "any",  icon: "🎵",  class: "Bardo"     },
-                           "bar_cancao":       { nome: "Canção Arcana",           desc: "pode causar efeitos mágicos variados.",                                      tipo: "passiva", alvo: "any",  icon: "🎸",  class: "Bardo"     },
-                           "bar_manipulacao":  { nome: "Manipulação Social",      desc: "bônus em diálogo.",                                                          tipo: "passiva", alvo: "self", icon: "🎭",  class: "Bardo"     } },
-            "Monge":     { "mon_golpes":       { nome: "Golpes Rápidos",          desc: "múltiplos ataques por turno.",                                               tipo: "passiva", alvo: "self", icon: "👊",  class: "Monge"     },
-                           "mon_ki":           { nome: "Ki Interior",             desc: "usa energia para aumentar a resistência.",                                   tipo: "ativa",  alvo: "self", icon: "🧘",  class: "Monge"     },
-                           "mon_esquiva":      { nome: "Esquiva Suprema",         desc: "alta evasão.",                                                                tipo: "passiva", alvo: "self", icon: "🥋",  class: "Monge"     } }
+            //── Raças ─────────────────────────────────────────────────────────────────────────────
+            "Humanos":   { "hum_adaptavel":   { nome: "Adaptável",              desc: "pode refazer 1 teste por sessão.",                                                tipo: "ativa",  alvo: "self", icon: "👤",  race: "Humano",     spriteIdx:0, spriteTotal:1 } },
+            "Elfo":      { "elf_visao":        { nome: "Visão Aguçada",          desc: "enxerga no escuro.",                                                               tipo: "passiva", alvo: "self", icon: "👁️",  race: "Elfo",       spriteIdx:0, spriteTotal:2 },
+                           "elf_afinidade":    { nome: "Afinidade Arcana",        desc: "bônus em testes mágicos.",                                                         tipo: "passiva", alvo: "self", icon: "✨",  race: "Elfo",       spriteIdx:1, spriteTotal:2 } },
+            "Anão":      { "anao_resistencia": { nome: "Resistência Anã",         desc: "Resistência contra efeitos negativos (debuffs).",                              tipo: "passiva", alvo: "self", icon: "🛡️",  race: "Anão",       spriteIdx:0, spriteTotal:1 } },
+            "Orc":       { "orc_furia":        { nome: "Fúria",                   desc: "pode causar dano extra por alguns turnos.",                                     tipo: "ativa",  alvo: "self", icon: "🩸",  race: "Orc",        spriteIdx:0, spriteTotal:1 } },
+            "Gnomo":     { "gno_natureza":     { nome: "Natureza Mística",        desc: "bônus em magia ou criação de poções.",                                          tipo: "passiva", alvo: "self", icon: "🐿️",  race: "Gnomo",      spriteIdx:0, spriteTotal:2 },
+                           "gno_mente":        { nome: "Mente Rápida",            desc: "vantagem contra ilusões ou efeitos mentais; +2 Percepção.",                     tipo: "passiva", alvo: "self", icon: "🧠",  race: "Gnomo",      spriteIdx:1, spriteTotal:2 } },
+            "Halfling":  { "hal_sorte":        { nome: "Sorte Incrível",          desc: "pode rerrolar 1 dado por sessão.",                                              tipo: "ativa",  alvo: "self", icon: "🍀",  race: "Halfling",   spriteIdx:0, spriteTotal:1 } },
+            "Khajiit":   { "kha_sentidos":     { nome: "Sentidos Felinos",        desc: "bônus em percepção e visão noturna; +2 Percepção.",                             tipo: "passiva", alvo: "self", icon: "🐈",  race: "Khajiit",   spriteIdx:0, spriteTotal:2 },
+                           "kha_garras":       { nome: "Garras Naturais",          desc: "ataque desarmado causa dano extra.",                                             tipo: "passiva", alvo: "any",  icon: "🐾",  race: "Khajiit",   spriteIdx:1, spriteTotal:2 } },
+            "Argoniano": { "arg_regeneracao":  { nome: "Regeneração",             desc: "recupera pequena quantidade de vida ao longo do tempo.",                        tipo: "passiva", alvo: "self", icon: "🦎",  race: "Argoniano", spriteIdx:0, spriteTotal:3 },
+                           "arg_anfibio":      { nome: "Anfíbio",                  desc: "respira debaixo d'água e nada com facilidade; +2 Destreza (quando debaixo d'água).", tipo: "passiva", alvo: "self", icon: "💧", race: "Argoniano", spriteIdx:1, spriteTotal:3 },
+                           "arg_resistencia":  { nome: "Resistência Natural",     desc: "bônus contra doenças e venenos.",                                               tipo: "passiva", alvo: "self", icon: "🌿",  race: "Argoniano", spriteIdx:2, spriteTotal:3 } },
+            //── Classes ────────────────────────────────────────────────────────────────────────────
+            "Guerreiro": { "guer_especialista":{ nome: "Especialista em Combate", desc: "bônus com todas as armas.",                                                        tipo: "passiva", alvo: "self", icon: "⚔️",  class: "Guerreiro", spriteIdx:0, spriteTotal:2 },
+                           "guer_postura":     { nome: "Postura Defensiva",       desc: "reduz dano recebido por alguns turnos.",                                        tipo: "ativa",  alvo: "self", icon: "🛡️",  class: "Guerreiro", spriteIdx:1, spriteTotal:2 } },
+            "Paladino":  { "pal_golpe":        { nome: "Golpe Sagrado",           desc: "causa dano extra contra inimigos malignos.",                                    tipo: "passiva", alvo: "self", icon: "⚡",  class: "Paladino",  spriteIdx:0, spriteTotal:2 },
+                           "pal_cura":         { nome: "Cura Divina",             desc: "pode curar a si ou aliados.",                                                   tipo: "ativa",  alvo: "any",  icon: "❤️",  class: "Paladino",  spriteIdx:1, spriteTotal:2 } },
+            "Druida":    { "dru_forma":        { nome: "Forma Selvagem",          desc: "transforma-se em animal temporariamente (até 3 vezes por sessão).",             tipo: "ativa",  alvo: "self", icon: "🐻",  class: "Druida",    spriteIdx:0, spriteTotal:2 },
+                           "dru_vinculo":      { nome: "Vínculo com a Natureza",  desc: "conhecimento com plantas, cogumelos e ervas, pode conversar com animais.",      tipo: "passiva", alvo: "self", icon: "🌳",  class: "Druida",    spriteIdx:1, spriteTotal:2 } },
+            "Bárbaro":   { "bar_furia":        { nome: "Fúria",                   desc: "aumenta dano e resistência por alguns turnos.",                                 tipo: "ativa",  alvo: "self", icon: "😡",  class: "Bárbaro",   spriteIdx:0, spriteTotal:2 },
+                           "bar_resistencia":  { nome: "Resistência Brutal",      desc: "reduz dano físico recebido.",                                                   tipo: "passiva", alvo: "self", icon: "💪",  class: "Bárbaro",   spriteIdx:1, spriteTotal:2 } },
+            "Arqueiro":  { "arq_tiro":         { nome: "Tiro Preciso",            desc: "maior chance de acerto crítico.",                                               tipo: "passiva", alvo: "self", icon: "🏹",  class: "Arqueiro",  spriteIdx:0, spriteTotal:2 },
+                           "arq_olho":         { nome: "Olho de Águia",           desc: "acerta o alvo com facilidade.",                                                 tipo: "passiva", alvo: "self", icon: "🦅",  class: "Arqueiro",  spriteIdx:1, spriteTotal:2 } },
+            "Ladino":    { "lad_ataque":       { nome: "Ataque Furtivo",          desc: "causa dano crítico ao atacar desprevenido.",                                    tipo: "passiva", alvo: "self", icon: "🗡️",  class: "Ladino",    spriteIdx:0, spriteTotal:3 },
+                           "lad_evasao":       { nome: "Evasão",                  desc: "maior chance de esquivar.",                                                      tipo: "passiva", alvo: "self", icon: "💨",  class: "Ladino",    spriteIdx:1, spriteTotal:3 },
+                           "lad_especialista": { nome: "Especialista em Perícias",desc: "bônus em furtividade, lockpick, etc..",                                         tipo: "passiva", alvo: "self", icon: "🕵️",  class: "Ladino",    spriteIdx:2, spriteTotal:3 } },
+            "Mago":      { "mag_mana":         { nome: "Regeneração de Mana",     desc: "recupera mana mais rápido.",                                                    tipo: "passiva", alvo: "self", icon: "🔮",  class: "Mago",      spriteIdx:0, spriteTotal:1 } },
+            "Curandeiro":{ "cur_cura":         { nome: "Cura Maior",              desc: "recupera vida de aliados.",                                                      tipo: "ativa",  alvo: "any",  icon: "🌿",  class: "Curandeiro", spriteIdx:0, spriteTotal:3 },
+                           "cur_protecao":     { nome: "Proteção Espiritual",     desc: "reduz dano recebido pelo grupo.",                                               tipo: "passiva", alvo: "any",  icon: "🛡️",  class: "Curandeiro", spriteIdx:1, spriteTotal:3 },
+                           "cur_purificacao":  { nome: "Purificação",             desc: "remove efeitos negativos.",                                                      tipo: "ativa",  alvo: "any",  icon: "✨",  class: "Curandeiro", spriteIdx:2, spriteTotal:3 } },
+            "Bardo":     { "bar_inspiracao":   { nome: "Inspiração",              desc: "concede bônus a aliados.",                                                      tipo: "passiva", alvo: "any",  icon: "🎵",  class: "Bardo",     spriteIdx:0, spriteTotal:3 },
+                           "bar_cancao":       { nome: "Canção Arcana",           desc: "pode causar efeitos mágicos variados.",                                         tipo: "passiva", alvo: "any",  icon: "🎸",  class: "Bardo",     spriteIdx:1, spriteTotal:3 },
+                           "bar_manipulacao":  { nome: "Manipulação Social",      desc: "bônus em diálogo.",                                                             tipo: "passiva", alvo: "self", icon: "🎭",  class: "Bardo",     spriteIdx:2, spriteTotal:3 } },
+            "Monge":     { "mon_golpes":       { nome: "Golpes Rápidos",          desc: "múltiplos ataques por turno.",                                                  tipo: "passiva", alvo: "self", icon: "👊",  class: "Monge",     spriteIdx:0, spriteTotal:3 },
+                           "mon_ki":           { nome: "Ki Interior",             desc: "usa energia para aumentar a resistência.",                                      tipo: "ativa",  alvo: "self", icon: "🧘",  class: "Monge",     spriteIdx:1, spriteTotal:3 },
+                           "mon_esquiva":      { nome: "Esquiva Suprema",         desc: "alta evasão.",                                                                   tipo: "passiva", alvo: "self", icon: "🥋",  class: "Monge",     spriteIdx:2, spriteTotal:3 } }
         };
 
         const playersList = ['lais', 'gomes', 'kamy', 'arthur'];
@@ -1705,11 +1728,12 @@ window.toggleSidebarJogador = function(numSlot) {
 
                     if(hab.tipo === 'passiva') {
                         let imgPassiva = resolverImgHabilidade(hab);
+                        let posX = calcSpritePosX(hab.spriteIdx || 0, hab.spriteTotal || 1);
                         htmlPassivas += `
                             <div class="passiva-mini" title="${hab.desc}">
                                 <div class="passiva-mini-icon">
-                                    ${imgPassiva ? `<img src="${imgPassiva}" style="width:100%; height:100%; object-fit:cover; border-radius:50%; position:absolute; z-index:2;" onerror="this.style.display='none'">` : ''}
-                                    <div style="position:relative; z-index:1;">${icon}</div>
+                                    ${imgPassiva ? `<img src="${imgPassiva}" style="width:100%;height:100%;object-fit:cover;object-position:${posX} 50%;border-radius:50%;position:absolute;top:0;left:0;z-index:2;" onerror="this.style.display='none'">` : ''}
+                                    <div style="position:relative;z-index:1;">${hab.icon || '✨'}</div>
                                 </div>
                                 <div class="passiva-mini-nome">${hab.nome}</div>
                             </div>
@@ -1750,8 +1774,6 @@ window.toggleSidebarJogador = function(numSlot) {
                 let hab = grimorio[habId];
                 let isEquipada = hab.equipada || false;
                 
-                let icon = hab.icon || '✨'; 
-                
                 let btnEquiparHtml = '';
                 // Passivas nunca recebem botão de equipar (sempre ativas nativamente)
                 if(temPermissao && hab.tipo !== 'passiva') {
@@ -1761,12 +1783,13 @@ window.toggleSidebarJogador = function(numSlot) {
                 let delHtml = temPermissao ? `<button onclick="deletarHabilidade(${numSlot}, '${habId}')" style="position: absolute; top: 10px; right: 10px; background:none; border:none; color:#8c1c13; cursor:pointer; font-size: 16px;" title="Apagar Habilidade">🗑️</button>` : '';
                 
                 let imgCard = resolverImgHabilidade(hab);
+                let posXCard = calcSpritePosX(hab.spriteIdx || 0, hab.spriteTotal || 1);
                 let cardHtml = `
                     <div class="skill-card-visual ${isEquipada ? 'equipada' : ''} tipo-${hab.tipo}">
                         ${delHtml}
                         <div class="skill-icon-container">
-                            ${imgCard ? `<img src="${imgCard}" class="skill-img-real" onerror="this.style.display='none'">` : ''}
-                            <div class="skill-icon-glow">${icon}</div>
+                            ${imgCard ? `<img src="${imgCard}" style="width:100%;height:100%;object-fit:cover;object-position:${posXCard} 50%;position:absolute;top:0;left:0;z-index:2;" onerror="this.style.display='none'">` : ''}
+                            <div class="skill-icon-glow" style="z-index:1;">${hab.icon || '✨'}</div>
                         </div>
                         <div class="skill-data-visual">
                             <div class="skill-title-visual">${hab.nome}</div>
