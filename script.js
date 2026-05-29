@@ -1720,9 +1720,11 @@ window.toggleSidebarJogador = function(numSlot) {
                     let icon = hab.icon || '✨';
 
                     if(hab.tipo === 'passiva') {
+                        let iconUrl = `Icones/${habId}.png`;
                         htmlPassivas += `
                             <div class="passiva-mini" title="${hab.desc}">
                                 <div class="passiva-mini-icon">
+                                    <div style="width:100%;height:100%;background-image:url('${iconUrl}');background-size:cover;background-position:center;border-radius:50%;position:absolute;top:0;left:0;z-index:2;"></div>
                                     <div class="skill-icon-glow" style="z-index:1;">${hab.icon || '✨'}</div>
                                 </div>
                                 <div class="passiva-mini-nome">${hab.nome}</div>
@@ -1772,10 +1774,12 @@ window.toggleSidebarJogador = function(numSlot) {
                 
                 let delHtml = temPermissao ? `<button onclick="deletarHabilidade(${numSlot}, '${habId}')" style="position: absolute; top: 10px; right: 10px; background:none; border:none; color:#8c1c13; cursor:pointer; font-size: 16px;" title="Apagar Habilidade">🗑️</button>` : '';
                 
+                let iconUrl = `Icones/${habId}.png`;
                 let cardHtml = `
                     <div class="skill-card-visual ${isEquipada ? 'equipada' : ''} tipo-${hab.tipo}">
                         ${delHtml}
                         <div class="skill-icon-container">
+                            <div style="width:100%;height:100%;background-image:url('${iconUrl}');background-size:cover;background-position:center;position:absolute;top:0;left:0;z-index:2;border-radius:50%;"></div>
                             <div class="skill-icon-glow" style="z-index:1;">${hab.icon || '✨'}</div>
                         </div>
                         <div class="skill-data-visual">
