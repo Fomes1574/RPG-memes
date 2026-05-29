@@ -120,7 +120,20 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
                            "mon_esquiva":      { nome: "Esquiva Suprema",         desc: "alta evasão.",                                                                   tipo: "passiva", alvo: "self", icon: "🥋",  class: "Monge",     spriteIdx:2, spriteTotal:3 } }
         };
 
-        const playersList = ['lais', 'gomes', 'kamy', 'arthur'];
+        // Enriquece um objeto de habilidade vindo do Firebase com metadados do dicionário local.
+        // Necessário porque o Firebase pode ter sido gravado antes de race/class/spriteIdx existirem.
+        function enrichHab(habId, habFirebase) {
+            // Varre o dicionário procurando o habId
+            for (let groupKey in HABILIDADES_SISTEMA) {
+                let grupoDef = HABILIDADES_SISTEMA[groupKey];
+                if (grupoDef[habId]) {
+                    // Mescla: dados do Firebase têm prioridade (ex: equipada, isSystemObj)
+                    // mas os campos de metadado do dicionário preenchem o que falta
+                    return Object.assign({}, grupoDef[habId], habFirebase);
+                }
+            }
+            return habFirebase; // habilidade custom (não está no dicionário) — retorna como está
+        }
 
         let usuarioAtual = null; 
         let ameacaEmCombateGlobal = null;
@@ -1721,7 +1734,7 @@ window.toggleSidebarJogador = function(numSlot) {
                 let htmlPassivas = '';
                 
                 for(let habId in grimorio) {
-                    let hab = grimorio[habId];
+                    let hab = enrichHab(habId, grimorio[habId]);
                     if(!hab.equipada) continue;
                     
                     let icon = hab.icon || '✨';
@@ -1771,7 +1784,7 @@ window.toggleSidebarJogador = function(numSlot) {
             const temPermissao = (usuarioAtual.cargo === "Mestre") || (usuarioAtual.idFicha === slotsDeVisao[numSlot].idFicha);
             
             for(let habId in grimorio) {
-                let hab = grimorio[habId];
+                let hab = enrichHab(habId, grimorio[habId]);
                 let isEquipada = hab.equipada || false;
                 
                 let btnEquiparHtml = '';
