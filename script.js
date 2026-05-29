@@ -1755,7 +1755,7 @@ window.toggleSidebarJogador = function(numSlot) {
                         htmlPassivas += `
                             <div class="passiva-mini" title="${hab.desc}">
                                 <div class="passiva-mini-icon">
-                                    ${imgPassiva ? `<img src="${imgPassiva}" style="width:100%;height:100%;object-fit:cover;object-position:${posX} 50%;border-radius:50%;position:absolute;top:0;left:0;z-index:2;" onerror="this.style.display='none'">` : ''}
+                                    ${imgPassiva ? `<div style="width:100%;height:100%;background-image:url('${imgPassiva}');background-size:cover;background-position:${posX} 50%;border-radius:50%;position:absolute;top:0;left:0;z-index:2;"></div>` : ''}
                                     <div style="position:relative;z-index:1;">${hab.icon || '✨'}</div>
                                 </div>
                                 <div class="passiva-mini-nome">${hab.nome}</div>
@@ -1811,7 +1811,7 @@ window.toggleSidebarJogador = function(numSlot) {
                     <div class="skill-card-visual ${isEquipada ? 'equipada' : ''} tipo-${hab.tipo}">
                         ${delHtml}
                         <div class="skill-icon-container">
-                            ${imgCard ? `<img src="${imgCard}" style="width:100%;height:100%;object-fit:cover;object-position:${posXCard} 50%;position:absolute;top:0;left:0;z-index:2;" onerror="this.style.display='none'">` : ''}
+                            ${imgCard ? `<div style="width:100%;height:100%;background-image:url('${imgCard}');background-size:cover;background-position:${posXCard} 50%;position:absolute;top:0;left:0;z-index:2;border-radius:50%;"></div>` : ''}
                             <div class="skill-icon-glow" style="z-index:1;">${hab.icon || '✨'}</div>
                         </div>
                         <div class="skill-data-visual">

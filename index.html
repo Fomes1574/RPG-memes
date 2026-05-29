@@ -135,5 +135,6 @@
     </div>
 
     <script type="module" src="script.js"></script>
-</body>
+<div id='debug-log' style='position:fixed;top:0;left:0;z-index:9999;background:rgba(255,0,0,0.8);color:white;padding:10px;font-size:12px;pointer-events:none;'></div><script>window.addEventListener('error', function(e) { if(e.target.tagName === 'IMG') { document.getElementById('debug-log').innerHTML += '<br>IMG ERROR: ' + e.target.src; } }, true);</script></body>
 </html>
+
