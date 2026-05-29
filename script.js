@@ -125,14 +125,22 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
         function enrichHab(habId, habFirebase) {
             // Varre o dicionário procurando o habId
             for (let groupKey in HABILIDADES_SISTEMA) {
-                let grupoDef = HABILIDADES_SISTEMA[groupKey];
-                if (grupoDef[habId]) {
-                    // Mescla: dados do Firebase têm prioridade (ex: equipada, isSystemObj)
-                    // mas os campos de metadado do dicionário preenchem o que falta
-                    return Object.assign({}, grupoDef[habId], habFirebase);
+                if (HABILIDADES_SISTEMA[groupKey][habId]) {
+                    return Object.assign({}, HABILIDADES_SISTEMA[groupKey][habId], habFirebase);
                 }
             }
-            return habFirebase; // habilidade custom (não está no dicionário) — retorna como está
+            // Se não encontrou pelo habId (ex: skill adicionada manualmente com id hab_123), tenta encontrar pelo NOME exato
+            if (habFirebase.nome) {
+                let nomeBusca = habFirebase.nome.trim().toLowerCase();
+                for (let groupKey in HABILIDADES_SISTEMA) {
+                    for (let k in HABILIDADES_SISTEMA[groupKey]) {
+                        if (HABILIDADES_SISTEMA[groupKey][k].nome.trim().toLowerCase() === nomeBusca) {
+                            return Object.assign({}, HABILIDADES_SISTEMA[groupKey][k], habFirebase);
+                        }
+                    }
+                }
+            }
+            return habFirebase; // habilidade custom — retorna como está
         }
 
         const playersList = ['lais', 'gomes', 'kamy', 'arthur'];
@@ -1714,7 +1722,7 @@ window.toggleSidebarJogador = function(numSlot) {
 
         let numSlotGrimorioAberto = null;
 
-        window.abrirGrimorio = function(numSlot) {
+        window.abrirGrimorio = function(numSlot) { console.log('ABRINDO GRIMORIO', slotsDeVisao[numSlot].dados.grimorio);
             numSlotGrimorioAberto = numSlot;
             document.getElementById('modal-grimorio').style.display = 'flex';
             let dados = slotsDeVisao[numSlot].dados || {};
@@ -2123,3 +2131,4 @@ window.toggleSidebarJogador = function(numSlot) {
                 if(chaveDoBanco.includes('hp') || chaveDoBanco.includes('mana')) atualizarBarrasEAlertaNoSlot(numSlot, tipo);
             }
         });
+
