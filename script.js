@@ -221,7 +221,7 @@ function gerarHtmlHeroi(numSlot) {
                         <option value="Anão">Anão</option>
                         <option value="Orc">Orc</option>
                         <option value="Gnomo">Gnomo</option>
-                        <option value="Halfiling">Halfiling</option>
+                        <option value="Halfling">Halfling</option>
                         <option value="Khajiit">Khajiit</option>
                         <option value="Argoniano">Argoniano</option>
                     </select>
