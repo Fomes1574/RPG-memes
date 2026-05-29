@@ -47,37 +47,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
         };
 
         // Normaliza string para montar nome do arquivo de imagem (remove acentos e espaços)
-        function normalizeImgKey(str) {
-            if (!str) return '';
-            return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, '');
-        }
-        // Resolve o caminho da imagem sprite da raça ou classe de origem
-        function resolverImgHabilidade(hab) {
-            const origem = hab.race || hab.class || hab.origem || '';
-            if (!origem) return '';
-            return 'Imagens/Habilidades' + normalizeImgKey(origem) + '.png';
-        }
-        // Calcula o object-position para centralizar o medalão correto dentro do sprite
-        // spriteIdx = 0-based index da habilidade dentro do sprite
-        // totalSprite = total de habilidades no sprite daquela raça/classe
-        function calcSpritePosX(spriteIdx, totalSprite) {
-            if (totalSprite <= 1) return '50%';
-            return ((spriteIdx / (totalSprite - 1)) * 100).toFixed(2) + '%';
-        }
-        // Gera o HTML do icone com posicionamento correto dentro do sprite
-        function gerarHtmlIconeSprite(hab, containerClass) {
-            const imgSrc = resolverImgHabilidade(hab);
-            const posX = calcSpritePosX(hab.spriteIdx || 0, hab.spriteTotal || 1);
-            if (!imgSrc) {
-                return `<div class="skill-icon-glow ${containerClass || ''}">${hab.icon || '✨'}</div>`;
-            }
-            return `
-                <img src="${imgSrc}"
-                     style="width:100%; height:100%; object-fit:cover; object-position:${posX} 50%; position:absolute; top:0; left:0; z-index:2; border-radius:50%;"
-                     onerror="this.style.display='none'">
-                <div class="skill-icon-glow" style="z-index:1;">${hab.icon || '✨'}</div>
-            `;
-        }
+        // Sistema de imagens foi removido a pedido do usuário. Usando ícones CSS.
 
         const HABILIDADES_SISTEMA = {
             //── Raças ─────────────────────────────────────────────────────────────────────────────
@@ -1750,13 +1720,10 @@ window.toggleSidebarJogador = function(numSlot) {
                     let icon = hab.icon || '✨';
 
                     if(hab.tipo === 'passiva') {
-                        let imgPassiva = resolverImgHabilidade(hab);
-                        let posX = calcSpritePosX(hab.spriteIdx || 0, hab.spriteTotal || 1);
                         htmlPassivas += `
                             <div class="passiva-mini" title="${hab.desc}">
                                 <div class="passiva-mini-icon">
-                                    ${imgPassiva ? `<div style="width:100%;height:100%;background-image:url('${imgPassiva}');background-size:cover;background-position:${posX} 50%;border-radius:50%;position:absolute;top:0;left:0;z-index:2;"></div>` : ''}
-                                    <div style="position:relative;z-index:1;">${hab.icon || '✨'}</div>
+                                    <div class="skill-icon-glow" style="z-index:1;">${hab.icon || '✨'}</div>
                                 </div>
                                 <div class="passiva-mini-nome">${hab.nome}</div>
                             </div>
@@ -1805,13 +1772,10 @@ window.toggleSidebarJogador = function(numSlot) {
                 
                 let delHtml = temPermissao ? `<button onclick="deletarHabilidade(${numSlot}, '${habId}')" style="position: absolute; top: 10px; right: 10px; background:none; border:none; color:#8c1c13; cursor:pointer; font-size: 16px;" title="Apagar Habilidade">🗑️</button>` : '';
                 
-                let imgCard = resolverImgHabilidade(hab);
-                let posXCard = calcSpritePosX(hab.spriteIdx || 0, hab.spriteTotal || 1);
                 let cardHtml = `
                     <div class="skill-card-visual ${isEquipada ? 'equipada' : ''} tipo-${hab.tipo}">
                         ${delHtml}
                         <div class="skill-icon-container">
-                            ${imgCard ? `<div style="width:100%;height:100%;background-image:url('${imgCard}');background-size:cover;background-position:${posXCard} 50%;position:absolute;top:0;left:0;z-index:2;border-radius:50%;"></div>` : ''}
                             <div class="skill-icon-glow" style="z-index:1;">${hab.icon || '✨'}</div>
                         </div>
                         <div class="skill-data-visual">
