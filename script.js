@@ -135,6 +135,8 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
             return habFirebase; // habilidade custom (não está no dicionário) — retorna como está
         }
 
+        const playersList = ['lais', 'gomes', 'kamy', 'arthur'];
+
         let usuarioAtual = null; 
         let ameacaEmCombateGlobal = null;
         let hudVisivel = false;
