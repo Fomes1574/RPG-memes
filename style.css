@@ -135,100 +135,40 @@
         .monstro-theme .btn-upload { border-color: #5c1818; color: #a84242;}
         .monstro-theme .btn-upload:hover { background: rgba(92,24,24,0.3); color: #fff;}
 
-        /* ══════════════════════════════════════════
-           BARRAS MÁGICAS AAA — SISTEMA CANVAS
-           Estrutura original preservada para JS.
-           Os canvas são sobrepostos ao .bar-fill.
-           ══════════════════════════════════════════ */
-        .bar-bg {
-            width: 100%;
-            background-color: #05030200;
-            border-radius: 14px;
-            height: 28px;          /* ↑ altura aumentada para comportar o canvas */
-            margin-top: 8px;
-            border: 1px solid #1a1208;
-            box-shadow:
-                inset 0 4px 10px rgba(0,0,0,0.97),
-                inset 0 1px 0 rgba(255,255,255,0.03),
-                0 0 0 1px rgba(0,0,0,0.8);
-            position: relative;
-            overflow: hidden;       /* canvas fica dentro */
-            background: #060402;
-        }
-
-        /* .bar-fill torna-se invisível — canvas cobre tudo */
-        .bar-fill {
-            position: absolute;
-            top: 0; left: 0;
-            height: 100%;
-            border-radius: 14px;
-            transition: width 1.2s cubic-bezier(0.25, 1, 0.5, 1);
-            /* background transparente — canvas renderiza por cima */
-            background: transparent !important;
-            box-shadow: none !important;
-            overflow: visible;
-            z-index: 1;
-        }
-
-        /* Canvas mágico — cobre exatamente o .bar-fill */
-        .bar-canvas {
-            position: absolute;
-            top: 0; left: 0;
-            width: 100%; height: 100%;
-            border-radius: 14px;
-            pointer-events: none;
-            z-index: 2;
-            display: block;
-        }
-
-        /* Moldura ornamental sobre o canvas */
-        .bar-bg::after {
-            content: '';
-            position: absolute;
-            inset: 0;
-            border-radius: 14px;
-            border: 1px solid rgba(255,255,255,0.06);
-            box-shadow:
-                inset 0 1px 0 rgba(255,255,255,0.1),
-                inset 0 -1px 0 rgba(0,0,0,0.6);
-            pointer-events: none;
-            z-index: 3;
-        }
-
-        /* Shield overlay — mantido para compatibilidade JS */
-        .shield-fill {
-            position: absolute; left: 0; top: 0; height: 100%;
-            border-radius: 14px;
-            background: linear-gradient(90deg, rgba(176,224,230,0.7), rgba(0,255,255,0.7));
-            box-shadow: 0 0 10px rgba(0,255,255,0.5);
-            z-index: 4;
-            transition: width 0.3s ease-out;
-            mix-blend-mode: screen;
-            pointer-events: none;
-        }
-
-        .hp-text-overlay {
-            position: absolute; width: 100%; text-align: center;
-            top: 50%; transform: translateY(-50%);
-            font-size: 11px; font-weight: bold; color: #fff;
-            text-shadow: 1px 1px 2px #000;
-            z-index: 5; pointer-events: none;
-        }
-
-        /* Fallback — esconder animações antigas (canvas as substitui) */
-        .hp-fill, .mana-fill {
-            background: transparent !important;
-            box-shadow: none !important;
-            animation: none !important;
-        }
-        .bar-fill::after { display: none !important; }
-
+        /* BARRAS MÁGICAS E ALINHAMENTO */
+        .fraction-input { display: flex; align-items: center; justify-content: center; gap: 8px; }
+        .fraction-input span { color: #8b6d43; font-weight: bold; font-size: 20px; }
+        .fraction-input input { font-size: 18px; padding: 4px; }
+        
+        .bar-bg { width: 100%; background-color: #0a0604; border-radius: 12px; height: 16px; margin-top: 8px; border: 1px solid #2a1f1a; box-shadow: inset 0 3px 6px rgba(0,0,0,0.9), 0 1px 1px rgba(255,255,255,0.05); position: relative; overflow: visible;}
+        .bar-fill { position: relative; height: 100%; transition: width 1.5s cubic-bezier(0.25, 1, 0.5, 1); border-radius: 12px; box-shadow: inset 0 2px 4px rgba(255,255,255,0.3), inset 0 -2px 4px rgba(0,0,0,0.4); overflow: hidden; }
+        
+        .hp-fill { 
+            background: linear-gradient(90deg, #186a3b, #2ecc71, #ffffff, #2ecc71, #186a3b); 
+            background-size: 300% 100%;
+            box-shadow: 0 0 15px rgba(46, 204, 113, 0.7), inset 0 6px 6px rgba(255,255,255,0.9), inset 0 -4px 6px rgba(0,0,0,0.6);
+            animation: liquid-flow 6s infinite linear;
+        } 
+        .mana-fill { 
+            background: linear-gradient(90deg, #154360, #3498db, #ffffff, #3498db, #154360); 
+            background-size: 300% 100%;
+            box-shadow: 0 0 15px rgba(52, 152, 219, 0.7), inset 0 6px 6px rgba(255,255,255,0.9), inset 0 -4px 6px rgba(0,0,0,0.6);
+            animation: liquid-flow 6s infinite linear;
+        } 
+        
         @keyframes liquid-flow {
-            0%   { background-position: 100% 0; }
+            0% { background-position: 100% 0; }
             100% { background-position: -100% 0; }
         }
+        
+        /* FEIXE BRILHOSO DAS BARRAS */
+        .bar-fill::after {
+            content: ''; position: absolute; top: 0; left: -100%; width: 40%; height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.5), transparent);
+            animation: brilho-magico 3.5s infinite linear;
+            transform: skewX(-20deg);
+        }
         @keyframes brilho-magico { 0% { left: -100%; } 100% { left: 200%; } }
-
 
         /* BARRA DE EXPERIÊNCIA DE OURO E LEVEL UP ÉPICO */
         .level-display { font-size: 20px; font-weight: bold; color: #d4af37; text-align: center; text-shadow: 1px 1px 2px black; transition: 0.5s; display: flex; align-items: center; justify-content: center; gap: 5px; }
@@ -494,9 +434,8 @@
    ========================================== */
 #modal-grimorio {
     display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-    background: rgba(0,0,0,0.88); z-index: 2600; justify-content: center; align-items: center;
-    /* backdrop-filter removido — principal causa de jank na abertura */
-    will-change: opacity;
+    background: rgba(0,0,0,0.85); z-index: 2600; justify-content: center; align-items: center;
+    backdrop-filter: blur(10px);
 }
 .grimorio-book-container {
     background: radial-gradient(circle at center, #1a100a 0%, #0a0503 100%);
@@ -1080,22 +1019,16 @@ button:active:not(:disabled) {
     transition: all 0.2s ease;
 }
 
-/* ── ABERTURA DO GRIMÓRIO — SEM TRAVAMENTO ── */
+/* ── ABERTURA DO GRIMÓRIO — TRANSIÇÃO ── */
 #modal-grimorio.aberto {
     display: flex !important;
 }
-/* Overlay fade apenas — sem blur, sem 3D */
-#modal-grimorio {
-    animation: none;
-}
 #modal-grimorio .grimorio-book-container {
-    /* will-change prepara a GPU antes da animação */
-    will-change: transform, opacity;
-    animation: livro-abrir 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    animation: livro-abrir 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 @keyframes livro-abrir {
-    from { opacity: 0; transform: scale(0.95) translateY(10px); }
-    to   { opacity: 1; transform: scale(1)    translateY(0); }
+    from { opacity: 0; transform: scale(0.92) rotateY(-8deg); filter: blur(3px); }
+    to   { opacity: 1; transform: scale(1) rotateY(0deg); filter: blur(0); }
 }
 
 /* ── ÁRVORE DE HABILIDADES — ABERTURA ── */
