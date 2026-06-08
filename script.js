@@ -939,11 +939,16 @@ window.toggleSidebarJogador = function(numSlot) {
                 viewsContainer.appendChild(view);
             });
 
-            document.getElementById('modal-arvore').style.display = "flex";
+            const modalArvore = document.getElementById('modal-arvore');
+            modalArvore.style.display = "flex";
+            void modalArvore.offsetWidth;
+            modalArvore.classList.add('aberto');
         }
 
         window.fecharArvore = function() {
-            document.getElementById('modal-arvore').style.display = "none";
+            const modalArvore = document.getElementById('modal-arvore');
+            modalArvore.classList.remove('aberto');
+            modalArvore.style.display = "none";
         }
 
         window.aplicarExpLote = async function() {
@@ -1694,13 +1699,19 @@ window.toggleSidebarJogador = function(numSlot) {
 
         window.abrirGrimorio = function(numSlot) { console.log('ABRINDO GRIMORIO', slotsDeVisao[numSlot].dados.grimorio);
             numSlotGrimorioAberto = numSlot;
-            document.getElementById('modal-grimorio').style.display = 'flex';
+            const modal = document.getElementById('modal-grimorio');
+            modal.style.display = 'flex';
+            // Força reflow para animação funcionar corretamente
+            void modal.offsetWidth;
+            modal.classList.add('aberto');
             let dados = slotsDeVisao[numSlot].dados || {};
             renderizarGrimorioModal(numSlot, dados.grimorio || {});
         }
         
         window.fecharGrimorio = function() {
-            document.getElementById('modal-grimorio').style.display = 'none';
+            const modal = document.getElementById('modal-grimorio');
+            modal.classList.remove('aberto');
+            modal.style.display = 'none';
             numSlotGrimorioAberto = null;
         }
 

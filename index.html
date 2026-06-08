@@ -2,7 +2,11 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <title>RPG Memes - Mesa do Mestre</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mesa do Mestre — RPG Medieval Dark</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700;900&family=Cinzel:wght@400;500;600;700&family=IM+Fell+English+SC&family=Uncial+Antiqua&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 </head>
 <body style="--brilho-xp-escala: 1;">
@@ -31,10 +35,20 @@
     </div>
 
     <div id="tela-login">
+        <!-- Ornamentos dos cantos -->
+        <div style="position:absolute;top:8px;right:8px;width:50px;height:50px;border-top:2px solid #8b6d43;border-right:2px solid #8b6d43;pointer-events:none;"></div>
+        <div style="position:absolute;bottom:8px;left:8px;width:50px;height:50px;border-bottom:2px solid #8b6d43;border-left:2px solid #8b6d43;pointer-events:none;"></div>
+        <!-- Partículas de brasa -->
+        <span class="brasa" style="left:15%;--duracao:3.2s;--atraso:0s;--desvio:8px;--desvio2:-5px;"></span>
+        <span class="brasa" style="left:30%;--duracao:2.8s;--atraso:0.7s;--desvio:-12px;--desvio2:6px;width:3px;height:3px;"></span>
+        <span class="brasa" style="left:50%;--duracao:3.6s;--atraso:1.4s;--desvio:5px;--desvio2:-8px;"></span>
+        <span class="brasa" style="left:68%;--duracao:2.5s;--atraso:0.3s;--desvio:-7px;--desvio2:10px;width:3px;height:3px;"></span>
+        <span class="brasa" style="left:82%;--duracao:3.9s;--atraso:1.1s;--desvio:11px;--desvio2:-4px;"></span>
+        <span class="brasa" style="left:42%;--duracao:4.1s;--atraso:1.8s;--desvio:-9px;--desvio2:7px;width:2px;height:2px;"></span>
         <h2 id="login-title">O Pacto</h2>
         <p id="login-subtitle">"Assine com seu sangue ou tinta, viajante, para adentrar os reinos esquecidos..."</p>
         <input type="text" id="input-senha" placeholder="Sua Assinatura..." autocomplete="off">
-        <button id="btn-login-wax" onclick="fazerLogin()">Assinar & Adentrar</button>
+        <button id="btn-login-wax" onclick="fazerLogin()">Assinar &amp; Adentrar</button>
         <p id="msg-erro" style="color: #8c1c13; font-size: 14px; margin-top: 20px; display: none; font-weight: bold; text-shadow: none;">Assinatura não reconhecida pelo Pacto.</p>
     </div>
 

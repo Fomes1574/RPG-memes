@@ -593,3 +593,635 @@
     background: radial-gradient(circle, rgba(52, 152, 219, 0.4), #000 70%);
 }
 .passiva-mini-nome { font-size: 10px; color: #b89c72; text-align: center; line-height: 1.1; }
+
+/* ==========================================
+   MELHORIAS PREMIUM — MESA DO MESTRE AAA
+   ========================================== */
+
+/* ── IMPORTAÇÃO DE FONTES PREMIUM ── */
+@import url('https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700;900&family=Cinzel:wght@400;500;600;700&family=IM+Fell+English+SC&family=Uncial+Antiqua&display=swap');
+
+/* ── VARIÁVEIS GLOBAIS DE TEMA ── */
+:root {
+    --ouro:        #d4af37;
+    --ouro-brilho: #ffd700;
+    --ouro-escuro: #8b6d43;
+    --sangue:      #8c1c13;
+    --sangue-vivo: #c0392b;
+    --pergaminho:  #e4d5b7;
+    --sombra:      #0c0704;
+    --marrom-med:  #3a2212;
+    --marrom-esc:  #1c130d;
+    --marrom-prof: #110a06;
+    --azul-mana:   #3498db;
+    --verde-vida:  #2ecc71;
+    --fundo-modal: rgba(0,0,0,0.88);
+    --borda-dupla: #8b6d43;
+    --sombra-neg:  rgba(0,0,0,0.95);
+    --cinza-magico:#C0C0C0;
+}
+
+/* ── SCROLLBARS GLOBAIS PERSONALIZADAS ── */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track {
+    background: #050302;
+    border-left: 1px solid #1a0f0a;
+}
+::-webkit-scrollbar-thumb {
+    background: linear-gradient(to bottom, #5c3a21, #3a2212, #5c3a21);
+    border-radius: 4px;
+    border: 1px solid #1a0f0a;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(to bottom, var(--ouro), #8b6d43, var(--ouro));
+    box-shadow: 0 0 8px rgba(212,175,55,0.4);
+}
+::-webkit-scrollbar-corner { background: #050302; }
+
+/* ── SELEÇÃO DE TEXTO ── */
+::selection {
+    background: rgba(212, 175, 55, 0.3);
+    color: #fff;
+    text-shadow: 0 0 10px rgba(212,175,55,0.8);
+}
+
+/* ── CORPO: NÉVOA DE FUNDO ANIMADA ── */
+body {
+    font-family: 'IM Fell English SC', 'Georgia', serif;
+}
+body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    background:
+        radial-gradient(ellipse 80% 40% at 20% 80%, rgba(139,69,19,0.06) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 30% at 80% 20%, rgba(100,20,10,0.07) 0%, transparent 55%),
+        radial-gradient(ellipse 100% 50% at 50% 50%, rgba(212,175,55,0.02) 0%, transparent 70%);
+    animation: neblina-fundo 20s ease-in-out infinite alternate;
+}
+@keyframes neblina-fundo {
+    0%   { opacity: 0.6; transform: scale(1)   translateY(0px); }
+    50%  { opacity: 1;   transform: scale(1.02) translateY(-8px); }
+    100% { opacity: 0.7; transform: scale(0.99) translateY(4px); }
+}
+
+/* ── TELA DE LOGIN — PERGAMINHO ÉPICO ── */
+#tela-login {
+    position: relative;
+    overflow: hidden;
+    animation: login-surgir 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+@keyframes login-surgir {
+    0%   { opacity: 0; transform: translateY(30px) scale(0.97); filter: blur(4px); }
+    60%  { opacity: 1; transform: translateY(-4px) scale(1.01); filter: blur(0); }
+    100% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+}
+
+/* Bordas ornamentais nos cantos */
+#tela-login::before,
+#tela-login::after {
+    content: '';
+    position: absolute;
+    width: 50px;
+    height: 50px;
+    pointer-events: none;
+}
+#tela-login::before {
+    top: 8px; left: 8px;
+    border-top: 2px solid #8b6d43;
+    border-left: 2px solid #8b6d43;
+    box-shadow: -2px -2px 8px rgba(212,175,55,0.15);
+}
+#tela-login::after {
+    bottom: 8px; right: 8px;
+    border-bottom: 2px solid #8b6d43;
+    border-right: 2px solid #8b6d43;
+    box-shadow: 2px 2px 8px rgba(212,175,55,0.15);
+}
+
+/* Cantos adicionais via pseudo-elementos em elementos internos */
+#tela-login .corner-tr,
+#tela-login .corner-bl {
+    position: absolute;
+    width: 50px; height: 50px;
+    pointer-events: none;
+}
+
+/* Linha decorativa sob o título de login */
+#login-title {
+    font-family: 'Cinzel Decorative', 'Georgia', serif !important;
+    font-size: 28px !important;
+    letter-spacing: 4px !important;
+    position: relative;
+}
+#login-title::after {
+    content: '⚜';
+    display: block;
+    font-size: 16px;
+    color: #8b6d43;
+    margin-top: 6px;
+    text-shadow: 0 0 8px rgba(212,175,55,0.3);
+    letter-spacing: 0;
+}
+
+#login-subtitle {
+    font-family: 'IM Fell English SC', serif;
+    font-size: 13px !important;
+}
+
+/* Input de senha com efeito arcano ao focar */
+#tela-login #input-senha {
+    font-family: 'Cinzel', serif !important;
+    font-size: 20px !important;
+    letter-spacing: 3px;
+    transition: all 0.4s cubic-bezier(0.25, 1, 0.5, 1) !important;
+}
+#tela-login #input-senha:focus {
+    background: rgba(212,175,55,0.05) !important;
+    border-bottom: 2px solid var(--ouro) !important;
+    box-shadow: 0 4px 20px rgba(212,175,55,0.15), 0 0 0 1px rgba(212,175,55,0.1) !important;
+    text-shadow: 0 0 10px rgba(212,175,55,0.5);
+}
+
+/* Botão de login com efeito de cera derretendo */
+#btn-login-wax {
+    font-family: 'Cinzel', serif !important;
+    letter-spacing: 3px !important;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.4s cubic-bezier(0.25, 1, 0.5, 1) !important;
+}
+#btn-login-wax::before {
+    content: '';
+    position: absolute;
+    top: -50%; left: -60%;
+    width: 40%; height: 200%;
+    background: linear-gradient(105deg, transparent, rgba(255,255,255,0.25), transparent);
+    transform: skewX(-20deg);
+    animation: brilho-login-btn 4s infinite linear;
+}
+@keyframes brilho-login-btn {
+    0%   { left: -60%; }
+    100% { left: 160%; }
+}
+#btn-login-wax:hover {
+    letter-spacing: 5px !important;
+    box-shadow: 0 8px 25px rgba(140,28,19,0.7), inset 0 0 20px rgba(0,0,0,0.6), 0 0 0 1px #8c1c13 !important;
+}
+#btn-login-wax:active {
+    transform: translateY(1px) scale(0.99) !important;
+}
+
+/* Partículas de brasa na tela de login */
+.brasa {
+    position: absolute;
+    bottom: -10px;
+    width: 4px; height: 4px;
+    border-radius: 50%;
+    background: radial-gradient(circle, #ffd700, #ff6600);
+    box-shadow: 0 0 6px #ff6600, 0 0 10px #ffd700;
+    pointer-events: none;
+    animation: subir-brasa var(--duracao, 3s) var(--atraso, 0s) ease-out infinite;
+    opacity: 0;
+}
+@keyframes subir-brasa {
+    0%   { opacity: 0; transform: translateY(0)   translateX(0)   scale(1); }
+    10%  { opacity: 1; }
+    60%  { opacity: 0.6; transform: translateY(-80px) translateX(var(--desvio, 10px)) scale(0.7); }
+    100% { opacity: 0; transform: translateY(-140px) translateX(var(--desvio2, -5px)) scale(0.2); }
+}
+
+/* ── NAV-BAR PREMIUM ── */
+.nav-bar {
+    font-family: 'Cinzel', serif;
+    background: linear-gradient(135deg, #0c0704 0%, #140c08 50%, #0c0704 100%) !important;
+    border: 1px solid #2a1a0c !important;
+    border-bottom: 2px solid #3a2212 !important;
+    position: relative;
+}
+.nav-bar::after {
+    content: '';
+    position: absolute;
+    bottom: -1px; left: 10%; right: 10%;
+    height: 1px;
+    background: linear-gradient(to right, transparent, rgba(212,175,55,0.4), transparent);
+}
+#usuario-logado { font-family: 'Cinzel', serif; }
+
+/* ── FICHA DO PERSONAGEM — MELHORIAS ── */
+.container {
+    font-family: 'IM Fell English SC', 'Georgia', serif;
+    transition: box-shadow 0.5s ease;
+    position: relative;
+}
+.container::before {
+    content: '';
+    position: absolute;
+    top: -1px; left: 10%; right: 10%;
+    height: 1px;
+    background: linear-gradient(to right, transparent, rgba(139,109,67,0.6), transparent);
+    pointer-events: none;
+}
+.container.monstro-theme::before {
+    background: linear-gradient(to right, transparent, rgba(140,28,19,0.6), transparent);
+}
+
+/* Section titles com fonte épica */
+.section-title {
+    font-family: 'Cinzel', serif !important;
+    font-size: 11px !important;
+    letter-spacing: 3px !important;
+}
+
+/* ── BARRAS DE STATUS — EFEITO EXTRA ── */
+.bar-bg {
+    box-shadow: inset 0 4px 8px rgba(0,0,0,0.95), 0 1px 0 rgba(255,255,255,0.03) !important;
+}
+
+/* ── ATRIBUTOS — HOVER PREMIUM ── */
+.attr-box {
+    transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1) !important;
+    cursor: help;
+}
+.attr-box:hover {
+    border-color: var(--ouro) !important;
+    background: rgba(212,175,55,0.06) !important;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(212,175,55,0.2), inset 0 0 8px rgba(0,0,0,0.8) !important;
+}
+.attr-box label {
+    font-family: 'Cinzel', serif !important;
+    font-size: 9px !important;
+    letter-spacing: 2px !important;
+    color: #a08060 !important;
+    transition: color 0.3s;
+}
+.attr-box:hover label { color: var(--ouro) !important; }
+.attr-box input {
+    font-family: 'Cinzel', serif !important;
+    font-size: 20px !important;
+    font-weight: 700 !important;
+    transition: color 0.3s !important;
+}
+.attr-box:hover input { color: var(--ouro) !important; }
+
+/* ── SKILL CARDS — PREMIUM ── */
+.skill-card-visual {
+    transition: all 0.35s cubic-bezier(0.25, 1, 0.5, 1) !important;
+}
+.skill-card-visual::before {
+    content: '';
+    position: absolute;
+    top: 0; left: -100%; width: 30%; height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.04), transparent);
+    transform: skewX(-20deg);
+    transition: left 0.6s ease;
+    pointer-events: none;
+}
+.skill-card-visual:hover::before { left: 180%; }
+.skill-card-visual:hover {
+    border-color: var(--ouro-escuro) !important;
+    transform: translateX(8px) !important;
+    box-shadow: -4px 0 20px rgba(212,175,55,0.15), 0 5px 20px rgba(0,0,0,0.9) !important;
+}
+
+/* ── GRIMÓRIO — TIPOGRAFIA PREMIUM ── */
+.grimorio-titulo {
+    font-family: 'Cinzel Decorative', serif !important;
+    letter-spacing: 8px !important;
+    animation: pulso-grimorio 4s ease-in-out infinite;
+}
+@keyframes pulso-grimorio {
+    0%, 100% { text-shadow: 2px 2px 10px #000, 0 0 15px rgba(212,175,55,0.4); }
+    50%       { text-shadow: 2px 2px 10px #000, 0 0 30px rgba(212,175,55,0.7), 0 0 60px rgba(212,175,55,0.2); }
+}
+.page-title {
+    font-family: 'Cinzel', serif !important;
+    letter-spacing: 3px !important;
+}
+
+/* ── ÁRVORE DE HABILIDADES ── */
+.arvore-titulo {
+    font-family: 'Cinzel Decorative', serif !important;
+    letter-spacing: 4px !important;
+}
+.tab-classe {
+    font-family: 'Cinzel', serif !important;
+    letter-spacing: 1px !important;
+}
+.tab-classe.ativa {
+    animation: tab-ativa-brilho 2s ease-in-out infinite;
+}
+@keyframes tab-ativa-brilho {
+    0%, 100% { box-shadow: 0 0 15px rgba(212,175,55,0.5); }
+    50%       { box-shadow: 0 0 25px rgba(212,175,55,0.9), 0 0 50px rgba(212,175,55,0.3); }
+}
+
+/* ── SKILL NODES — BRILHO PULSANTE ── */
+.skill-node.desbloqueada {
+    animation: node-pulso 3s ease-in-out infinite;
+}
+@keyframes node-pulso {
+    0%, 100% { box-shadow: 0 0 20px rgba(212,175,55,0.7); }
+    50%       { box-shadow: 0 0 40px rgba(212,175,55,1), 0 0 70px rgba(212,175,55,0.4); }
+}
+
+/* ── SIDEBAR DO MESTRE — CABEÇALHO ── */
+.sidebar-header h3 {
+    font-family: 'Cinzel', serif !important;
+    letter-spacing: 4px !important;
+    animation: titulo-sidebar-brilho 5s ease-in-out infinite;
+}
+@keyframes titulo-sidebar-brilho {
+    0%, 100% { text-shadow: 0 0 5px rgba(212,175,55,0.2); }
+    50%       { text-shadow: 0 0 15px rgba(212,175,55,0.6), 0 0 30px rgba(212,175,55,0.2); }
+}
+
+/* ── BOTÕES GERAIS — MICRO-INTERAÇÕES ── */
+button {
+    font-family: 'Cinzel', serif !important;
+    letter-spacing: 1.5px !important;
+    transition: all 0.25s cubic-bezier(0.25, 1, 0.5, 1) !important;
+}
+button:hover:not(:disabled) {
+    background: linear-gradient(to bottom, #5a3820, #3a2212) !important;
+    box-shadow: 0 6px 16px rgba(0,0,0,0.9), inset 0 1px 1px rgba(255,255,255,0.1) !important;
+}
+button:active:not(:disabled) {
+    transform: translateY(1px) scale(0.99) !important;
+}
+
+/* Botão de EXP — brilho dourado */
+.btn-exp-master {
+    animation: exp-btn-brilho 3s ease-in-out infinite;
+}
+@keyframes exp-btn-brilho {
+    0%, 100% { box-shadow: 0 0 8px rgba(212,175,55,0.4); }
+    50%       { box-shadow: 0 0 20px rgba(212,175,55,0.8), 0 0 40px rgba(212,175,55,0.2); }
+}
+
+/* ── HUD DO MESTRE — PREMIUM ── */
+#hud-mestre {
+    font-family: 'Cinzel', serif;
+    border: 1px solid #3a2212 !important;
+    border-top: 2px solid var(--ouro-escuro) !important;
+    animation: hud-surgir 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+@keyframes hud-surgir {
+    from { opacity: 0; transform: translateY(-10px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+.hud-name { font-family: 'Cinzel', serif !important; }
+
+/* ── MODAL EXP — PREMIUM ── */
+#modal-exp > div {
+    animation: modal-surgir 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    font-family: 'Cinzel', serif;
+}
+@keyframes modal-surgir {
+    from { opacity: 0; transform: scale(0.9) translateY(-20px); filter: blur(4px); }
+    to   { opacity: 1; transform: scale(1) translateY(0); filter: blur(0); }
+}
+
+/* ── LEVEL DISPLAY — ÉPICO ── */
+.level-display {
+    font-family: 'Cinzel Decorative', serif !important;
+    letter-spacing: 2px !important;
+}
+
+/* ── EFEITO DE MORTE — INTENSIFICADO ── */
+@keyframes pulso-morte-intenso {
+    0% {
+        box-shadow: 0 0 10px rgba(255,0,0,0.4), inset 0 0 10px rgba(255,0,0,0.3);
+        border-color: rgba(255,0,0,0.5);
+        background: rgba(0,0,0,0);
+    }
+    100% {
+        box-shadow: 0 0 40px rgba(255,0,0,0.95), inset 0 0 25px rgba(255,0,0,0.7), 0 0 80px rgba(255,0,0,0.3);
+        border-color: rgba(255,0,0,1);
+        background: rgba(80,0,0,0.15);
+    }
+}
+
+/* ── ITEM ACERVO SIDEBAR — HOVER ÉPICO ── */
+.item-acervo {
+    transition: all 0.2s ease;
+    border-radius: 2px;
+}
+.item-acervo:hover {
+    background: rgba(212,175,55,0.05) !important;
+    border-bottom-color: rgba(212,175,55,0.2) !important;
+}
+.item-acervo-nome {
+    font-family: 'IM Fell English SC', serif;
+    transition: all 0.2s ease;
+}
+
+/* ── ABERTURA DO GRIMÓRIO — TRANSIÇÃO ── */
+#modal-grimorio.aberto {
+    display: flex !important;
+}
+#modal-grimorio .grimorio-book-container {
+    animation: livro-abrir 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+@keyframes livro-abrir {
+    from { opacity: 0; transform: scale(0.92) rotateY(-8deg); filter: blur(3px); }
+    to   { opacity: 1; transform: scale(1) rotateY(0deg); filter: blur(0); }
+}
+
+/* ── ÁRVORE DE HABILIDADES — ABERTURA ── */
+#modal-arvore.aberto {
+    display: flex !important;
+}
+#modal-arvore .arvore-container {
+    animation: arvore-abrir 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+@keyframes arvore-abrir {
+    from { opacity: 0; transform: translateY(25px) scale(0.97); filter: blur(2px); }
+    to   { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+}
+
+/* ── FOTO DO PERSONAGEM — BORDA MÁGICA ── */
+.foto-personagem {
+    transition: all 0.4s cubic-bezier(0.25, 1, 0.5, 1) !important;
+    position: relative;
+}
+.foto-personagem:hover {
+    border-color: var(--ouro) !important;
+    box-shadow: 0 0 25px rgba(212,175,55,0.4), 0 8px 25px rgba(0,0,0,0.9) !important;
+    transform: scale(1.02);
+}
+
+/* ── BUFF/DEBUFF ITEMS — MICRO-ANIMAÇÃO ── */
+.buff-item, .debuff-item {
+    transition: all 0.25s ease;
+}
+.buff-item:hover  { background: #1c110a; transform: translateX(3px); }
+.debuff-item:hover { background: #200a0a; transform: translateX(3px); }
+
+/* ── HERO TABS — ANIMAÇÃO ── */
+.hero-tab-btn {
+    font-family: 'Cinzel', serif !important;
+    font-size: 10px !important;
+    letter-spacing: 1.5px !important;
+    transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1) !important;
+}
+.hero-tab-btn.active {
+    animation: tab-hero-ativa 2s ease-in-out infinite;
+}
+@keyframes tab-hero-ativa {
+    0%, 100% { box-shadow: 0 -2px 10px rgba(212,175,55,0.3); }
+    50%       { box-shadow: 0 -2px 20px rgba(212,175,55,0.7), 0 0 40px rgba(212,175,55,0.2); }
+}
+.hero-tab-content.active {
+    animation: fadeIn 0.35s cubic-bezier(0.25, 1, 0.5, 1) !important;
+}
+
+/* ── BOTÃO LANÇAR FEITIÇO — EFEITO ARCANO ── */
+.btn-lancar-feitico {
+    position: relative;
+    overflow: hidden;
+    font-family: 'Cinzel', serif !important;
+    letter-spacing: 3px !important;
+}
+.btn-lancar-feitico::after {
+    content: '';
+    position: absolute;
+    top: -50%; left: -60%;
+    width: 35%; height: 200%;
+    background: linear-gradient(105deg, transparent, rgba(52,152,219,0.3), transparent);
+    transform: skewX(-20deg);
+    animation: brilho-feitico 3s infinite linear;
+}
+@keyframes brilho-feitico {
+    0%   { left: -60%; }
+    100% { left: 160%; }
+}
+
+/* ── BOTÃO ABRIR GRIMÓRIO ── */
+.btn-abrir-grimorio {
+    font-family: 'Cinzel', serif !important;
+    letter-spacing: 3px !important;
+    position: relative;
+    overflow: hidden;
+}
+.btn-abrir-grimorio::after {
+    content: '';
+    position: absolute;
+    top: -50%; left: -60%;
+    width: 35%; height: 200%;
+    background: linear-gradient(105deg, transparent, rgba(212,175,55,0.2), transparent);
+    transform: skewX(-20deg);
+    animation: brilho-grimorio-btn 4s infinite linear;
+}
+@keyframes brilho-grimorio-btn {
+    0%   { left: -60%; }
+    100% { left: 160%; }
+}
+
+/* ── CHECKBOX DOS ALVOS — PREMIUM ── */
+.checkbox-alvo {
+    transition: all 0.2s ease;
+    padding: 2px 6px;
+    border-radius: 3px;
+}
+.checkbox-alvo:hover {
+    background: rgba(212,175,55,0.08);
+    color: var(--ouro) !important;
+}
+
+/* ── INPUTS FOCADOS — GLOW MÁGICO ── */
+input:focus, textarea:focus {
+    box-shadow: 0 0 0 1px rgba(139,109,67,0.4), 0 0 12px rgba(139,109,67,0.15) !important;
+}
+
+/* ── TRANSIÇÃO SUAVE DA TELA APP ── */
+#tela-app {
+    animation: app-surgir 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+@keyframes app-surgir {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
+/* ── LINHA DECORATIVA DOS SLOTS ── */
+.slot-container {
+    transition: all 0.5s cubic-bezier(0.25, 1, 0.5, 1) !important;
+}
+
+/* ── BADGE DE CARGO ── */
+#badge-cargo {
+    font-family: 'Cinzel', serif !important;
+    letter-spacing: 2px !important;
+    font-size: 9px !important;
+}
+
+/* ── MENSAGEM DE ERRO DO LOGIN ── */
+#msg-erro {
+    font-family: 'Cinzel', serif !important;
+    animation: erro-pulso 1s ease-in-out infinite alternate;
+}
+@keyframes erro-pulso {
+    from { text-shadow: 0 0 5px rgba(140,28,19,0.5); }
+    to   { text-shadow: 0 0 15px rgba(140,28,19,0.9), 0 0 30px rgba(140,28,19,0.4); }
+}
+
+/* ── BOTÃO TOGGLE SIDEBAR — EFEITO ── */
+#btn-toggle-sidebar, .btn-toggle-sidebar-jogador {
+    transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1) !important;
+}
+#btn-toggle-sidebar:hover, .btn-toggle-sidebar-jogador:hover {
+    width: 38px !important;
+}
+
+/* ── NOME DA AMEAÇA NO SLOT ── */
+#slot1-monstro-nome, #slot2-monstro-nome {
+    font-family: 'Cinzel', serif !important;
+    letter-spacing: 2px;
+}
+
+/* ── EXP TEXT ── */
+.exp-text {
+    font-family: 'Cinzel', serif !important;
+    letter-spacing: 1px !important;
+    font-size: 10px !important;
+}
+
+/* ── HORDA MEMBER CARD ── */
+.horda-member-card {
+    transition: box-shadow 0.3s ease;
+}
+.horda-member-card:hover {
+    box-shadow: inset 0 0 20px rgba(0,0,0,0.9), 0 0 15px rgba(140,28,19,0.2) !important;
+}
+
+/* ── ORNAMENTO DO BESTIÁRIO ── */
+#sidebar-mestre .sidebar-header::after {
+    content: '⸻';
+    display: block;
+    color: #3a2212;
+    font-size: 10px;
+    margin-top: 6px;
+    letter-spacing: 3px;
+}
+
+/* ── BRILHO DA EXP BAR ANIMADO ── */
+.exp-fill {
+    animation: exp-shimmer 4s infinite linear;
+}
+@keyframes exp-shimmer {
+    0%   { filter: brightness(1); }
+    50%  { filter: brightness(1.2); }
+    100% { filter: brightness(1); }
+}
+
+/* ── RESPONSIVIDADE APRIMORADA ── */
+@media (max-width: 900px) {
+    .mesa-de-jogo { gap: 15px; }
+    .atributos-grid { grid-template-columns: repeat(4, 1fr); }
+    #tela-login { width: 300px; padding: 35px 25px; }
+    #login-title { font-size: 22px !important; }
+}
+
