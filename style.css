@@ -142,97 +142,32 @@
         
         .bar-bg { width: 100%; background-color: #0a0604; border-radius: 12px; height: 16px; margin-top: 8px; border: 1px solid #2a1f1a; box-shadow: inset 0 3px 6px rgba(0,0,0,0.9), 0 1px 1px rgba(255,255,255,0.05); position: relative; overflow: visible;}
         .bar-fill { position: relative; height: 100%; transition: width 1.5s cubic-bezier(0.25, 1, 0.5, 1); border-radius: 12px; box-shadow: inset 0 2px 4px rgba(255,255,255,0.3), inset 0 -2px 4px rgba(0,0,0,0.4); overflow: hidden; }
-        
-        .hp-fill { 
-            background: 
-                radial-gradient(ellipse 120% 80% at 30% 50%, rgba(0,255,100,0.25) 0%, transparent 60%),
-                radial-gradient(ellipse 80% 120% at 70% 40%, rgba(46,204,113,0.2) 0%, transparent 50%),
-                repeating-linear-gradient(115deg, transparent 0px, transparent 4px, rgba(0,255,80,0.06) 4px, rgba(0,255,80,0.06) 6px),
-                linear-gradient(90deg, #0a3d1f, #0f5c2e, #15803d, #22c55e, #15803d, #0f5c2e, #0a3d1f);
-            background-size: 200% 200%, 250% 250%, 100% 100%, 400% 100%;
-            box-shadow: 0 0 12px rgba(34,197,94,0.5), 0 0 4px rgba(0,255,80,0.3), inset 0 2px 4px rgba(255,255,255,0.15), inset 0 -2px 4px rgba(0,0,0,0.5);
-            animation: vortice-esmeralda-bg 8s infinite linear, vortice-esmeralda-camada 12s infinite ease-in-out, vortice-esmeralda-camada2 16s infinite ease-in-out reverse;
+               .hp-fill { 
+            background: linear-gradient(90deg, #186a3b, #2ecc71, #ffffff, #2ecc71, #186a3b); 
+            background-size: 300% 100%;
+            box-shadow: 0 0 15px rgba(46, 204, 113, 0.7), inset 0 6px 6px rgba(255,255,255,0.9), inset 0 -4px 6px rgba(0,0,0,0.6);
+            animation: liquid-flow 6s infinite linear;
         } 
         .mana-fill { 
-            background: 
-                radial-gradient(ellipse 60% 100% at 50% 50%, rgba(56,189,248,0.2) 0%, transparent 70%),
-                radial-gradient(ellipse 100% 60% at 40% 60%, rgba(14,116,144,0.25) 0%, transparent 60%),
-                repeating-linear-gradient(70deg, transparent 0px, transparent 3px, rgba(100,200,255,0.04) 3px, rgba(100,200,255,0.04) 5px),
-                linear-gradient(90deg, #0c2d48, #0e4d6e, #1a6b8a, #38bdf8, #1a6b8a, #0e4d6e, #0c2d48);
-            background-size: 180% 180%, 220% 220%, 100% 100%, 400% 100%;
-            box-shadow: 0 0 12px rgba(56,189,248,0.4), 0 0 4px rgba(6,182,212,0.3), inset 0 2px 4px rgba(255,255,255,0.1), inset 0 -2px 4px rgba(0,0,0,0.5);
-            animation: cosmos-contido-bg 10s infinite linear, cosmos-contido-camada 14s infinite ease-in-out, cosmos-contido-camada2 18s infinite ease-in-out reverse;
-            position: relative;
-        }
-        .mana-fill::before {
-            content: '';
-            position: absolute;
-            top: 35%; left: 0; right: 0; height: 30%;
-            background: linear-gradient(90deg, transparent 5%, rgba(56,189,248,0.4) 30%, rgba(103,232,249,0.6) 50%, rgba(56,189,248,0.4) 70%, transparent 95%);
-            border-radius: 12px;
-            opacity: 0.7;
-            animation: linha-energia-mana 4s infinite ease-in-out;
-            pointer-events: none;
+            background: linear-gradient(90deg, #154360, #3498db, #ffffff, #3498db, #154360); 
+            background-size: 300% 100%;
+            box-shadow: 0 0 15px rgba(52, 152, 219, 0.7), inset 0 6px 6px rgba(255,255,255,0.9), inset 0 -4px 6px rgba(0,0,0,0.6);
+            animation: liquid-flow 6s infinite linear;
         } 
         
         @keyframes liquid-flow {
             0% { background-position: 100% 0; }
             100% { background-position: -100% 0; }
         }
-
-        /* KEYFRAMES — VÓRTICE ESMERALDA (HP) */
-        @keyframes vortice-esmeralda-bg {
-            0%   { background-position: 100% 50%, 0% 50%, 0 0, 100% 0; }
-            100% { background-position: -100% 50%, 200% 50%, 0 0, -100% 0; }
-        }
-        @keyframes vortice-esmeralda-camada {
-            0%, 100% { background-position: 100% 30%, 0% 50%, 0 0, 100% 0; }
-            50%      { background-position: 0% 70%, 100% 50%, 0 0, 0% 0; }
-        }
-        @keyframes vortice-esmeralda-camada2 {
-            0%, 100% { background-position: 50% 0%, 50% 100%, 0 0, 50% 0; }
-            50%      { background-position: 50% 100%, 50% 0%, 0 0, 50% 0; }
-        }
-
-        /* KEYFRAMES — COSMOS CONTIDO (MANA) */
-        @keyframes cosmos-contido-bg {
-            0%   { background-position: 0% 50%, 100% 50%, 0 0, 100% 0; }
-            100% { background-position: 200% 50%, -100% 50%, 0 0, -100% 0; }
-        }
-        @keyframes cosmos-contido-camada {
-            0%, 100% { background-position: 0% 40%, 100% 60%, 0 0, 100% 0; }
-            50%      { background-position: 100% 60%, 0% 40%, 0 0, 0% 0; }
-        }
-        @keyframes cosmos-contido-camada2 {
-            0%, 100% { background-position: 30% 0%, 70% 100%, 0 0, 50% 0; }
-            50%      { background-position: 70% 100%, 30% 0%, 0 0, 50% 0; }
-        }
-        @keyframes linha-energia-mana {
-            0%, 100% { opacity: 0.5; transform: scaleX(0.95); }
-            50%      { opacity: 0.85; transform: scaleX(1.02); }
-        }
         
-        /* RESPIRAÇÃO MÁGICA DAS BARRAS */
+        /* FEIXE BRILHOSO DAS BARRAS */
         .bar-fill::after {
-            content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            border-radius: 12px;
-            box-shadow: inset 0 0 8px rgba(255,255,255,0.15), 0 0 12px rgba(255,255,255,0.1);
-            opacity: 0;
-            animation: respiracao-magica 4s infinite ease-in-out;
-            pointer-events: none;
+            content: ''; position: absolute; top: 0; left: -100%; width: 40%; height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.5), transparent);
+            animation: brilho-magico 3.5s infinite linear;
+            transform: skewX(-20deg);
         }
-        .hp-fill::after {
-            box-shadow: inset 0 0 10px rgba(34,197,94,0.3), 0 0 16px rgba(34,197,94,0.25), 0 0 30px rgba(16,185,129,0.1);
-        }
-        .mana-fill::after {
-            box-shadow: inset 0 0 10px rgba(56,189,248,0.3), 0 0 16px rgba(56,189,248,0.25), 0 0 30px rgba(6,182,212,0.1);
-        }
-        @keyframes respiracao-magica {
-            0%   { opacity: 0.15; }
-            25%  { opacity: 0.5; }
-            50%  { opacity: 0.85; }
-            75%  { opacity: 0.5; }
-            100% { opacity: 0.15; }
+        @keyframes brilho-magico { 0% { left: -100%; } 100% { left: 200%; } }}
         }
 
         /* BARRA DE EXPERIÊNCIA DE OURO E LEVEL UP ÉPICO */
@@ -281,31 +216,26 @@
         .skill-row { display: flex; justify-content: center; align-items: center; }
         .skill-col { display: flex; flex-direction: column; align-items: center; }
 
-        /* ALERTA PISCANTE DE VIDA BAIXA — CURTO-CIRCUITO MÁGICO */
+        /* ALERTA PISCANTE DE VIDA BAIXA (HERÓIS, MONSTROS E HORDAS) */
         .caixa-status { padding: 10px; transition: 0.3s; border: 1px solid transparent; border-radius: 4px;}
-        .alerta-morte { animation: pulso-morte-intenso 0.18s infinite alternate !important; }
+        .alerta-morte { animation: pulso-morte-intenso 0.8s infinite alternate !important; }
         @keyframes pulso-morte-intenso {
-            0%   { box-shadow: 0 0 6px rgba(255,102,0,0.3), inset 0 0 5px rgba(255,102,0,0.2); border-color: rgba(255,102,0,0.4); opacity: 1; }
-            25%  { box-shadow: 0 0 25px rgba(255,102,0,0.9), inset 0 0 18px rgba(255,60,0,0.7); border-color: rgba(255,102,0,1); opacity: 0.7; }
-            50%  { box-shadow: 0 0 8px rgba(255,102,0,0.2), inset 0 0 3px rgba(255,102,0,0.15); border-color: rgba(255,60,0,0.3); opacity: 0.95; }
-            75%  { box-shadow: 0 0 35px rgba(255,80,0,1), inset 0 0 22px rgba(255,40,0,0.8); border-color: rgba(255,102,0,1); opacity: 0.6; }
-            100% { box-shadow: 0 0 15px rgba(255,102,0,0.6), inset 0 0 10px rgba(255,102,0,0.5); border-color: rgba(255,80,0,0.8); opacity: 1; }
+            0% { box-shadow: 0 0 10px rgba(255, 0, 0, 0.4), inset 0 0 10px rgba(255, 0, 0, 0.4); border-color: rgba(255, 0, 0, 0.5); }
+            100% { box-shadow: 0 0 30px rgba(255, 0, 0, 0.9), inset 0 0 20px rgba(255, 0, 0, 0.8); border-color: rgba(255, 0, 0, 1); }
         }
         .caixa-status.alerta-morte input, .caixa-status.alerta-morte span, .caixa-status.alerta-morte label {
-            color: #ff6600 !important;
-            animation: pulso-texto-morte 0.18s infinite alternate !important;
+            color: #ff3333 !important;
+            animation: pulso-texto-morte 0.8s infinite alternate !important;
         }
         @keyframes pulso-texto-morte {
-            0%   { text-shadow: 0 0 3px #ff6600; opacity: 1; }
-            50%  { text-shadow: 0 0 20px #ff4400, 0 0 30px #ff2200; opacity: 0.55; }
-            100% { text-shadow: 0 0 8px #ff6600; opacity: 0.9; }
+            0% { text-shadow: 0 0 5px #ff0000; }
+            100% { text-shadow: 0 0 15px #ff0000, 0 0 20px #ff0000; }
         }
         .hp-fill.alerta-morte {
-            background: linear-gradient(90deg, #3d0800, #cc3300, #ff6600, #ffaa33, #ff6600, #cc3300, #3d0800) !important;
+            background: linear-gradient(90deg, #5c0000, #ff0000, #ffcccc, #ff0000, #5c0000) !important;
             background-size: 300% 100% !important;
-            box-shadow: 0 0 18px rgba(255,102,0,0.8), inset 0 2px 3px rgba(255,200,100,0.4) !important;
-            animation: liquid-flow 2s infinite linear !important;
-            filter: none !important;
+            box-shadow: 0 0 15px rgba(255, 0, 0, 0.9), inset 0 2px 3px rgba(255,255,255,0.8) !important;
+            animation: liquid-flow 3s infinite linear !important;
         }
         
         /* SIDEBAR DO MESTRE (BESTIÁRIO) */
@@ -1061,8 +991,19 @@ button:active:not(:disabled) {
     letter-spacing: 2px !important;
 }
 
-/* ── EFEITO DE MORTE — CURTO-CIRCUITO MÁGICO (sobrescrito acima) ── */
-/* A animação principal pulso-morte-intenso agora está na seção base do CSS */
+/* ── EFEITO DE MORTE — INTENSIFICADO ── */
+@keyframes pulso-morte-intenso {
+    0% {
+        box-shadow: 0 0 10px rgba(255,0,0,0.4), inset 0 0 10px rgba(255,0,0,0.3);
+        border-color: rgba(255,0,0,0.5);
+        background: rgba(0,0,0,0);
+    }
+    100% {
+        box-shadow: 0 0 40px rgba(255,0,0,0.95), inset 0 0 25px rgba(255,0,0,0.7), 0 0 80px rgba(255,0,0,0.3);
+        border-color: rgba(255,0,0,1);
+        background: rgba(80,0,0,0.15);
+    }
+}
 
 /* ── ITEM ACERVO SIDEBAR — HOVER ÉPICO ── */
 .item-acervo {
@@ -1283,93 +1224,4 @@ input:focus, textarea:focus {
     #login-title { font-size: 22px !important; }
 }
 
-/* ==========================================
-   VFX — PARTÍCULAS DE DANO E MANA
-   ========================================== */
-
-/* Container das partículas VFX */
-.vfx-container {
-    position: absolute;
-    top: 0; left: 0; right: 0; bottom: 0;
-    pointer-events: none;
-    overflow: visible;
-    z-index: 10;
-}
-
-/* Partícula base */
-.vfx-particle {
-    position: absolute;
-    border-radius: 50%;
-    pointer-events: none;
-    will-change: transform, opacity;
-}
-
-/* HP DAMAGE — Partículas verde-escuro */
-.vfx-hp-spark {
-    width: 4px; height: 4px;
-    background: radial-gradient(circle, #22c55e, #064e3b);
-    box-shadow: 0 0 6px rgba(34,197,94,0.8), 0 0 2px rgba(0,255,80,0.5);
-    animation: vfx-hp-explodir var(--vfx-dur, 0.6s) cubic-bezier(0.25, 0.8, 0.25, 1) forwards;
-}
-.vfx-hp-vapor {
-    width: 8px; height: 8px;
-    background: radial-gradient(circle, rgba(6,78,59,0.6), transparent);
-    animation: vfx-hp-vapor var(--vfx-dur, 0.8s) ease-out forwards;
-}
-.vfx-hp-flash {
-    position: absolute;
-    top: 0; left: 0; width: 100%; height: 100%;
-    background: rgba(220,38,38,0.35);
-    border-radius: 12px;
-    animation: vfx-flash-vermelho 0.15s ease-out forwards;
-    pointer-events: none;
-}
-
-@keyframes vfx-hp-explodir {
-    0%   { transform: translate(0, 0) scale(1); opacity: 1; }
-    100% { transform: translate(var(--vfx-dx, 15px), var(--vfx-dy, -20px)) scale(0.2); opacity: 0; }
-}
-@keyframes vfx-hp-vapor {
-    0%   { transform: translate(0, 0) scale(0.5); opacity: 0.7; }
-    100% { transform: translate(var(--vfx-dx, 5px), var(--vfx-dy, -25px)) scale(2); opacity: 0; }
-}
-@keyframes vfx-flash-vermelho {
-    0%   { opacity: 1; }
-    100% { opacity: 0; }
-}
-
-/* MANA CONSUME — Partículas cósmicas */
-.vfx-mana-arc {
-    width: 3px; height: 10px;
-    background: linear-gradient(to top, rgba(56,189,248,0.9), rgba(103,232,249,0.4), transparent);
-    border-radius: 2px;
-    box-shadow: 0 0 6px rgba(56,189,248,0.8);
-    animation: vfx-mana-arco var(--vfx-dur, 0.5s) cubic-bezier(0.2, 0.8, 0.3, 1) forwards;
-}
-.vfx-mana-rune {
-    width: 6px; height: 6px;
-    background: radial-gradient(circle, rgba(103,232,249,0.7), rgba(14,116,144,0.3), transparent);
-    box-shadow: 0 0 8px rgba(56,189,248,0.6);
-    animation: vfx-mana-runa var(--vfx-dur, 0.7s) ease-out forwards;
-}
-.vfx-mana-dust {
-    width: 3px; height: 3px;
-    background: rgba(186,230,253,0.8);
-    box-shadow: 0 0 4px rgba(186,230,253,0.6);
-    animation: vfx-mana-poeira var(--vfx-dur, 0.9s) ease-out forwards;
-}
-
-@keyframes vfx-mana-arco {
-    0%   { transform: translate(0, 0) scaleY(1) rotate(var(--vfx-rot, 0deg)); opacity: 1; }
-    100% { transform: translate(var(--vfx-dx, 0px), var(--vfx-dy, -30px)) scaleY(0.3) rotate(var(--vfx-rot, 0deg)); opacity: 0; }
-}
-@keyframes vfx-mana-runa {
-    0%   { transform: translate(0, 0) scale(1) rotate(0deg); opacity: 0.9; }
-    50%  { transform: translate(var(--vfx-dx, 8px), calc(var(--vfx-dy, -15px) * 0.5)) scale(1.3) rotate(90deg); opacity: 0.6; }
-    100% { transform: translate(calc(var(--vfx-dx, 8px) * 1.5), var(--vfx-dy, -30px)) scale(0.4) rotate(180deg); opacity: 0; }
-}
-@keyframes vfx-mana-poeira {
-    0%   { transform: translate(0, 0) scale(1); opacity: 0.8; }
-    100% { transform: translate(var(--vfx-dx, 3px), var(--vfx-dy, -35px)) scale(0.1); opacity: 0; }
-}
 
