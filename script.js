@@ -1077,7 +1077,7 @@ window.toggleSidebarJogador = function(numSlot) {
                             
                             let caixaHp = document.getElementById(`caixa-hp-horda-${mId}`);
                             if(caixaHp) {
-                                if(percHp <= 10 && hpMax > 0 && hpAtual > 0) caixaHp.classList.add('alerta-morte');
+                                if(percHp <= 20 && hpMax > 0 && hpAtual > 0) caixaHp.classList.add('alerta-morte');
                                 else caixaHp.classList.remove('alerta-morte');
                             }
                         }
@@ -1268,7 +1268,7 @@ window.toggleSidebarJogador = function(numSlot) {
 
             const caixaHp = document.getElementById(caixaHpId);
             if(caixaHp) {
-                if (percHp <= 10 && hpMax > 0 && hpAtual > 0) {
+                if (percHp <= 20 && hpMax > 0 && hpAtual > 0) {
                     caixaHp.classList.add('alerta-morte');
                     if (barHpElement && tipo === 'heroi') barHpElement.classList.add('alerta-morte');
                 } else {
@@ -1543,6 +1543,8 @@ window.toggleSidebarJogador = function(numSlot) {
                     hpAtual -= danoRestante;
                     if(hpAtual < 0) hpAtual = 0;
                     update(refFicha, { 'hp-atual': hpAtual });
+                    // VFX: partículas de dano no HP do alvo
+                    triggerVFX('hp_damage', alvo);
                 }
             }
             
@@ -1860,6 +1862,8 @@ window.toggleSidebarJogador = function(numSlot) {
                     'mana-atual': manaAtual - manaCusto,
                     'ap': apAtual - apCusto
                 });
+                // VFX: partículas de consumo de mana
+                if(manaCusto > 0) triggerVFX('mana_consume', idFicha);
             }
 
             const alvos = Array.from(checkboxes).map(cb => cb.value);
@@ -1890,6 +1894,8 @@ window.toggleSidebarJogador = function(numSlot) {
                                 hpAtual -= danoRestante;
                                 if(hpAtual < 0) hpAtual = 0;
                                 update(refMembro, { 'hp-atual': hpAtual });
+                                // VFX: dano na horda
+                                triggerVFX('hp_damage', alvo);
                             }
                         }
                     }
@@ -1917,6 +1923,8 @@ window.toggleSidebarJogador = function(numSlot) {
                                 hpAtual -= danoRestante;
                                 if(hpAtual < 0) hpAtual = 0;
                                 update(refMonstro, { 'hp-atual': hpAtual });
+                                // VFX: dano no monstro
+                                triggerVFX('hp_damage', alvo);
                             }
                         }
                     }
@@ -2110,4 +2118,144 @@ window.toggleSidebarJogador = function(numSlot) {
                 if(chaveDoBanco.includes('hp') || chaveDoBanco.includes('mana')) atualizarBarrasEAlertaNoSlot(numSlot, tipo);
             }
         });
+
+        // ==========================================
+        // SISTEMA VFX — PARTÍCULAS DE DANO E MANA
+        // ==========================================
+
+        /**
+         * triggerVFX — Dispara efeitos visuais de partículas sobre barras de HP/Mana.
+         * @param {string} tipo - "hp_damage" ou "mana_consume"
+         * @param {string} alvoId - ID da ficha ou membro de horda
+         */
+        function triggerVFX(tipo, alvoId) {
+            let barElement = null;
+
+            if (tipo === 'hp_damage') {
+                // Tenta encontrar a barra de HP do alvo nos dois slots
+                for (let s = 1; s <= 2; s++) {
+                    if (slotsDeVisao[s].idFicha === alvoId && slotsDeVisao[s].tipo === 'heroi') {
+                        barElement = document.getElementById(`bar-hp-slot${s}`);
+                        break;
+                    }
+                    if (slotsDeVisao[s].idFicha === alvoId && slotsDeVisao[s].tipo === 'monstro') {
+                        barElement = document.getElementById(`bar-hp-monstro-slot${s}`);
+                        break;
+                    }
+                }
+                // Tenta horda
+                if (!barElement) {
+                    // alvoId pode ser algo como "horda_12345_m_1" — procura barra por ID parcial
+                    let parts = alvoId.split('_');
+                    if (parts.length >= 3) {
+                        let mId = parts.slice(-2).join('_');
+                        barElement = document.getElementById(`bar-hp-horda-${mId}`);
+                    }
+                }
+                if (!barElement) return;
+                _vfxHpDamage(barElement);
+            }
+
+            if (tipo === 'mana_consume') {
+                for (let s = 1; s <= 2; s++) {
+                    if (slotsDeVisao[s].idFicha === alvoId && slotsDeVisao[s].tipo === 'heroi') {
+                        barElement = document.getElementById(`bar-mana-slot${s}`);
+                        break;
+                    }
+                }
+                if (!barElement) return;
+                _vfxManaConsume(barElement);
+            }
+        }
+
+        /**
+         * _vfxHpDamage — Explosão de partículas verde-escuras + flash vermelho
+         */
+        function _vfxHpDamage(barEl) {
+            const parent = barEl.closest('.bar-bg');
+            if (!parent) return;
+            parent.style.position = 'relative';
+
+            // Flash vermelho ultra-rápido
+            const flash = document.createElement('div');
+            flash.className = 'vfx-hp-flash';
+            barEl.appendChild(flash);
+            setTimeout(() => flash.remove(), 180);
+
+            // Partículas de faísca (sparks)
+            const barWidth = barEl.offsetWidth;
+            const spawnX = Math.max(barWidth - 8, 4);
+
+            for (let i = 0; i < 8; i++) {
+                const spark = document.createElement('div');
+                spark.className = 'vfx-particle vfx-hp-spark';
+                const dx = (Math.random() - 0.5) * 40;
+                const dy = -(Math.random() * 25 + 8);
+                const dur = 0.35 + Math.random() * 0.35;
+                spark.style.cssText = `left:${spawnX + Math.random()*8 - 4}px; top:${Math.random()*12}px; --vfx-dx:${dx}px; --vfx-dy:${dy}px; --vfx-dur:${dur}s;`;
+                parent.appendChild(spark);
+                setTimeout(() => spark.remove(), dur * 1000 + 50);
+            }
+
+            // Vapor etéreo (3 partículas)
+            for (let i = 0; i < 3; i++) {
+                const vapor = document.createElement('div');
+                vapor.className = 'vfx-particle vfx-hp-vapor';
+                const dx = (Math.random() - 0.5) * 15;
+                const dy = -(Math.random() * 20 + 12);
+                const dur = 0.5 + Math.random() * 0.4;
+                vapor.style.cssText = `left:${spawnX + Math.random()*10 - 5}px; top:${Math.random()*8}px; --vfx-dx:${dx}px; --vfx-dy:${dy}px; --vfx-dur:${dur}s;`;
+                parent.appendChild(vapor);
+                setTimeout(() => vapor.remove(), dur * 1000 + 50);
+            }
+        }
+
+        /**
+         * _vfxManaConsume — Arcos elétricos + partículas rúnicas + poeira cósmica
+         */
+        function _vfxManaConsume(barEl) {
+            const parent = barEl.closest('.bar-bg');
+            if (!parent) return;
+            parent.style.position = 'relative';
+
+            const barWidth = barEl.offsetWidth;
+            const spawnX = Math.max(barWidth - 6, 4);
+
+            // Arcos elétricos (4)
+            for (let i = 0; i < 4; i++) {
+                const arc = document.createElement('div');
+                arc.className = 'vfx-particle vfx-mana-arc';
+                const dx = (Math.random() - 0.5) * 20;
+                const dy = -(Math.random() * 28 + 10);
+                const rot = (Math.random() - 0.5) * 60;
+                const dur = 0.3 + Math.random() * 0.3;
+                arc.style.cssText = `left:${spawnX + Math.random()*8 - 4}px; top:${Math.random()*10}px; --vfx-dx:${dx}px; --vfx-dy:${dy}px; --vfx-rot:${rot}deg; --vfx-dur:${dur}s;`;
+                parent.appendChild(arc);
+                setTimeout(() => arc.remove(), dur * 1000 + 50);
+            }
+
+            // Partículas rúnicas (3)
+            for (let i = 0; i < 3; i++) {
+                const rune = document.createElement('div');
+                rune.className = 'vfx-particle vfx-mana-rune';
+                const dx = (Math.random() - 0.5) * 25;
+                const dy = -(Math.random() * 22 + 12);
+                const dur = 0.45 + Math.random() * 0.35;
+                rune.style.cssText = `left:${spawnX + Math.random()*10 - 5}px; top:${Math.random()*8}px; --vfx-dx:${dx}px; --vfx-dy:${dy}px; --vfx-dur:${dur}s;`;
+                parent.appendChild(rune);
+                setTimeout(() => rune.remove(), dur * 1000 + 50);
+            }
+
+            // Poeira cósmica (5)
+            for (let i = 0; i < 5; i++) {
+                const dust = document.createElement('div');
+                dust.className = 'vfx-particle vfx-mana-dust';
+                const dx = (Math.random() - 0.5) * 18;
+                const dy = -(Math.random() * 30 + 15);
+                const dur = 0.5 + Math.random() * 0.5;
+                dust.style.cssText = `left:${spawnX + Math.random()*12 - 6}px; top:${Math.random()*10}px; --vfx-dx:${dx}px; --vfx-dy:${dy}px; --vfx-dur:${dur}s;`;
+                parent.appendChild(dust);
+                setTimeout(() => dust.remove(), dur * 1000 + 50);
+            }
+        }
 
