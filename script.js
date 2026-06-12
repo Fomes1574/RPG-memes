@@ -2111,5 +2111,3 @@ window.toggleSidebarJogador = function(numSlot) {
             }
         });
 
-
-
