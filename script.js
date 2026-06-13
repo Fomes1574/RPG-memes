@@ -154,6 +154,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
         let hudVisivel = false;
         let monstrosNoBanco = {};
         let hordasNoBanco = {};
+        let fichasNoBanco = {};
 
         let slotsDeVisao = {
             1: { ouvinte: null, idFicha: null, tipo: null, dados: {} },
@@ -439,6 +440,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
                 for(const slot of Object.values(slotsDeVisao)) {
                     if(slot.idFicha === id) return slot.dados?.nome || id;
                 }
+                if(fichasNoBanco[id]?.nome) return fichasNoBanco[id].nome;
                 const usuario = Object.values(usuarios).find(u => u.idFicha === id);
                 return usuario?.nome || id;
             }
@@ -447,9 +449,28 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
                 const membroId = parts[3];
                 const slot = Object.values(slotsDeVisao).find(s => s.idFicha === hordaId);
                 const membro = slot?.dados?.membros?.[membroId];
-                return membro?.nome || `${hordaId} ${membroId || ''}`.trim();
+                const membroBanco = hordasNoBanco[hordaId]?.membros?.[membroId];
+                return membro?.nome || membroBanco?.nome || `${hordasNoBanco[hordaId]?.nome || hordaId} ${membroId || ''}`.trim();
             }
             return cleanPath;
+        }
+
+        function getNomeAtorDoSlot(numSlot) {
+            const slot = slotsDeVisao[numSlot] || {};
+            return slot.dados?.nome || fichasNoBanco[slot.idFicha]?.nome || slot.idFicha || 'Ação';
+        }
+
+        function getNomeAtorHorda(membroId) {
+            for(const slot of Object.values(slotsDeVisao)) {
+                if(slot.tipo !== 'horda') continue;
+                const membro = slot.dados?.membros?.[membroId];
+                if(membro) return membro.nome || `${slot.dados?.nome || slot.idFicha || 'Horda'} ${membroId}`;
+            }
+            for(const [hordaId, horda] of Object.entries(hordasNoBanco || {})) {
+                const membro = horda?.membros?.[membroId];
+                if(membro) return membro.nome || `${horda.nome || hordaId} ${membroId}`;
+            }
+            return `Horda ${membroId}`;
         }
 
         function encontrarElementoFeedback(path) {
@@ -508,10 +529,37 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
             return partes.join(', ');
         }
 
-        function registrarFeedbackELog(path, meta, origem = 'Ação') {
+        function descreverMetaNarrativa(meta) {
+            if(!meta) return '';
+            const partes = [];
+            if(meta.danoHp > 0) partes.push(`causou ${meta.danoHp} de dano em HP`);
+            if(meta.escudoAbsorvido > 0) partes.push(`${meta.escudoAbsorvido} foi absorvido por escudo`);
+            if(meta.curaHp > 0) partes.push(`curou ${meta.curaHp} HP`);
+            if(meta.escudoGanho > 0) partes.push(`concedeu ${meta.escudoGanho} de escudo`);
+            return partes.join(' e ');
+        }
+
+        function formatarLogCombate(path, meta, contexto = {}) {
+            if(typeof contexto === 'string') {
+                const descricao = descreverMeta(meta);
+                return descricao ? `${contexto}: ${getNomeAlvoPorPath(path)} recebeu ${descricao}.` : '';
+            }
+
+            const ator = contexto.ator || 'Ação';
+            const alvo = contexto.alvo || getNomeAlvoPorPath(path);
+            const resultado = descreverMetaNarrativa(meta);
+            if(!resultado) return '';
+
+            if(contexto.habilidade) return `${ator} usou ${contexto.habilidade} em ${alvo} e ${resultado}.`;
+            if(meta?.effectKind === 'cura') return `${ator} curou ${alvo} e ${resultado}.`;
+            if(meta?.effectKind === 'escudo') return `${ator} conjurou escudo em ${alvo} e ${resultado}.`;
+            return `${ator} atacou ${alvo} e ${resultado}.`;
+        }
+
+        function registrarFeedbackELog(path, meta, contexto = 'Ação') {
             mostrarFeedbackFlutuante(path, meta);
-            const descricao = descreverMeta(meta);
-            if(descricao) adicionarCombatLog(`${origem}: ${getNomeAlvoPorPath(path)} recebeu ${descricao}.`, meta?.effectKind || 'info');
+            const frase = formatarLogCombate(path, meta, contexto);
+            if(frase) adicionarCombatLog(frase, meta?.effectKind || 'info');
             if(visaoTaticaMestreAtiva) renderizarVisaoTaticaMestre();
         }
 
@@ -565,26 +613,53 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
 
         function coletarEntradasTaticas() {
             const entradas = [];
+            const pathsIncluidos = new Set();
+
+            playersList.forEach(playerId => {
+                const slotHeroi = Object.entries(slotsDeVisao).find(([, slot]) => slot.tipo === 'heroi' && slot.idFicha === playerId);
+                const slotNum = slotHeroi ? slotHeroi[0] : null;
+                const dados = slotHeroi?.[1]?.dados || fichasNoBanco[playerId] || { nome: usuarios[playerId]?.nome || playerId };
+                const path = `fichas/${playerId}`;
+                entradas.push(criarEntradaTatica(path, dados, 'heroi', slotNum));
+                pathsIncluidos.add(path);
+            });
+
             for(const [numSlot, slot] of Object.entries(slotsDeVisao)) {
                 if(!slot?.idFicha || !slot?.dados) continue;
+                if(slot.tipo === 'heroi') continue;
 
                 if(slot.tipo === 'horda') {
                     const membros = slot.dados.membros || {};
                     Object.entries(membros).forEach(([mId, mData]) => {
-                        entradas.push(criarEntradaTatica(`hordas/${slot.idFicha}/membros/${mId}`, mData, 'horda', numSlot, slot.dados.nome || slot.idFicha));
+                        const path = `hordas/${slot.idFicha}/membros/${mId}`;
+                        if(pathsIncluidos.has(path)) return;
+                        entradas.push(criarEntradaTatica(path, mData, 'horda', numSlot, slot.dados.nome || slot.idFicha));
+                        pathsIncluidos.add(path);
                     });
                     continue;
                 }
 
-                entradas.push(criarEntradaTatica(`fichas/${slot.idFicha}`, slot.dados, slot.tipo || 'ficha', numSlot));
+                const path = `fichas/${slot.idFicha}`;
+                if(pathsIncluidos.has(path)) continue;
+                entradas.push(criarEntradaTatica(path, slot.dados, slot.tipo || 'ficha', numSlot));
+                pathsIncluidos.add(path);
             }
 
-            if(ameacaEmCombateGlobal && !entradas.some(e => e.path.includes(ameacaEmCombateGlobal))) {
+            if(ameacaEmCombateGlobal && !Array.from(pathsIncluidos).some(path => path.includes(ameacaEmCombateGlobal))) {
                 if(ameacaEmCombateGlobal.startsWith('horda_')) {
                     const horda = hordasNoBanco[ameacaEmCombateGlobal];
                     Object.entries(horda?.membros || {}).forEach(([mId, mData]) => {
-                        entradas.push(criarEntradaTatica(`hordas/${ameacaEmCombateGlobal}/membros/${mId}`, mData, 'horda', null, horda.nome || ameacaEmCombateGlobal));
+                        const path = `hordas/${ameacaEmCombateGlobal}/membros/${mId}`;
+                        if(pathsIncluidos.has(path)) return;
+                        entradas.push(criarEntradaTatica(path, mData, 'horda', null, horda.nome || ameacaEmCombateGlobal));
+                        pathsIncluidos.add(path);
                     });
+                } else {
+                    const path = `fichas/${ameacaEmCombateGlobal}`;
+                    if(!pathsIncluidos.has(path)) {
+                        entradas.push(criarEntradaTatica(path, fichasNoBanco[ameacaEmCombateGlobal] || monstrosNoBanco[ameacaEmCombateGlobal] || { nome: ameacaEmCombateGlobal }, 'monstro', null));
+                        pathsIncluidos.add(path);
+                    }
                 }
             }
 
@@ -717,7 +792,7 @@ function gerarHtmlHeroi(numSlot) {
                     <input type="number" id="slot${numSlot}-jogador-ataque-dano" class="editavel-slot${numSlot}" placeholder="Valor" style="text-align:center; font-size: 16px; padding: 5px; border-color:#d4af37; color:#fff; width: 80px;">
                 </div>
 
-                <button onclick="jogadorLancarFeitico(${numSlot})" class="btn-lancar-feitico editavel-slot${numSlot}">LANÇAR FEITIÇO</button>
+                <button id="btn-acao-combate-slot${numSlot}" onclick="jogadorLancarFeitico(${numSlot})" class="btn-lancar-feitico editavel-slot${numSlot}">ATACAR</button>
 
                 <div class="box-passivas-combate">
                     <div class="titulo-passivas">Passivas em Vigor no Combate</div>
@@ -995,6 +1070,7 @@ window.toggleSidebarJogador = function(numSlot) {
                     document.getElementById('seletor-jogador').style.display = "block";
                     onValue(dbRef('fichas/' + usuarioAtual.idFicha), (snapshot) => {
                         const dados = snapshot.val() || {};
+                        fichasNoBanco[usuarioAtual.idFicha] = dados;
                         const spanNomeHeroi = document.getElementById('nome-heroi-jogador');
                         if(spanNomeHeroi) spanNomeHeroi.textContent = dados['nome'] || "Herói Sem Nome";
                     });
@@ -1383,10 +1459,11 @@ window.toggleSidebarJogador = function(numSlot) {
             if(checkboxes.length === 0) return alert("Selecione pelo menos um alvo para o ataque!");
 
             const alvos = Array.from(checkboxes).map(cb => cb.value);
+            const ator = getNomeAtorHorda(membroId);
             for(let alvo of alvos) {
                 const pathAlvo = 'fichas/' + alvo;
                 const meta = await aplicarEfeitoVidaPath(pathAlvo, dano, 'dano');
-                registrarFeedbackELog(pathAlvo, meta, 'Ataque da horda');
+                registrarFeedbackELog(pathAlvo, meta, { ator });
             }
             inputDano.value = '';
             checkboxes.forEach(cb => cb.checked = false);
@@ -2045,11 +2122,12 @@ window.toggleSidebarJogador = function(numSlot) {
             if(checkboxes.length === 0) return alert("Selecione pelo menos um alvo para o ataque!");
 
             const alvos = Array.from(checkboxes).map(cb => cb.value);
+            const ator = getNomeAtorDoSlot(numSlot);
 
             for(let alvo of alvos) {
                 const pathAlvo = 'fichas/' + alvo;
                 const meta = await aplicarEfeitoVidaPath(pathAlvo, dano, 'dano');
-                registrarFeedbackELog(pathAlvo, meta, 'Ataque do mestre');
+                registrarFeedbackELog(pathAlvo, meta, { ator });
             }
             
             inputDano.value = '';
@@ -2073,7 +2151,7 @@ window.toggleSidebarJogador = function(numSlot) {
                 // Zera HP dependendo se é horda ou monstro
                 if(slotsDeVisao[numSlot].tipo === 'horda') {
                     // Pra hordas, abater pode significar só remover de combate, mas vamos manter simples
-                    alert("A horda foi removida da mesa. Seus membros permanecem salvos.");
+                    mostrarCombatToast("A horda foi removida da mesa. Seus membros permanecem salvos.");
                 } else {
                     await safeTransaction('fichas/' + idAlvo, (dadosAtuais) => {
                         if(!dadosAtuais) return dadosAtuais;
@@ -2160,7 +2238,9 @@ window.toggleSidebarJogador = function(numSlot) {
             onValue(dbRef('fichas'), (snapshot) => {
                 if(!usuarioAtual || usuarioAtual.cargo !== "Mestre") return;
                 const dados = snapshot.val() || {};
+                fichasNoBanco = dados;
                 playersList.forEach(p => preencherHUDJogadorVisualmente(p, dados[p] || {}));
+                if(visaoTaticaMestreAtiva) renderizarVisaoTaticaMestre();
             });
         }
 
@@ -2250,13 +2330,30 @@ window.toggleSidebarJogador = function(numSlot) {
             numSlotGrimorioAberto = null;
         }
 
+        window.atualizarTextoBotaoAcaoJogador = function(numSlot) {
+            const btn = document.getElementById(`btn-acao-combate-slot${numSlot}`);
+            if(!btn) return;
+            const radioSelecionado = document.querySelector(`input[name="feitico-selecionado-slot${numSlot}"]:checked`);
+            if(!radioSelecionado || radioSelecionado.value === 'fisico') {
+                btn.textContent = 'ATACAR';
+                return;
+            }
+
+            const grimorio = slotsDeVisao[numSlot]?.dados?.grimorio || {};
+            const hab = enrichHab(radioSelecionado.value, grimorio[radioSelecionado.value] || {});
+            const effectKind = inferirTipoEfeito(radioSelecionado.value, hab);
+            if(effectKind === 'cura') btn.textContent = 'CURAR';
+            else if(effectKind === 'escudo') btn.textContent = 'CONJURAR ESCUDO';
+            else btn.textContent = 'LANÇAR FEITIÇO';
+        }
+
         window.renderizarGrimorioNoSlot = function(numSlot, grimorio) {
             // 1. Atualiza a Sidebar de Combate (Habilidades Equipadas)
             const containerFeiticos = document.getElementById(`lista-feiticos-combate-slot${numSlot}`);
             const containerPassivas = document.getElementById(`lista-passivas-combate-slot${numSlot}`);
             
             if(containerFeiticos && containerPassivas) {
-                let htmlFeiticos = `<label class="magia-radio-item"><input type="radio" name="feitico-selecionado-slot${numSlot}" value="fisico" checked><span class="magia-icon-mini">⚔️</span> <span>Ataque Básico</span></label>`;
+                let htmlFeiticos = `<label class="magia-radio-item"><input type="radio" name="feitico-selecionado-slot${numSlot}" value="fisico" checked onchange="atualizarTextoBotaoAcaoJogador(${numSlot})"><span class="magia-icon-mini">⚔️</span> <span>Ataque Básico</span></label>`;
                 let htmlPassivas = '';
                 
                 for(let habId in grimorio) {
@@ -2269,20 +2366,23 @@ window.toggleSidebarJogador = function(numSlot) {
 
                     if(hab.tipo === 'passiva') {
                         let iconUrl = `Icones/${habId}.png`;
+                        let descHabHtml = escapeHtml(hab.desc || '');
+                        let tooltipHabHtml = escapeHtml(`${hab.nome || habId}${hab.desc ? ': ' + hab.desc : ''}`);
                         htmlPassivas += `
-                            <div class="passiva-mini">
+                            <div class="passiva-mini" title="${tooltipHabHtml}" data-tooltip="${tooltipHabHtml}">
                                 <div class="passiva-mini-icon">
                                     <div style="width:100%;height:100%;background-image:url('${iconUrl}');background-size:cover;background-position:center;border-radius:50%;position:absolute;top:0;left:0;z-index:2;"></div>
                                     <div class="skill-icon-glow" style="z-index:1;">${icon}</div>
                                 </div>
                                 <div class="passiva-mini-nome">${nomeHabHtml}</div>
+                                <span class="passiva-mini-desc">${descHabHtml}</span>
                             </div>
                         `;
                     } else {
                         const meta = hab.formula ? ` • ${formulaHabHtml}` : '';
                         htmlFeiticos += `
                             <label class="magia-radio-item">
-                                <input type="radio" name="feitico-selecionado-slot${numSlot}" value="${habId}">
+                                <input type="radio" name="feitico-selecionado-slot${numSlot}" value="${habId}" onchange="atualizarTextoBotaoAcaoJogador(${numSlot})">
                                 <span class="magia-icon-mini">${icon}</span> <span>${nomeHabHtml}${meta}</span>
                             </label>
                         `;
@@ -2293,6 +2393,7 @@ window.toggleSidebarJogador = function(numSlot) {
                 
                 containerFeiticos.innerHTML = htmlFeiticos;
                 containerPassivas.innerHTML = htmlPassivas;
+                atualizarTextoBotaoAcaoJogador(numSlot);
             }
 
             // 2. Atualiza o Modal do Grimório se estiver aberto
@@ -2433,25 +2534,25 @@ window.toggleSidebarJogador = function(numSlot) {
             }
 
             const alvos = Array.from(checkboxes).map(cb => cb.value);
-            const origemLog = feiticoId === 'fisico' ? 'Ataque do jogador' : `Magia ${habSelecionada?.nome || feiticoId}`;
+            const ator = getNomeAtorDoSlot(numSlot);
+            const habilidadeLog = feiticoId === 'fisico' ? null : (habSelecionada?.nome || feiticoId);
             for(let alvo of alvos) {
                 if(alvo.startsWith("horda_") && ameacaEmCombateGlobal && alvo.startsWith(ameacaEmCombateGlobal + "_")) {
                     let hordaId = ameacaEmCombateGlobal;
                     let mId = alvo.replace(hordaId + "_", "");
                     const pathAlvo = `hordas/${hordaId}/membros/${mId}`;
                     const meta = await aplicarEfeitoVidaPath(pathAlvo, valorEfeito, tipoFeitico);
-                    registrarFeedbackELog(pathAlvo, meta, origemLog);
+                    registrarFeedbackELog(pathAlvo, meta, { ator, habilidade: habilidadeLog });
                 } else {
                     const pathAlvo = `fichas/${alvo}`;
                     const meta = await aplicarEfeitoVidaPath(pathAlvo, valorEfeito, tipoFeitico);
-                    registrarFeedbackELog(pathAlvo, meta, origemLog);
+                    registrarFeedbackELog(pathAlvo, meta, { ator, habilidade: habilidadeLog });
                 }
             }
             
             inputDano.value = '';
             checkboxes.forEach(cb => cb.checked = false);
-            const detalheFormula = formulaRolada ? ` Rolagem: ${habSelecionada.formula} = ${valorEfeito}.` : '';
-            alert("Ação executada com sucesso!" + detalheFormula);
+            if(formulaRolada) mostrarCombatToast(`Rolagem: ${habSelecionada.formula} = ${valorEfeito}.`);
         };
         
         window.adicionarHabilidade = function(numSlot) {
