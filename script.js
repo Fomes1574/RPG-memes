@@ -1,5 +1,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-        import { getDatabase, ref, onValue, update, get, remove } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
+        import { getDatabase, ref, onValue, update, get, remove, runTransaction } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
+
+        const DB_PREFIX = "";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBOJ4nPQX6dUjrpODKQfCB6uTfWSQCS9uA",
@@ -13,6 +15,38 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
 
         const app = initializeApp(firebaseConfig);
         const database = getDatabase(app);
+
+        function normalizeDbPath(path = "") {
+            return String(path || "").replace(/^\/+|\/+$/g, "");
+        }
+
+        function dbPath(path = "") {
+            const cleanPath = normalizeDbPath(path);
+            if (!DB_PREFIX) return cleanPath;
+            if (!cleanPath) return DB_PREFIX;
+            if (cleanPath === DB_PREFIX || cleanPath.startsWith(DB_PREFIX + "/")) return cleanPath;
+            return `${DB_PREFIX}/${cleanPath}`;
+        }
+
+        function dbRef(path = "") {
+            return ref(database, dbPath(path));
+        }
+
+        function safeGet(path = "") {
+            return get(dbRef(path));
+        }
+
+        function safeUpdate(path = "", payload = {}) {
+            return update(dbRef(path), payload);
+        }
+
+        function safeRemove(path = "") {
+            return remove(dbRef(path));
+        }
+
+        function safeTransaction(path = "", updater) {
+            return runTransaction(dbRef(path), updater);
+        }
 
         const usuarios = {
             "dick":   { nome: "Dick", cargo: "Mestre", idFicha: null },
@@ -96,7 +130,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
             // Varre o dicionário procurando o habId
             for (let groupKey in HABILIDADES_SISTEMA) {
                 if (HABILIDADES_SISTEMA[groupKey][habId]) {
-                    return Object.assign({}, HABILIDADES_SISTEMA[groupKey][habId], habFirebase);
+                    return normalizeHabV1(habId, Object.assign({}, HABILIDADES_SISTEMA[groupKey][habId], habFirebase));
                 }
             }
             // Se não encontrou pelo habId (ex: skill adicionada manualmente com id hab_123), tenta encontrar pelo NOME exato
@@ -105,12 +139,12 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
                 for (let groupKey in HABILIDADES_SISTEMA) {
                     for (let k in HABILIDADES_SISTEMA[groupKey]) {
                         if (HABILIDADES_SISTEMA[groupKey][k].nome.trim().toLowerCase() === nomeBusca) {
-                            return Object.assign({}, HABILIDADES_SISTEMA[groupKey][k], habFirebase);
+                            return normalizeHabV1(k, Object.assign({}, HABILIDADES_SISTEMA[groupKey][k], habFirebase));
                         }
                     }
                 }
             }
-            return habFirebase; // habilidade custom — retorna como está
+            return normalizeHabV1(habId, habFirebase); // habilidade custom — retorna compatível v1
         }
 
         const playersList = ['lais', 'gomes', 'kamy', 'arthur'];
@@ -125,6 +159,133 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
             1: { ouvinte: null, idFicha: null, tipo: null, dados: {} },
             2: { ouvinte: null, idFicha: null, tipo: null, dados: {} }
         };
+
+        const ATTRS = ['for', 'des', 'con', 'int', 'sab', 'car', 'per'];
+        const FORMULAS_PADRAO_HABILIDADES = {
+            pal_cura: "1d8+CAR",
+            cur_cura: "2d8+SAB"
+        };
+
+        function toNumber(value, fallback = 0) {
+            const n = Number(value);
+            return Number.isFinite(n) ? n : fallback;
+        }
+
+        function clamp(value, min, max) {
+            let n = toNumber(value, min);
+            if (Number.isFinite(min) && n < min) n = min;
+            if (Number.isFinite(max) && n > max) n = max;
+            return n;
+        }
+
+        function inferirTipoEfeito(habId, hab = {}) {
+            if (hab.effectKind) return hab.effectKind;
+            if (hab.tipo === 'passiva') return 'passiva';
+            if (hab.tipo === 'cura') return 'cura';
+            const nome = String(hab.nome || '').toLowerCase();
+            if (['pal_cura', 'cur_cura'].includes(habId) || nome.includes('cura')) return 'cura';
+            if (nome.includes('escudo') || nome.includes('proteção') || nome.includes('protecao')) return 'escudo';
+            if (hab.tipo === 'buff') return 'buff';
+            if (hab.tipo === 'debuff') return 'debuff';
+            if (hab.tipo === 'utilidade') return 'utilidade';
+            return 'dano';
+        }
+
+        function normalizeHabV1(habId, hab = {}) {
+            const effectKind = inferirTipoEfeito(habId, hab);
+            return {
+                schemaVersion: hab.schemaVersion || 1,
+                targetMode: hab.targetMode || hab.alvo || 'self',
+                ...hab,
+                effectKind,
+                formula: hab.formula || FORMULAS_PADRAO_HABILIDADES[habId] || ''
+            };
+        }
+
+        function rolarFormulaMagica(formula, atributos = {}) {
+            const expr = String(formula || '').toUpperCase().replace(/\s+/g, '');
+            if (!expr) return { total: 0, detalhes: [] };
+
+            const tokens = expr.match(/[+-]?[^+-]+/g) || [];
+            let total = 0;
+            const detalhes = [];
+
+            for (const token of tokens) {
+                const sign = token.startsWith('-') ? -1 : 1;
+                const raw = token.replace(/^[+-]/, '');
+                const dice = raw.match(/^(\d*)D(\d+)$/);
+
+                if (dice) {
+                    const count = Math.max(1, toNumber(dice[1] || 1, 1));
+                    const sides = Math.max(1, toNumber(dice[2], 1));
+                    let subtotal = 0;
+                    const rolls = [];
+                    for (let i = 0; i < count; i++) {
+                        const roll = Math.floor(Math.random() * sides) + 1;
+                        rolls.push(roll);
+                        subtotal += roll;
+                    }
+                    total += subtotal * sign;
+                    detalhes.push(`${sign < 0 ? '-' : '+'}${raw}[${rolls.join(',')}]`);
+                    continue;
+                }
+
+                const attrKey = raw.toLowerCase();
+                if (ATTRS.includes(attrKey)) {
+                    const attrValue = toNumber(atributos[attrKey], 0) * sign;
+                    total += attrValue;
+                    detalhes.push(`${sign < 0 ? '-' : '+'}${raw}(${Math.abs(attrValue)})`);
+                    continue;
+                }
+
+                const flat = toNumber(raw, null);
+                if (flat !== null) {
+                    total += flat * sign;
+                    detalhes.push(`${sign < 0 ? '-' : '+'}${raw}`);
+                    continue;
+                }
+
+                throw new Error(`Formula invalida: ${formula}`);
+            }
+
+            return { total: Math.max(0, total), detalhes };
+        }
+
+        function aplicarEfeitoVidaDados(dados = {}, valor, effectKind = 'dano') {
+            const proximo = { ...dados };
+            const hpAtual = toNumber(proximo['hp-atual'], 0);
+            const hpMax = Math.max(1, toNumber(proximo['hp-max'], 20));
+            const escudoAtual = Math.max(0, toNumber(proximo.escudo, 0));
+            const valorSeguro = Math.max(0, toNumber(valor, 0));
+
+            if (effectKind === 'cura') {
+                proximo['hp-atual'] = clamp(hpAtual + valorSeguro, 0, hpMax);
+                return proximo;
+            }
+
+            if (effectKind === 'escudo') {
+                proximo.escudo = escudoAtual + valorSeguro;
+                return proximo;
+            }
+
+            let danoRestante = valorSeguro;
+            let escudo = escudoAtual;
+            if (escudo > 0) {
+                const absorvido = Math.min(escudo, danoRestante);
+                escudo -= absorvido;
+                danoRestante -= absorvido;
+            }
+            proximo.escudo = escudo;
+            proximo['hp-atual'] = clamp(hpAtual - danoRestante, 0, hpMax);
+            return proximo;
+        }
+
+        async function aplicarEfeitoVidaPath(path, valor, effectKind = 'dano') {
+            await safeTransaction(path, (dadosAtuais) => {
+                if (!dadosAtuais) return dadosAtuais;
+                return aplicarEfeitoVidaDados(dadosAtuais, valor, effectKind);
+            });
+        }
 
         // ==========================================
         // GERAÇÃO DE HTML DOS SLOTS
@@ -258,7 +419,7 @@ function gerarHtmlHeroi(numSlot) {
                 <div class="fraction-input" style="justify-content: center;">
                     <input type="number" id="slot${numSlot}-hp-atual" class="editavel-slot${numSlot}" style="color: #27ae60;"><span>/</span><span id="slot${numSlot}-hp-efetivo" style="color: #27ae60; font-size: 20px; font-weight: bold; width:40px; display:inline-block; text-align:left;">20</span>
                 </div>
-                <div class="mestre-only-flex" style="display: none; justify-content: center;">
+                <div class="mestre-only-flex" style="justify-content: center;">
                     <label style="margin:0; color:#9c8464;">Base Máx (Mestre):</label>
                     <input type="number" id="slot${numSlot}-hp-max" class="editavel-slot${numSlot} mestre-unlocked" title="Vida Base Máxima (Padrão 20)" style="width:50px; padding:2px; font-size:11px;">
                 </div>
@@ -269,7 +430,7 @@ function gerarHtmlHeroi(numSlot) {
                 <div class="fraction-input" style="justify-content: center;">
                     <input type="number" id="slot${numSlot}-mana-atual" class="editavel-slot${numSlot}" style="color: #2980b9;"><span>/</span><span id="slot${numSlot}-mana-efetivo" style="color: #2980b9; font-size: 20px; font-weight: bold; width:40px; display:inline-block; text-align:left;">20</span>
                 </div>
-                <div class="mestre-only-flex" style="display: none; justify-content: center;">
+                <div class="mestre-only-flex" style="justify-content: center;">
                     <label style="margin:0; color:#9c8464;">Base Máx (Mestre):</label>
                     <input type="number" id="slot${numSlot}-mana-max" class="editavel-slot${numSlot} mestre-unlocked" title="Mana Base Máxima (Padrão 20)" style="width:50px; padding:2px; font-size:11px;">
                 </div>
@@ -325,17 +486,6 @@ function gerarHtmlHeroi(numSlot) {
     </div>`;
 }
 
-window.toggleSidebarJogador = function(numSlot) {
-    const sidebar = document.getElementById(`sidebar-jogador-slot${numSlot}`);
-    const btn = document.getElementById(`btn-toggle-jogador-slot${numSlot}`);
-    if (sidebar.classList.contains('sidebar-fechada')) {
-        sidebar.classList.remove('sidebar-fechada');
-        btn.innerText = '<';
-    } else {
-        sidebar.classList.add('sidebar-fechada');
-        btn.innerText = '>';
-    }
-}
 window.toggleSidebarJogador = function(numSlot) {
     const sidebar = document.getElementById(`sidebar-jogador-slot${numSlot}`);
     const btn = document.getElementById(`btn-toggle-jogador-slot${numSlot}`);
@@ -465,7 +615,7 @@ window.toggleSidebarJogador = function(numSlot) {
                     initHudGlobais();
                 } else {
                     document.getElementById('seletor-jogador').style.display = "block";
-                    onValue(ref(database, 'fichas/' + usuarioAtual.idFicha), (snapshot) => {
+                    onValue(dbRef('fichas/' + usuarioAtual.idFicha), (snapshot) => {
                         const dados = snapshot.val() || {};
                         const spanNomeHeroi = document.getElementById('nome-heroi-jogador');
                         if(spanNomeHeroi) spanNomeHeroi.innerHTML = dados['nome'] || "Herói Sem Nome";
@@ -479,17 +629,17 @@ window.toggleSidebarJogador = function(numSlot) {
         }
 
         function iniciarOuvintesGerais() {
-            onValue(ref(database, 'lista_monstros'), (snapshot) => {
+            onValue(dbRef('lista_monstros'), (snapshot) => {
                 monstrosNoBanco = snapshot.val() || {};
                 if(usuarioAtual.cargo === "Mestre") atualizarSidebarMestre();
             });
 
-            onValue(ref(database, 'hordas'), (snapshot) => {
+            onValue(dbRef('hordas'), (snapshot) => {
                 hordasNoBanco = snapshot.val() || {};
                 if(usuarioAtual.cargo === "Mestre") atualizarSidebarMestre();
             });
 
-            onValue(ref(database, 'estado_combate/ativo'), (snapshot) => {
+            onValue(dbRef('estado_combate/ativo'), (snapshot) => {
                 ameacaEmCombateGlobal = snapshot.val(); 
 
                 if (usuarioAtual.cargo === "Jogador") {
@@ -544,7 +694,7 @@ window.toggleSidebarJogador = function(numSlot) {
             }
 
             if(ameacaId.startsWith('horda_')) {
-                refAlvoJogador = ref(database, 'hordas/' + ameacaId);
+                refAlvoJogador = dbRef('hordas/' + ameacaId);
                 ouvinteAlvoJogador = onValue(refAlvoJogador, (snap) => {
                     if(snap.exists()) {
                         let horda = snap.val();
@@ -562,7 +712,7 @@ window.toggleSidebarJogador = function(numSlot) {
                     }
                 });
             } else {
-                refAlvoJogador = ref(database, 'fichas/' + ameacaId);
+                refAlvoJogador = dbRef('fichas/' + ameacaId);
                 ouvinteAlvoJogador = onValue(refAlvoJogador, (snap) => {
                     if(snap.exists()) {
                         let m = snap.val();
@@ -771,7 +921,7 @@ window.toggleSidebarJogador = function(numSlot) {
             return h;
         }
 
-        window.invocarMonstro = function() {
+        window.invocarMonstro = async function() {
             let nome = prompt("Nome da nova ameaça (Monstro/NPC):");
             if(!nome) return;
             nome = nome.trim();
@@ -780,9 +930,12 @@ window.toggleSidebarJogador = function(numSlot) {
             // Generate a clean ID
             let id = nome.toLowerCase().replace(/[^a-z0-9]/g, '');
             if(!id) id = 'monstro_' + Date.now();
+            const idOriginal = id;
+            const existente = await safeGet('fichas/' + id);
+            if (existente.exists()) id = `${idOriginal}_${Date.now()}`;
             
             // Set up basic ficha
-            update(ref(database, 'fichas/' + id), { 
+            await safeUpdate('fichas/' + id, { 
                 nome: nome, 
                 tipo: 'monstro', 
                 'hp-max': 20, 
@@ -791,7 +944,7 @@ window.toggleSidebarJogador = function(numSlot) {
                 'mana-atual': 20 
             });
             // Register in the list
-            update(ref(database, 'lista_monstros/' + id), { 
+            await safeUpdate('lista_monstros/' + id, { 
                 nome: nome,
                 ativo: true 
             });
@@ -804,8 +957,7 @@ window.toggleSidebarJogador = function(numSlot) {
 
             if(!qtd || qtd <= 1) return alert("Insira uma quantidade válida maior que 1 para gerar a horda!");
 
-            const refFicha = ref(database, 'fichas/' + idMonstroOriginal);
-            const snap = await get(refFicha);
+            const snap = await safeGet('fichas/' + idMonstroOriginal);
             let mData = snap.val();
             if(!mData) return;
 
@@ -821,17 +973,13 @@ window.toggleSidebarJogador = function(numSlot) {
                 };
             }
 
-            await update(ref(database, 'hordas/' + hordaId), hordaData);
+            await safeUpdate('hordas/' + hordaId, hordaData);
             alert(`🛡️ Horda criada com sucesso! ${qtd} lacaios prontos.`);
             document.getElementById(`slot${numSlot}-qtd-horda`).value = '';
-            
-            document.getElementById('mestre-t2-horda').value = hordaId;
-            mestreAbrir(2, 'horda', hordaId);
-            
-            setTimeout(() => {
-                document.getElementById('seletor-ameaca').value = hordaId;
-                selecionarAmeacaMestre(hordaId);
-            }, 500); 
+
+            const slotDestino = numSlot === 1 ? 2 : numSlot;
+            mestreAbrir(slotDestino, 'horda', hordaId);
+            await safeUpdate('estado_combate', { ativo: hordaId });
         }
 
         window.atacarMembroHorda = async function(membroId) {
@@ -844,13 +992,7 @@ window.toggleSidebarJogador = function(numSlot) {
 
             const alvos = Array.from(checkboxes).map(cb => cb.value);
             for(let alvo of alvos) {
-                const refFicha = ref(database, 'fichas/' + alvo);
-                const snapshot = await get(refFicha);
-                let dados = snapshot.val() || {};
-                let hpAtual = Number(dados['hp-atual']) || 0;
-                hpAtual -= dano;
-                if(hpAtual < 0) hpAtual = 0;
-                update(refFicha, { 'hp-atual': hpAtual });
+                await aplicarEfeitoVidaPath('fichas/' + alvo, dano, 'dano');
             }
             inputDano.value = '';
             checkboxes.forEach(cb => cb.checked = false);
@@ -876,7 +1018,7 @@ window.toggleSidebarJogador = function(numSlot) {
 
         window.baixarBackupJson = async function() {
             if(usuarioAtual.cargo !== "Mestre") return;
-            const snap = await get(ref(database, '/'));
+            const snap = await safeGet('');
             const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(snap.val()));
             const dlAnchorElem = document.createElement('a');
             dlAnchorElem.setAttribute("href", dataStr);
@@ -960,13 +1102,11 @@ window.toggleSidebarJogador = function(numSlot) {
             if(selecionados.length === 0) return alert("Selecione pelo menos um jogador!");
 
             for(let p of selecionados) {
-                const refFicha = ref(database, 'fichas/' + p);
-                const snap = await get(refFicha);
-                let dados = snap.val() || {};
-                let expAtualDB = Number(dados.expTotal) || 0;
-                let novaExp = expAtualDB + amount;
-                if(novaExp < 0) novaExp = 0;
-                update(refFicha, { expTotal: novaExp });
+                await safeTransaction(`fichas/${p}/expTotal`, (expAtualDB) => {
+                    let novaExp = toNumber(expAtualDB, 0) + amount;
+                    if(novaExp < 0) novaExp = 0;
+                    return novaExp;
+                });
             }
             fecharModalExp();
         }
@@ -1006,22 +1146,22 @@ window.toggleSidebarJogador = function(numSlot) {
                     if(el.type !== 'checkbox' && el.type !== 'radio' && el.type !== 'file' && el.id !== `slot${numSlot}-jogador`) el.value = '';
                 });
 
-                get(ref(database, 'fotos/' + idFicha)).then(snap => {
+                safeGet('fotos/' + idFicha).then(snap => {
                     const imgEl = tipo === 'heroi' ? document.getElementById(`img-foto-slot${numSlot}`) : document.getElementById(`img-foto-monstro-slot${numSlot}`);
                     if(snap.exists() && imgEl) imgEl.src = snap.val().base64;
                 });
             }
 
             const path = tipo === 'horda' ? `hordas/${idFicha}` : `fichas/${idFicha}`;
-            const refFicha = ref(database, path);
+            const refFicha = dbRef(path);
             
             if(tipo === 'heroi') {
                 get(refFicha).then(snap => {
-                    if(!snap.exists()) update(refFicha, { 'hp-max': 20, 'mana-max': 20, nome: idFicha });
+                    if(!snap.exists()) safeUpdate(path, { 'hp-max': 20, 'mana-max': 20, nome: idFicha });
                     else {
                         let d = snap.val();
-                        if(d['hp-max'] === undefined) update(refFicha, { 'hp-max': 20 });
-                        if(d['mana-max'] === undefined) update(refFicha, { 'mana-max': 20 });
+                        if(d['hp-max'] === undefined) safeUpdate(path, { 'hp-max': 20 });
+                        if(d['mana-max'] === undefined) safeUpdate(path, { 'mana-max': 20 });
                     }
                 });
             }
@@ -1174,7 +1314,7 @@ window.toggleSidebarJogador = function(numSlot) {
                             if(val < minVal) {
                                 inputEl.value = minVal;
                                 val = minVal;
-                                update(refFicha, { [a]: minVal });
+                                safeUpdate(path, { [a]: minVal });
                             }
                         }
                         
@@ -1301,7 +1441,7 @@ window.toggleSidebarJogador = function(numSlot) {
                     const imgEl = tipo === 'heroi' ? document.getElementById(`img-foto-slot${numSlot}`) : document.getElementById(`img-foto-monstro-slot${numSlot}`);
                     if (imgEl) imgEl.src = dataUrlUltraLeve;
                     
-                    if(idFicha) update(ref(database, 'fotos/' + idFicha), { base64: dataUrlUltraLeve });
+                    if(idFicha) safeUpdate('fotos/' + idFicha, { base64: dataUrlUltraLeve });
                 }
                 img.src = e.target.result;
             }
@@ -1324,18 +1464,20 @@ window.toggleSidebarJogador = function(numSlot) {
 
             if(!nome || turnos <= 0) return alert("Preencha o Nome e os Turnos do efeito!");
 
-            const refFicha = ref(database, 'fichas/' + idFicha);
-            const snapshot = await get(refFicha);
-            let dados = snapshot.val() || {};
-            let efeitos = dados.efeitos || [];
+            const idUnico = Date.now();
+            await safeTransaction('fichas/' + idFicha, (dadosAtuais) => {
+                const dados = dadosAtuais || {};
+                const efeitos = Array.isArray(dados.efeitos) ? [...dados.efeitos] : [];
+                const proximo = { ...dados };
 
-            if (attrDestino && modAttr !== 0) {
-                let attrAtual = Number(dados[attrDestino]) || 0;
-                update(refFicha, { [attrDestino]: attrAtual + modAttr });
-            }
+                if (attrDestino && modAttr !== 0) {
+                    proximo[attrDestino] = toNumber(dados[attrDestino], 0) + modAttr;
+                }
 
-            efeitos.push({ idUnico: Date.now(), nome, modHp, modMana, attrDestino, modAttr, turnos });
-            update(refFicha, { efeitos });
+                efeitos.push({ idUnico, nome, modHp, modMana, attrDestino, modAttr, turnos });
+                proximo.efeitos = efeitos;
+                return proximo;
+            });
             
             document.getElementById(`${p}nome${pos}`).value = '';
             document.getElementById(`${p}turnos${pos}`).value = '';
@@ -1344,90 +1486,87 @@ window.toggleSidebarJogador = function(numSlot) {
         window.removerEfeito = async function(numSlot, idEfeito) {
             const idFicha = slotsDeVisao[numSlot].idFicha;
             if(!idFicha) return;
-            const refFicha = ref(database, 'fichas/' + idFicha);
-            const snapshot = await get(refFicha);
-            let dados = snapshot.val() || {};
-            let efeitos = dados.efeitos || [];
+            await safeTransaction('fichas/' + idFicha, (dadosAtuais) => {
+                const dados = dadosAtuais || {};
+                const efeitos = Array.isArray(dados.efeitos) ? dados.efeitos : [];
+                const efeitoRemovido = efeitos.find(e => e.idUnico === idEfeito);
+                const proximo = { ...dados, efeitos: efeitos.filter(e => e.idUnico !== idEfeito) };
 
-            let efeitoRemovido = efeitos.find(e => e.idUnico === idEfeito);
-            let efeitosAtualizados = efeitos.filter(e => e.idUnico !== idEfeito);
-            let pacoteAtualizacao = { efeitos: efeitosAtualizados };
+                if (efeitoRemovido && efeitoRemovido.attrDestino && efeitoRemovido.modAttr !== 0) {
+                    proximo[efeitoRemovido.attrDestino] = toNumber(dados[efeitoRemovido.attrDestino], 0) - toNumber(efeitoRemovido.modAttr, 0);
+                }
 
-            if (efeitoRemovido && efeitoRemovido.attrDestino && efeitoRemovido.modAttr !== 0) {
-                let valorCorrente = Number(dados[efeitoRemovido.attrDestino]) || 0;
-                pacoteAtualizacao[efeitoRemovido.attrDestino] = valorCorrente - efeitoRemovido.modAttr;
-            }
-
-            update(refFicha, pacoteAtualizacao);
+                return proximo;
+            });
         }
 
         window.avancarTurnoGlobal = async function() {
             if (usuarioAtual.cargo !== "Mestre") return;
             
-            const refFichas = ref(database, 'fichas');
+            const refFichas = dbRef('fichas');
             const snapFichas = await get(refFichas);
             let fichas = snapFichas.val() || {};
-            
-            let pacoteGeral = {};
-            
+
             for (let idFicha in fichas) {
-                let dados = fichas[idFicha];
-                let efeitos = dados.efeitos || [];
-                if (efeitos.length === 0) continue;
-                
-                let hpAtual = Number(dados['hp-atual']) || 0;
-                let manaAtual = Number(dados['mana-atual']) || 0;
-                
-                let isHero = Object.values(usuarios).some(u => u.idFicha === idFicha);
-                let hpMax = Number(dados['hp-max']) || 20;
-                let manaMax = Number(dados['mana-max']) || 20;
-                
-                if (isHero) {
-                    hpMax += (Number(dados['con']) || 0) * 3;
-                    manaMax += (Number(dados['int']) || 0) * 2;
-                }
-                
-                let attrParaReverter = {};
-                let efeitosAtualizados = efeitos.map(e => {
-                    hpAtual += e.modHp;
-                    manaAtual += e.modMana;
-                    e.turnos -= 1;
-                    
-                    if (e.turnos <= 0 && e.attrDestino && e.modAttr !== 0) {
-                        if(!attrParaReverter[e.attrDestino]) attrParaReverter[e.attrDestino] = 0;
-                        attrParaReverter[e.attrDestino] += e.modAttr; 
+                await safeTransaction(`fichas/${idFicha}`, (dadosAtuais) => {
+                    const dados = dadosAtuais || {};
+                    const efeitos = Array.isArray(dados.efeitos) ? dados.efeitos : [];
+                    if (efeitos.length === 0) return dadosAtuais;
+
+                    let hpAtual = toNumber(dados['hp-atual'], 0);
+                    let manaAtual = toNumber(dados['mana-atual'], 0);
+                    const isHero = Object.values(usuarios).some(u => u.idFicha === idFicha);
+                    let hpMax = toNumber(dados['hp-max'], 20);
+                    let manaMax = toNumber(dados['mana-max'], 20);
+
+                    if (isHero) {
+                        hpMax += toNumber(dados['con'], 0) * 3;
+                        manaMax += toNumber(dados['int'], 0) * 2;
                     }
-                    return e;
-                }).filter(e => e.turnos > 0);
-                
-                if(hpAtual > hpMax) hpAtual = hpMax;
-                if(manaAtual > manaMax) manaAtual = manaMax;
-                if(hpAtual < 0) hpAtual = 0;
-                if(manaAtual < 0) manaAtual = 0;
-                
-                pacoteGeral[`fichas/${idFicha}/efeitos`] = efeitosAtualizados;
-                pacoteGeral[`fichas/${idFicha}/hp-atual`] = hpAtual;
-                pacoteGeral[`fichas/${idFicha}/mana-atual`] = manaAtual;
-                
-                for (let attr in attrParaReverter) {
-                    let valorCorrente = Number(dados[attr]) || 0;
-                    pacoteGeral[`fichas/${idFicha}/${attr}`] = valorCorrente - attrParaReverter[attr];
-                }
+
+                    const attrParaReverter = {};
+                    const efeitosAtualizados = efeitos.map((efeito) => {
+                        const proximoEfeito = { ...efeito, turnos: toNumber(efeito.turnos, 0) - 1 };
+                        hpAtual += toNumber(efeito.modHp, 0);
+                        manaAtual += toNumber(efeito.modMana, 0);
+
+                        if (proximoEfeito.turnos <= 0 && proximoEfeito.attrDestino && toNumber(proximoEfeito.modAttr, 0) !== 0) {
+                            if(!attrParaReverter[proximoEfeito.attrDestino]) attrParaReverter[proximoEfeito.attrDestino] = 0;
+                            attrParaReverter[proximoEfeito.attrDestino] += toNumber(proximoEfeito.modAttr, 0);
+                        }
+                        return proximoEfeito;
+                    }).filter(e => e.turnos > 0);
+
+                    const proximo = {
+                        ...dados,
+                        efeitos: efeitosAtualizados,
+                        'hp-atual': clamp(hpAtual, 0, hpMax),
+                        'mana-atual': clamp(manaAtual, 0, manaMax)
+                    };
+
+                    for (let attr in attrParaReverter) {
+                        proximo[attr] = toNumber(dados[attr], 0) - attrParaReverter[attr];
+                    }
+
+                    return proximo;
+                });
             }
             
-            const snapHordas = await get(ref(database, 'hordas'));
+            const snapHordas = await safeGet('hordas');
             let hordas = snapHordas.val() || {};
             for (let idHorda in hordas) {
-                let dados = hordas[idHorda];
-                let efeitos = dados.efeitos || [];
-                if (efeitos.length === 0) continue;
-                
-                let efeitosAtualizados = efeitos.map(e => { e.turnos -= 1; return e; }).filter(e => e.turnos > 0);
-                pacoteGeral[`hordas/${idHorda}/efeitos`] = efeitosAtualizados;
-            }
-            
-            if (Object.keys(pacoteGeral).length > 0) {
-                await update(ref(database), pacoteGeral);
+                await safeTransaction(`hordas/${idHorda}`, (dadosAtuais) => {
+                    const dados = dadosAtuais || {};
+                    const efeitos = Array.isArray(dados.efeitos) ? dados.efeitos : [];
+                    if (efeitos.length === 0) return dadosAtuais;
+
+                    return {
+                        ...dados,
+                        efeitos: efeitos
+                            .map(e => ({ ...e, turnos: toNumber(e.turnos, 0) - 1 }))
+                            .filter(e => e.turnos > 0)
+                    };
+                });
             }
         }
 
@@ -1521,29 +1660,7 @@ window.toggleSidebarJogador = function(numSlot) {
             const alvos = Array.from(checkboxes).map(cb => cb.value);
 
             for(let alvo of alvos) {
-                const refFicha = ref(database, 'fichas/' + alvo);
-                const snapshot = await get(refFicha);
-                let dados = snapshot.val() || {};
-                let hpAtual = Number(dados['hp-atual']) || 0;
-                let escudo = Number(dados['escudo']) || 0;
-                
-                let danoRestante = dano;
-                if(escudo > 0) {
-                    if(escudo >= danoRestante) {
-                        escudo -= danoRestante;
-                        danoRestante = 0;
-                    } else {
-                        danoRestante -= escudo;
-                        escudo = 0;
-                    }
-                    update(refFicha, { 'escudo': escudo });
-                }
-                
-                if(danoRestante > 0) {
-                    hpAtual -= danoRestante;
-                    if(hpAtual < 0) hpAtual = 0;
-                    update(refFicha, { 'hp-atual': hpAtual });
-                }
+                await aplicarEfeitoVidaPath('fichas/' + alvo, dano, 'dano');
             }
             
             inputDano.value = '';
@@ -1552,20 +1669,23 @@ window.toggleSidebarJogador = function(numSlot) {
 
         window.lancarAmeacaFicha = function(numSlot) {
             const idAlvo = slotsDeVisao[numSlot].idFicha;
-            if(idAlvo) update(ref(database, 'estado_combate'), { ativo: idAlvo });
+            if(idAlvo) safeUpdate('estado_combate', { ativo: idAlvo });
         }
         
-        window.abaterAmeacaFicha = function(numSlot) {
+        window.abaterAmeacaFicha = async function(numSlot) {
             const idAlvo = slotsDeVisao[numSlot].idFicha;
             if(idAlvo) {
-                if(ameacaEmCombateGlobal === idAlvo) remove(ref(database, 'estado_combate/ativo'));
+                if(ameacaEmCombateGlobal === idAlvo) await safeRemove('estado_combate/ativo');
                 
                 // Zera HP dependendo se é horda ou monstro
                 if(slotsDeVisao[numSlot].tipo === 'horda') {
                     // Pra hordas, abater pode significar só remover de combate, mas vamos manter simples
                     alert("A horda foi removida da mesa. Seus membros permanecem salvos.");
                 } else {
-                    update(ref(database, 'fichas/' + idAlvo), { 'hp-atual': 0 });
+                    await safeTransaction('fichas/' + idAlvo, (dadosAtuais) => {
+                        if(!dadosAtuais) return dadosAtuais;
+                        return { ...dadosAtuais, 'hp-atual': 0 };
+                    });
                 }
             }
         }
@@ -1575,14 +1695,14 @@ window.toggleSidebarJogador = function(numSlot) {
             if(!idAlvo) return;
             
             if(confirm("Tem certeza que deseja DELETAR esta ameaça para sempre?")) {
-                if(ameacaEmCombateGlobal === idAlvo) remove(ref(database, 'estado_combate/ativo')); 
+                if(ameacaEmCombateGlobal === idAlvo) safeRemove('estado_combate/ativo'); 
                 
                 if(idAlvo.startsWith('horda_')) {
-                    remove(ref(database, 'hordas/' + idAlvo));
+                    safeRemove('hordas/' + idAlvo);
                 } else {
-                    remove(ref(database, 'fotos/' + idAlvo));
-                    remove(ref(database, 'lista_monstros/' + idAlvo));
-                    remove(ref(database, 'fichas/' + idAlvo));
+                    safeRemove('fotos/' + idAlvo);
+                    safeRemove('lista_monstros/' + idAlvo);
+                    safeRemove('fichas/' + idAlvo);
                 }
 
                 if(slotsDeVisao[1].idFicha === idAlvo) limparSlot(1);
@@ -1590,25 +1710,26 @@ window.toggleSidebarJogador = function(numSlot) {
             }
         }
 
-        window.deletarAmeaca = function() {
-            const idAlvo = document.getElementById('seletor-ameaca').value;
+        const deletarAmeacaLegado = function() {
+            const seletor = document.getElementById('seletor-ameaca');
+            if(!seletor) return;
+            const idAlvo = seletor.value;
             if(!idAlvo) return;
             
             if(confirm("Tem certeza que deseja DELETAR esta ameaça para sempre?")) {
-                if(ameacaEmCombateGlobal === idAlvo) ameacaDerrotada(); 
+                if(ameacaEmCombateGlobal === idAlvo) safeRemove('estado_combate/ativo'); 
                 
                 if(idAlvo.startsWith('horda_')) {
-                    remove(ref(database, 'hordas/' + idAlvo));
+                    safeRemove('hordas/' + idAlvo);
                 } else {
-                    remove(ref(database, 'fotos/' + idAlvo));
-                    remove(ref(database, 'lista_monstros/' + idAlvo));
-                    remove(ref(database, 'fichas/' + idAlvo));
+                    safeRemove('fotos/' + idAlvo);
+                    safeRemove('lista_monstros/' + idAlvo);
+                    safeRemove('fichas/' + idAlvo);
                 }
 
-                document.getElementById('seletor-ameaca').value = "";
+                seletor.value = "";
                 if(slotsDeVisao[1].idFicha === idAlvo) limparSlot(1);
                 if(slotsDeVisao[2].idFicha === idAlvo) limparSlot(2);
-                atualizarBotoesMestre();
             }
         }
 
@@ -1641,7 +1762,7 @@ window.toggleSidebarJogador = function(numSlot) {
             });
             listDiv.innerHTML = finalHTML;
             
-            onValue(ref(database, 'fichas'), (snapshot) => {
+            onValue(dbRef('fichas'), (snapshot) => {
                 if(!usuarioAtual || usuarioAtual.cargo !== "Mestre") return;
                 const dados = snapshot.val() || {};
                 playersList.forEach(p => preencherHUDJogadorVisualmente(p, dados[p] || {}));
@@ -1678,6 +1799,25 @@ window.toggleSidebarJogador = function(numSlot) {
             let barMana = document.getElementById(`hud-${jogadorId}-bar-mana`);
             if(barHp) barHp.style.width = percHp + '%';
             if(barMana) barMana.style.width = percMana + '%';
+        }
+
+        window.atualizarHudMestre = async function(jogadorId, campo, valor) {
+            if(!usuarioAtual || usuarioAtual.cargo !== "Mestre") return;
+            if(!playersList.includes(jogadorId)) return;
+            if(!['hp-atual', 'mana-atual'].includes(campo)) return;
+
+            const input = document.getElementById(`hud-${jogadorId}-${campo}`);
+            const maxEl = document.getElementById(campo === 'hp-atual' ? `hud-${jogadorId}-hp-max` : `hud-${jogadorId}-mana-max`);
+            const maxVal = maxEl ? toNumber(maxEl.innerText, 20) : 20;
+            const valorSeguro = clamp(valor, 0, maxVal);
+            if(input) input.value = valorSeguro;
+
+            try {
+                await safeTransaction(`fichas/${jogadorId}/${campo}`, () => valorSeguro);
+            } catch (err) {
+                console.error('Falha ao salvar HUD', err);
+                alert("Não foi possível salvar a alteração do HUD. Tente novamente.");
+            }
         }
 
         window.toggleHudMestre = function() {
@@ -1742,10 +1882,11 @@ window.toggleSidebarJogador = function(numSlot) {
                             </div>
                         `;
                     } else {
+                        const meta = hab.formula ? ` • ${hab.formula}` : '';
                         htmlFeiticos += `
                             <label class="magia-radio-item">
                                 <input type="radio" name="feitico-selecionado-slot${numSlot}" value="${habId}">
-                                <span class="magia-icon-mini">${icon}</span> <span>${hab.nome}</span>
+                                <span class="magia-icon-mini">${icon}</span> <span>${hab.nome}${meta}</span>
                             </label>
                         `;
                     }
@@ -1796,7 +1937,8 @@ window.toggleSidebarJogador = function(numSlot) {
                         <div class="skill-data-visual">
                             <div class="skill-title-visual">${hab.nome}</div>
                             <div class="skill-stats-visual" style="font-size: 11px; color:#dcd0ba; margin-bottom:5px;">
-                                <span>${hab.tipo === 'passiva' ? '🔒 Passiva' : '⚡ Ativa'} · Alvo: ${hab.alvo}</span>
+                                <span>${hab.tipo === 'passiva' ? '🔒 Passiva' : '⚡ Ativa'} · Efeito: ${hab.effectKind} · Alvo: ${hab.alvo}</span>
+                                ${hab.formula ? `<span style="display:block; color:#d4af37; margin-top:3px;">Fórmula: ${hab.formula}</span>` : ''}
                             </div>
                             <div class="skill-desc-visual">${hab.desc}</div>
                             ${btnEquiparHtml}
@@ -1812,11 +1954,10 @@ window.toggleSidebarJogador = function(numSlot) {
         window.toggleEquiparHabilidade = function(numSlot, habId) {
             const idFicha = slotsDeVisao[numSlot].idFicha;
             if(!idFicha) return;
-            const refHab = ref(database, `fichas/${idFicha}/grimorio/${habId}`);
-            get(refHab).then(snap => {
+            safeGet(`fichas/${idFicha}/grimorio/${habId}`).then(snap => {
                 if(snap.exists()) {
                     let hab = snap.val();
-                    update(refHab, { equipada: !hab.equipada });
+                    safeUpdate(`fichas/${idFicha}/grimorio/${habId}`, { equipada: !hab.equipada });
                 }
             });
         };
@@ -1828,8 +1969,6 @@ window.toggleSidebarJogador = function(numSlot) {
             const feiticoId = radioSelecionado.value;
             const inputDano = document.getElementById(`slot${numSlot}-jogador-ataque-dano`);
             let valorEfeito = Number(inputDano.value) || 0;
-            
-            if(valorEfeito <= 0) return alert("Insira um valor de dano/cura (Total Rolado) válido!");
 
             const checkboxes = document.querySelectorAll(`#alvos-combate-slot${numSlot} input[type="checkbox"]:checked`);
             if(checkboxes.length === 0) return alert("Selecione pelo menos um alvo!");
@@ -1837,17 +1976,37 @@ window.toggleSidebarJogador = function(numSlot) {
             const idFicha = slotsDeVisao[numSlot].idFicha;
             let manaCusto = 0;
             let apCusto = 0;
-            let tipoFeitico = 'dano'; 
+            let tipoFeitico = 'dano';
+            let habSelecionada = null;
+            let formulaRolada = null;
             
             if(feiticoId !== 'fisico') {
-                let snap = await get(ref(database, `fichas/${idFicha}/grimorio/${feiticoId}`));
+                let snap = await safeGet(`fichas/${idFicha}/grimorio/${feiticoId}`);
                 if(snap.exists()) {
-                    let hab = snap.val();
-                    manaCusto = hab.mana || 0;
-                    apCusto = hab.ap || 0;
-                    if(hab.tipo === 'cura') tipoFeitico = 'cura';
+                    habSelecionada = enrichHab(feiticoId, snap.val());
+                    manaCusto = toNumber(habSelecionada.mana, 0);
+                    apCusto = toNumber(habSelecionada.ap, 0);
+                    tipoFeitico = inferirTipoEfeito(feiticoId, habSelecionada);
+
+                    if(habSelecionada.formula) {
+                        try {
+                            formulaRolada = rolarFormulaMagica(habSelecionada.formula, slotsDeVisao[numSlot].dados || {});
+                            valorEfeito = formulaRolada.total;
+                            if(inputDano) inputDano.value = valorEfeito;
+                        } catch (err) {
+                            console.error(err);
+                            return alert("A fórmula dessa magia está inválida. Revise o grimório antes de lançar.");
+                        }
+                    }
                 }
             }
+
+            const efeitoAutomatico = ['dano', 'cura', 'escudo'].includes(tipoFeitico);
+            if(!efeitoAutomatico) {
+                return alert("Essa habilidade ainda não tem efeito automático de combate. Ela ficou registrada no grimório, mas precisa de resolução manual na mesa.");
+            }
+
+            if(valorEfeito <= 0) return alert("Insira um valor de dano/cura (Total Rolado) válido!");
 
             let manaAtual = Number(document.getElementById(`slot${numSlot}-mana-atual`)?.value) || 0;
             let apAtual = Number(document.getElementById(`slot${numSlot}-ap`)?.value) || 0;
@@ -1856,76 +2015,35 @@ window.toggleSidebarJogador = function(numSlot) {
             if(apCusto > apAtual) return alert("AP insuficiente!");
 
             if(manaCusto > 0 || apCusto > 0) {
-                update(ref(database, `fichas/${idFicha}`), {
-                    'mana-atual': manaAtual - manaCusto,
-                    'ap': apAtual - apCusto
+                const gasto = await safeTransaction(`fichas/${idFicha}`, (dadosAtuais) => {
+                    if(!dadosAtuais) return;
+                    const manaDB = toNumber(dadosAtuais['mana-atual'], 0);
+                    const apDB = toNumber(dadosAtuais.ap, 0);
+                    if(manaCusto > manaDB || apCusto > apDB) return;
+                    return {
+                        ...dadosAtuais,
+                        'mana-atual': manaDB - manaCusto,
+                        'ap': apDB - apCusto
+                    };
                 });
+                if(!gasto.committed) return alert("Mana ou AP mudou antes do lançamento. Confira os valores e tente novamente.");
             }
 
             const alvos = Array.from(checkboxes).map(cb => cb.value);
             for(let alvo of alvos) {
-                if(alvo.startsWith("horda_")) {
+                if(alvo.startsWith("horda_") && ameacaEmCombateGlobal && alvo.startsWith(ameacaEmCombateGlobal + "_")) {
                     let hordaId = ameacaEmCombateGlobal;
                     let mId = alvo.replace(hordaId + "_", "");
-                    let refMembro = ref(database, `hordas/${hordaId}/membros/${mId}`);
-                    let snap = await get(refMembro);
-                    if(snap.exists()) {
-                        let mDados = snap.val();
-                        let hpAtual = Number(mDados['hp-atual']) || 0;
-                        let hpMax = Number(mDados['hp-max']) || 1;
-                        let escudo = Number(mDados['escudo']) || 0;
-                        
-                        if(tipoFeitico === 'cura') {
-                            hpAtual += valorEfeito;
-                            if(hpAtual > hpMax) hpAtual = hpMax;
-                            update(refMembro, { 'hp-atual': hpAtual });
-                        } else {
-                            let danoRestante = valorEfeito;
-                            if(escudo > 0) {
-                                if(escudo >= danoRestante) { escudo -= danoRestante; danoRestante = 0; }
-                                else { danoRestante -= escudo; escudo = 0; }
-                                update(refMembro, { escudo: escudo });
-                            }
-                            if(danoRestante > 0) {
-                                hpAtual -= danoRestante;
-                                if(hpAtual < 0) hpAtual = 0;
-                                update(refMembro, { 'hp-atual': hpAtual });
-                            }
-                        }
-                    }
+                    await aplicarEfeitoVidaPath(`hordas/${hordaId}/membros/${mId}`, valorEfeito, tipoFeitico);
                 } else {
-                    let refMonstro = ref(database, `fichas/${alvo}`);
-                    let snap = await get(refMonstro);
-                    if(snap.exists()) {
-                        let mDados = snap.val();
-                        let hpAtual = Number(mDados['hp-atual']) || 0;
-                        let hpMax = Number(mDados['hp-max']) || 20;
-                        let escudo = Number(mDados['escudo']) || 0;
-                        
-                        if(tipoFeitico === 'cura') {
-                            hpAtual += valorEfeito;
-                            if(hpAtual > hpMax) hpAtual = hpMax;
-                            update(refMonstro, { 'hp-atual': hpAtual });
-                        } else {
-                            let danoRestante = valorEfeito;
-                            if(escudo > 0) {
-                                if(escudo >= danoRestante) { escudo -= danoRestante; danoRestante = 0; }
-                                else { danoRestante -= escudo; escudo = 0; }
-                                update(refMonstro, { escudo: escudo });
-                            }
-                            if(danoRestante > 0) {
-                                hpAtual -= danoRestante;
-                                if(hpAtual < 0) hpAtual = 0;
-                                update(refMonstro, { 'hp-atual': hpAtual });
-                            }
-                        }
-                    }
+                    await aplicarEfeitoVidaPath(`fichas/${alvo}`, valorEfeito, tipoFeitico);
                 }
             }
             
             inputDano.value = '';
             checkboxes.forEach(cb => cb.checked = false);
-            alert("Ação executada com sucesso!");
+            const detalheFormula = formulaRolada ? ` Rolagem: ${habSelecionada.formula} = ${valorEfeito}.` : '';
+            alert("Ação executada com sucesso!" + detalheFormula);
         };
         
         window.adicionarHabilidade = function(numSlot) {
@@ -1940,9 +2058,9 @@ window.toggleSidebarJogador = function(numSlot) {
             const idFicha = slotsDeVisao[numSlot].idFicha;
             const habId = "hab_" + Date.now();
             
-            update(ref(database, `fichas/${idFicha}/grimorio/${habId}`), {
+            safeUpdate(`fichas/${idFicha}/grimorio/${habId}`, normalizeHabV1(habId, {
                 nome, ap, mana, tipo, desc
-            });
+            }));
             
             document.getElementById(`slot${numSlot}-hab-nome`).value = '';
             document.getElementById(`slot${numSlot}-hab-ap`).value = '0';
@@ -1953,12 +2071,12 @@ window.toggleSidebarJogador = function(numSlot) {
         window.deletarHabilidade = function(numSlot, habId) {
             if(confirm("Tem certeza que deseja apagar essa habilidade do grimório?")) {
                 const idFicha = slotsDeVisao[numSlot].idFicha;
-                remove(ref(database, `fichas/${idFicha}/grimorio/${habId}`));
+                safeRemove(`fichas/${idFicha}/grimorio/${habId}`);
             }
         };
 
         window.atualizarHabilidadesSistema = async function(idFicha, numSlot) {
-            const snap = await get(ref(database, `fichas/${idFicha}`));
+            const snap = await safeGet(`fichas/${idFicha}`);
             if(!snap.exists()) return;
             
             let dados = snap.val();
@@ -1977,23 +2095,25 @@ window.toggleSidebarJogador = function(numSlot) {
             // Injetar Raça
             if(HABILIDADES_SISTEMA[racaSel]) {
                 for(let k in HABILIDADES_SISTEMA[racaSel]) {
-                    novoGrimorio[k] = { ...HABILIDADES_SISTEMA[racaSel][k], isSystemObj: true, equipada: HABILIDADES_SISTEMA[racaSel][k].tipo === 'passiva' ? true : false };
+                    const habBase = normalizeHabV1(k, HABILIDADES_SISTEMA[racaSel][k]);
+                    novoGrimorio[k] = { ...habBase, isSystemObj: true, equipada: habBase.tipo === 'passiva' ? true : false };
                 }
             }
             // Injetar Classe
             if(HABILIDADES_SISTEMA[classeSel]) {
                 for(let k in HABILIDADES_SISTEMA[classeSel]) {
-                    novoGrimorio[k] = { ...HABILIDADES_SISTEMA[classeSel][k], isSystemObj: true, equipada: HABILIDADES_SISTEMA[classeSel][k].tipo === 'passiva' ? true : false };
+                    const habBase = normalizeHabV1(k, HABILIDADES_SISTEMA[classeSel][k]);
+                    novoGrimorio[k] = { ...habBase, isSystemObj: true, equipada: habBase.tipo === 'passiva' ? true : false };
                 }
             }
             
-            await update(ref(database, `fichas/${idFicha}`), { grimorio: novoGrimorio });
+            await safeUpdate(`fichas/${idFicha}`, { grimorio: novoGrimorio });
         };
 
         // ==========================================
         // DELEGAÇÃO DE EVENTOS GLOBAL (PERFORMANCE)
         // ==========================================
-        document.addEventListener('input', (e) => {
+        document.addEventListener('input', async (e) => {
             if (e.target.disabled) return;
             const classList = e.target.classList;
             
@@ -2002,7 +2122,12 @@ window.toggleSidebarJogador = function(numSlot) {
                 let numSlot = classList.contains('editavel-slot1') ? 1 : (classList.contains('editavel-slot2') ? 2 : null);
                 if(!numSlot || !slotsDeVisao[numSlot].idFicha) return;
                 let parts = e.target.id.split('-'); 
-                update(ref(database, `hordas/${slotsDeVisao[numSlot].idFicha}/membros/${parts[1]}`), { [parts.slice(2).join('-')]: Number(e.target.value) });
+                const campoHorda = parts.slice(2).join('-');
+                const valorHorda = e.target.value === "" ? "" : Number(e.target.value);
+                await safeTransaction(`hordas/${slotsDeVisao[numSlot].idFicha}/membros/${parts[1]}`, (dadosAtuais) => {
+                    const dados = dadosAtuais || {};
+                    return { ...dados, [campoHorda]: valorHorda };
+                });
                 return;
             }
 
@@ -2063,7 +2188,7 @@ window.toggleSidebarJogador = function(numSlot) {
                             updates[attr] = (Number(dadosAntigos[attr]) || 0) + delta;
                         }
                     });
-                    update(ref(database, 'fichas/' + idFicha), updates).then(() => {
+                    safeUpdate('fichas/' + idFicha, updates).then(() => {
                         atualizarHabilidadesSistema(idFicha, numSlot);
                     });
                     return; 
@@ -2106,7 +2231,11 @@ window.toggleSidebarJogador = function(numSlot) {
                     }
                 }
                 
-                update(ref(database, 'fichas/' + idFicha), { [chaveDoBanco]: novoValor });
+                if (['hp-atual', 'hp-max', 'mana-atual', 'mana-max', 'escudo', 'ap'].includes(chaveDoBanco)) {
+                    await safeTransaction(`fichas/${idFicha}/${chaveDoBanco}`, () => novoValor);
+                } else {
+                    safeUpdate('fichas/' + idFicha, { [chaveDoBanco]: novoValor });
+                }
                 if(chaveDoBanco.includes('hp') || chaveDoBanco.includes('mana')) atualizarBarrasEAlertaNoSlot(numSlot, tipo);
             }
         });
