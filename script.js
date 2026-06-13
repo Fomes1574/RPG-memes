@@ -160,6 +160,10 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
             2: { ouvinte: null, idFicha: null, tipo: null, dados: {} }
         };
 
+        let combatLog = [];
+        let combatLogRecolhido = true;
+        let visaoTaticaMestreAtiva = false;
+
         const ATTRS = ['for', 'des', 'con', 'int', 'sab', 'car', 'per'];
         const FORMULAS_PADRAO_HABILIDADES = {
             pal_cura: "1d8+CAR",
@@ -176,6 +180,52 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
             if (Number.isFinite(min) && n < min) n = min;
             if (Number.isFinite(max) && n > max) n = max;
             return n;
+        }
+
+        function escapeHtml(value = "") {
+            return String(value ?? "")
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#39;");
+        }
+
+        const CAMPOS_NUMERICOS_FICHA = new Set([
+            'hp-atual', 'hp-max', 'mana-atual', 'mana-max', 'escudo', 'ap', 'ouro',
+            'for', 'des', 'con', 'int', 'sab', 'car', 'per', 'expTotal'
+        ]);
+
+        function isCampoQtdItem(campo) {
+            return /^item[1-5]-qtd$/.test(String(campo || ""));
+        }
+
+        function normalizarValorParaSalvar(campo, valor, options = {}) {
+            if (options.compacto || isCampoQtdItem(campo)) {
+                return valor === "" ? 0 : toNumber(valor, 0);
+            }
+            if (CAMPOS_NUMERICOS_FICHA.has(campo)) {
+                return valor === "" ? "" : toNumber(valor, 0);
+            }
+            return valor;
+        }
+
+        function getTipoEntidade(dados = {}, contexto = "") {
+            const path = String(contexto || "");
+            if (path.startsWith("hordas/") && path.includes("/membros/")) return "horda";
+            if (dados.tipo === "horda" || dados.tipo === "monstro" || dados.tipo === "heroi") return dados.tipo;
+            if (path.startsWith("fichas/")) {
+                const idFicha = path.split("/")[1];
+                if (playersList.includes(idFicha)) return "heroi";
+            }
+            return "monstro";
+        }
+
+        function getHpMaxEfetivo(dados = {}, contexto = "") {
+            const hpBase = Math.max(1, toNumber(dados['hp-max'], 20));
+            return getTipoEntidade(dados, contexto) === "heroi"
+                ? Math.max(1, hpBase + (toNumber(dados.con, 0) * 3))
+                : hpBase;
         }
 
         function inferirTipoEfeito(habId, hab = {}) {
@@ -251,21 +301,37 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
             return { total: Math.max(0, total), detalhes };
         }
 
-        function aplicarEfeitoVidaDados(dados = {}, valor, effectKind = 'dano') {
+        function calcularEfeitoVidaResultado(dados = {}, valor, effectKind = 'dano', contexto = "") {
             const proximo = { ...dados };
             const hpAtual = toNumber(proximo['hp-atual'], 0);
-            const hpMax = Math.max(1, toNumber(proximo['hp-max'], 20));
+            const hpMax = getHpMaxEfetivo(proximo, contexto);
             const escudoAtual = Math.max(0, toNumber(proximo.escudo, 0));
             const valorSeguro = Math.max(0, toNumber(valor, 0));
+            const meta = {
+                effectKind,
+                valor: valorSeguro,
+                hpAntes: hpAtual,
+                hpDepois: hpAtual,
+                escudoAntes: escudoAtual,
+                escudoDepois: escudoAtual,
+                curaHp: 0,
+                danoHp: 0,
+                escudoGanho: 0,
+                escudoAbsorvido: 0
+            };
 
             if (effectKind === 'cura') {
                 proximo['hp-atual'] = clamp(hpAtual + valorSeguro, 0, hpMax);
-                return proximo;
+                meta.hpDepois = proximo['hp-atual'];
+                meta.curaHp = Math.max(0, meta.hpDepois - hpAtual);
+                return { dadosAtualizados: proximo, meta };
             }
 
             if (effectKind === 'escudo') {
                 proximo.escudo = escudoAtual + valorSeguro;
-                return proximo;
+                meta.escudoDepois = proximo.escudo;
+                meta.escudoGanho = Math.max(0, proximo.escudo - escudoAtual);
+                return { dadosAtualizados: proximo, meta };
             }
 
             let danoRestante = valorSeguro;
@@ -274,17 +340,328 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
                 const absorvido = Math.min(escudo, danoRestante);
                 escudo -= absorvido;
                 danoRestante -= absorvido;
+                meta.escudoAbsorvido = absorvido;
             }
             proximo.escudo = escudo;
             proximo['hp-atual'] = clamp(hpAtual - danoRestante, 0, hpMax);
-            return proximo;
+            meta.escudoDepois = escudo;
+            meta.hpDepois = proximo['hp-atual'];
+            meta.danoHp = Math.max(0, hpAtual - proximo['hp-atual']);
+            return { dadosAtualizados: proximo, meta };
+        }
+
+        function aplicarEfeitoVidaDados(dados = {}, valor, effectKind = 'dano', contexto = "") {
+            return calcularEfeitoVidaResultado(dados, valor, effectKind, contexto).dadosAtualizados;
         }
 
         async function aplicarEfeitoVidaPath(path, valor, effectKind = 'dano') {
-            await safeTransaction(path, (dadosAtuais) => {
+            let metaFinal = null;
+            const resultado = await safeTransaction(path, (dadosAtuais) => {
                 if (!dadosAtuais) return dadosAtuais;
-                return aplicarEfeitoVidaDados(dadosAtuais, valor, effectKind);
+                const resultadoEfeito = calcularEfeitoVidaResultado(dadosAtuais, valor, effectKind, path);
+                metaFinal = resultadoEfeito.meta;
+                return resultadoEfeito.dadosAtualizados;
             });
+            return resultado.committed ? metaFinal : null;
+        }
+
+        function initCombatUi() {
+            if(!document.getElementById('combat-log-panel')) {
+                const panel = document.createElement('div');
+                panel.id = 'combat-log-panel';
+                panel.className = 'combat-log-panel recolhido';
+                panel.innerHTML = `
+                    <button id="combat-log-toggle" type="button" onclick="toggleCombatLogPanel()">⚔️ Registro</button>
+                    <div class="combat-log-body">
+                        <div class="combat-log-title">Log de Combate</div>
+                        <div id="combat-log-list" class="combat-log-list"></div>
+                    </div>
+                `;
+                document.body.appendChild(panel);
+            }
+
+            if(!document.getElementById('combat-toast')) {
+                const toast = document.createElement('div');
+                toast.id = 'combat-toast';
+                toast.className = 'combat-toast';
+                document.body.appendChild(toast);
+            }
+
+            if(usuarioAtual?.cargo === 'Mestre') initVisaoTaticaMestre();
+        }
+
+        window.toggleCombatLogPanel = function() {
+            combatLogRecolhido = !combatLogRecolhido;
+            const panel = document.getElementById('combat-log-panel');
+            if(panel) panel.classList.toggle('recolhido', combatLogRecolhido);
+        }
+
+        function adicionarCombatLog(texto, tipo = 'info') {
+            combatLog.push({ texto, tipo, ts: new Date() });
+            if(combatLog.length > 20) combatLog.shift();
+            renderizarCombatLog();
+        }
+
+        function renderizarCombatLog() {
+            const list = document.getElementById('combat-log-list');
+            if(!list) return;
+            if(combatLog.length === 0) {
+                list.innerHTML = '<div class="combat-log-empty">Nenhum ato registrado.</div>';
+                return;
+            }
+            list.innerHTML = combatLog.slice().reverse().map(entry => {
+                const hora = entry.ts.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+                return `<div class="combat-log-entry tipo-${entry.tipo}"><span>${hora}</span>${escapeHtml(entry.texto)}</div>`;
+            }).join('');
+        }
+
+        function limparCombatLog() {
+            combatLog = [];
+            renderizarCombatLog();
+        }
+
+        function mostrarCombatToast(texto) {
+            const toast = document.getElementById('combat-toast');
+            if(!toast) return;
+            toast.textContent = texto;
+            toast.classList.remove('visivel');
+            void toast.offsetWidth;
+            toast.classList.add('visivel');
+            clearTimeout(toast._timer);
+            toast._timer = setTimeout(() => toast.classList.remove('visivel'), 2200);
+        }
+
+        function getNomeAlvoPorPath(path) {
+            const cleanPath = String(path || "");
+            const parts = cleanPath.split('/');
+            if(parts[0] === 'fichas') {
+                const id = parts[1];
+                for(const slot of Object.values(slotsDeVisao)) {
+                    if(slot.idFicha === id) return slot.dados?.nome || id;
+                }
+                const usuario = Object.values(usuarios).find(u => u.idFicha === id);
+                return usuario?.nome || id;
+            }
+            if(parts[0] === 'hordas') {
+                const hordaId = parts[1];
+                const membroId = parts[3];
+                const slot = Object.values(slotsDeVisao).find(s => s.idFicha === hordaId);
+                const membro = slot?.dados?.membros?.[membroId];
+                return membro?.nome || `${hordaId} ${membroId || ''}`.trim();
+            }
+            return cleanPath;
+        }
+
+        function encontrarElementoFeedback(path) {
+            const cleanPath = String(path || "");
+            const parts = cleanPath.split('/');
+            if(parts[0] === 'hordas' && parts[3]) {
+                return document.getElementById(`caixa-hp-horda-${parts[3]}`)?.closest('.horda-member-card')
+                    || document.getElementById(`caixa-hp-horda-${parts[3]}`);
+            }
+            if(parts[0] === 'fichas') {
+                const idFicha = parts[1];
+                for(const [numSlot, slot] of Object.entries(slotsDeVisao)) {
+                    if(slot.idFicha === idFicha) {
+                        if(slot.tipo === 'monstro') return document.getElementById(`container-slot${numSlot}-monstro`);
+                        return document.getElementById(`container-slot${numSlot}-heroi`);
+                    }
+                }
+                return document.getElementById(`hud-player-${idFicha}`);
+            }
+            return null;
+        }
+
+        function partesFeedbackFromMeta(meta) {
+            if(!meta) return [];
+            const partes = [];
+            if(meta.escudoAbsorvido > 0) partes.push({ texto: `🛡 -${meta.escudoAbsorvido}`, tipo: 'escudo-dano' });
+            if(meta.danoHp > 0) partes.push({ texto: `-${meta.danoHp}`, tipo: 'dano' });
+            if(meta.curaHp > 0) partes.push({ texto: `+${meta.curaHp}`, tipo: 'cura' });
+            if(meta.escudoGanho > 0) partes.push({ texto: `🛡 +${meta.escudoGanho}`, tipo: 'escudo' });
+            return partes;
+        }
+
+        function mostrarFeedbackFlutuante(path, meta) {
+            const alvo = encontrarElementoFeedback(path);
+            const partes = partesFeedbackFromMeta(meta);
+            if(!alvo || partes.length === 0) return;
+            if(getComputedStyle(alvo).position === 'static') alvo.style.position = 'relative';
+            partes.forEach((parte, index) => {
+                const el = document.createElement('span');
+                el.className = `floating-feedback ${parte.tipo}`;
+                el.textContent = parte.texto;
+                el.style.left = `${50 + (index * 12) - ((partes.length - 1) * 6)}%`;
+                el.style.top = `${38 + (index * 10)}%`;
+                alvo.appendChild(el);
+                setTimeout(() => el.remove(), 1300);
+            });
+        }
+
+        function descreverMeta(meta) {
+            if(!meta) return '';
+            const partes = [];
+            if(meta.escudoAbsorvido > 0) partes.push(`escudo absorveu ${meta.escudoAbsorvido}`);
+            if(meta.danoHp > 0) partes.push(`${meta.danoHp} dano em HP`);
+            if(meta.curaHp > 0) partes.push(`${meta.curaHp} cura`);
+            if(meta.escudoGanho > 0) partes.push(`${meta.escudoGanho} escudo`);
+            return partes.join(', ');
+        }
+
+        function registrarFeedbackELog(path, meta, origem = 'Ação') {
+            mostrarFeedbackFlutuante(path, meta);
+            const descricao = descreverMeta(meta);
+            if(descricao) adicionarCombatLog(`${origem}: ${getNomeAlvoPorPath(path)} recebeu ${descricao}.`, meta?.effectKind || 'info');
+            if(visaoTaticaMestreAtiva) renderizarVisaoTaticaMestre();
+        }
+
+        function initVisaoTaticaMestre() {
+            const painelMestre = document.getElementById('painel-mestre');
+            if(painelMestre && !document.getElementById('btn-visao-tatica-mestre')) {
+                const btn = document.createElement('button');
+                btn.id = 'btn-visao-tatica-mestre';
+                btn.type = 'button';
+                btn.className = 'btn-visao-tatica';
+                btn.textContent = 'Visão Tática';
+                btn.onclick = () => toggleVisaoTaticaMestre();
+                painelMestre.appendChild(btn);
+            }
+
+            const mesa = document.querySelector('.mesa-de-jogo');
+            if(mesa && !document.getElementById('visao-tatica-mestre')) {
+                const painel = document.createElement('div');
+                painel.id = 'visao-tatica-mestre';
+                painel.className = 'visao-tatica-mestre';
+                painel.style.display = 'none';
+                mesa.insertAdjacentElement('afterend', painel);
+            }
+        }
+
+        window.toggleVisaoTaticaMestre = function() {
+            visaoTaticaMestreAtiva = !visaoTaticaMestreAtiva;
+            atualizarEstadoVisaoTaticaMestre();
+        }
+
+        function atualizarEstadoVisaoTaticaMestre() {
+            const mesa = document.querySelector('.mesa-de-jogo');
+            const painel = document.getElementById('visao-tatica-mestre');
+            const btn = document.getElementById('btn-visao-tatica-mestre');
+            if(mesa) mesa.style.display = visaoTaticaMestreAtiva ? 'none' : '';
+            if(painel) painel.style.display = visaoTaticaMestreAtiva ? 'grid' : 'none';
+            if(btn) btn.classList.toggle('ativo', visaoTaticaMestreAtiva);
+            if(visaoTaticaMestreAtiva) renderizarVisaoTaticaMestre();
+        }
+
+        function criarEntradaTatica(path, dados, tipo, slotNum, tituloExtra = '') {
+            return {
+                path,
+                dados: dados || {},
+                tipo,
+                slotNum,
+                tituloExtra,
+                ativo: ameacaEmCombateGlobal && path.includes(ameacaEmCombateGlobal)
+            };
+        }
+
+        function coletarEntradasTaticas() {
+            const entradas = [];
+            for(const [numSlot, slot] of Object.entries(slotsDeVisao)) {
+                if(!slot?.idFicha || !slot?.dados) continue;
+
+                if(slot.tipo === 'horda') {
+                    const membros = slot.dados.membros || {};
+                    Object.entries(membros).forEach(([mId, mData]) => {
+                        entradas.push(criarEntradaTatica(`hordas/${slot.idFicha}/membros/${mId}`, mData, 'horda', numSlot, slot.dados.nome || slot.idFicha));
+                    });
+                    continue;
+                }
+
+                entradas.push(criarEntradaTatica(`fichas/${slot.idFicha}`, slot.dados, slot.tipo || 'ficha', numSlot));
+            }
+
+            if(ameacaEmCombateGlobal && !entradas.some(e => e.path.includes(ameacaEmCombateGlobal))) {
+                if(ameacaEmCombateGlobal.startsWith('horda_')) {
+                    const horda = hordasNoBanco[ameacaEmCombateGlobal];
+                    Object.entries(horda?.membros || {}).forEach(([mId, mData]) => {
+                        entradas.push(criarEntradaTatica(`hordas/${ameacaEmCombateGlobal}/membros/${mId}`, mData, 'horda', null, horda.nome || ameacaEmCombateGlobal));
+                    });
+                }
+            }
+
+            return entradas;
+        }
+
+        function renderizarVisaoTaticaMestre() {
+            const painel = document.getElementById('visao-tatica-mestre');
+            if(!painel || !visaoTaticaMestreAtiva) return;
+            const entradas = coletarEntradasTaticas();
+            if(entradas.length === 0) {
+                painel.innerHTML = '<div class="tactical-empty">Nenhuma ficha ou ameaça carregada nos slots.</div>';
+                return;
+            }
+
+            painel.innerHTML = entradas.map(renderizarCardTatico).join('');
+        }
+
+        function renderizarCardTatico(entrada) {
+            const d = entrada.dados || {};
+            const nome = escapeHtml(d.nome || entrada.path.split('/').pop());
+            const tipo = escapeHtml(entrada.tipo === 'horda' ? `Horda${entrada.tituloExtra ? ' · ' + entrada.tituloExtra : ''}` : entrada.tipo);
+            const hpAtual = toNumber(d['hp-atual'], 0);
+            const hpMax = Math.max(1, entrada.tipo === 'heroi' ? getHpMaxEfetivo(d, entrada.path) : toNumber(d['hp-max'], 1));
+            const manaAtual = toNumber(d['mana-atual'], 0);
+            const manaMax = toNumber(d['mana-max'], 0);
+            const ap = toNumber(d.ap, 0);
+            const escudo = toNumber(d.escudo, 0);
+            const hpPerc = clamp((hpAtual / hpMax) * 100, 0, 100);
+            const manaPerc = manaMax > 0 ? clamp((manaAtual / manaMax) * 100, 0, 100) : 0;
+            const slotAttr = entrada.slotNum ? `data-slot="${entrada.slotNum}"` : '';
+            const btnAbrir = entrada.slotNum ? `<button type="button" onclick="abrirFichaTatica(${entrada.slotNum})">Abrir ficha</button>` : '';
+
+            return `
+                <article class="tactical-card ${entrada.ativo ? 'ativo' : ''}" ${slotAttr}>
+                    <header>
+                        <span>${nome}</span>
+                        <small>${tipo}</small>
+                    </header>
+                    <div class="tactical-stat-line">
+                        <span>HP</span>
+                        <strong>${hpAtual} / ${hpMax}</strong>
+                    </div>
+                    <div class="tactical-mini-bar hp"><i style="width:${hpPerc}%"></i></div>
+                    ${manaMax > 0 ? `
+                        <div class="tactical-stat-line">
+                            <span>Mana</span>
+                            <strong>${manaAtual} / ${manaMax}</strong>
+                        </div>
+                        <div class="tactical-mini-bar mana"><i style="width:${manaPerc}%"></i></div>
+                    ` : ''}
+                    <div class="tactical-meta">
+                        ${ap ? `<span>AP ${ap}</span>` : ''}
+                        <span>Escudo ${escudo}</span>
+                    </div>
+                    <div class="tactical-actions">
+                        <button type="button" onclick="acaoRapidaTatica('${entrada.path}', 'dano')">Dano</button>
+                        <button type="button" onclick="acaoRapidaTatica('${entrada.path}', 'cura')">Cura</button>
+                        <button type="button" onclick="acaoRapidaTatica('${entrada.path}', 'escudo')">Escudo</button>
+                        ${btnAbrir}
+                    </div>
+                </article>
+            `;
+        }
+
+        window.acaoRapidaTatica = async function(path, effectKind) {
+            const label = effectKind === 'cura' ? 'cura' : effectKind === 'escudo' ? 'escudo' : 'dano';
+            const valor = Number(prompt(`Valor de ${label}:`, ''));
+            if(!valor || valor <= 0) return;
+            const meta = await aplicarEfeitoVidaPath(path, valor, effectKind);
+            registrarFeedbackELog(path, meta, `Ação tática (${label})`);
+        }
+
+        window.abrirFichaTatica = function(numSlot) {
+            visaoTaticaMestreAtiva = false;
+            atualizarEstadoVisaoTaticaMestre();
+            document.getElementById(`slot-${numSlot}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
 
         // ==========================================
@@ -604,6 +981,7 @@ window.toggleSidebarJogador = function(numSlot) {
                 document.getElementById('usuario-logado').innerText = usuarioAtual.nome;
                 document.getElementById('badge-cargo').innerText = usuarioAtual.cargo;
                 document.body.classList.add(usuarioAtual.cargo === "Mestre" ? 'is-mestre' : 'is-jogador');
+                initCombatUi();
                 
                 if(usuarioAtual.cargo === "Mestre") {
                     document.getElementById('badge-cargo').style.borderColor = "#8c1c13";
@@ -618,7 +996,7 @@ window.toggleSidebarJogador = function(numSlot) {
                     onValue(dbRef('fichas/' + usuarioAtual.idFicha), (snapshot) => {
                         const dados = snapshot.val() || {};
                         const spanNomeHeroi = document.getElementById('nome-heroi-jogador');
-                        if(spanNomeHeroi) spanNomeHeroi.innerHTML = dados['nome'] || "Herói Sem Nome";
+                        if(spanNomeHeroi) spanNomeHeroi.textContent = dados['nome'] || "Herói Sem Nome";
                     });
                     abrirFichaNoSlot(1, 'heroi', usuarioAtual.idFicha);
                 }
@@ -640,6 +1018,7 @@ window.toggleSidebarJogador = function(numSlot) {
             });
 
             onValue(dbRef('estado_combate/ativo'), (snapshot) => {
+                const ameacaAnterior = ameacaEmCombateGlobal;
                 ameacaEmCombateGlobal = snapshot.val(); 
 
                 if (usuarioAtual.cargo === "Jogador") {
@@ -654,6 +1033,12 @@ window.toggleSidebarJogador = function(numSlot) {
                 if (usuarioAtual.cargo === "Mestre") {
                     // Sem ação no momento, estado combate livre para Mestre
                 }
+
+                if(ameacaAnterior && !ameacaEmCombateGlobal) {
+                    limparCombatLog();
+                    mostrarCombatToast("Combate encerrado.");
+                }
+                if(visaoTaticaMestreAtiva) renderizarVisaoTaticaMestre();
             });
         }
 
@@ -699,11 +1084,12 @@ window.toggleSidebarJogador = function(numSlot) {
                     if(snap.exists()) {
                         let horda = snap.val();
                         let nomeHorda = horda.nome || 'Horda';
+                        let nomeHordaHtml = escapeHtml(nomeHorda);
                         let html = '';
                         for(let mId in horda.membros) {
                             let hpAtual = Number(horda.membros[mId]['hp-atual']) || 0;
                             if(hpAtual > 0) {
-                                html += `<label class="checkbox-alvo" style="color:#d95757; font-size:12px; margin-bottom:2px;"><input type="checkbox" value="${ameacaId}_${mId}"> Inimigo: ${nomeHorda} #${mId} (HP: ${hpAtual})</label>`;
+                                html += `<label class="checkbox-alvo" style="color:#d95757; font-size:12px; margin-bottom:2px;"><input type="checkbox" value="${ameacaId}_${mId}"> Inimigo: ${nomeHordaHtml} #${escapeHtml(mId)} (HP: ${hpAtual})</label>`;
                             }
                         }
                         renderizarTodos(nomeHorda, html);
@@ -717,10 +1103,11 @@ window.toggleSidebarJogador = function(numSlot) {
                     if(snap.exists()) {
                         let m = snap.val();
                         let hpAtual = Number(m['hp-atual']) || 0;
+                        let nomeMonstro = m.nome || 'Monstro';
                         if(hpAtual > 0) {
-                            renderizarTodos(m.nome || 'Monstro', `<label class="checkbox-alvo" style="color:#d95757; font-size:12px;"><input type="checkbox" value="${ameacaId}"> Inimigo: ${m.nome || 'Monstro'} (HP: ${hpAtual})</label>`);
+                            renderizarTodos(nomeMonstro, `<label class="checkbox-alvo" style="color:#d95757; font-size:12px;"><input type="checkbox" value="${ameacaId}"> Inimigo: ${escapeHtml(nomeMonstro)} (HP: ${hpAtual})</label>`);
                         } else {
-                            renderizarTodos((m.nome || 'Monstro') + " (Derrotado)", "");
+                            renderizarTodos(nomeMonstro + " (Derrotado)", "");
                         }
                     } else {
                         renderizarTodos("Ameaça removida.", "");
@@ -752,7 +1139,7 @@ window.toggleSidebarJogador = function(numSlot) {
             for(let id in monstrosNoBanco) {
                 htmlMonstros += `
                     <div class="item-acervo">
-                        <span class="item-acervo-nome">${monstrosNoBanco[id].nome}</span>
+                        <span class="item-acervo-nome">${escapeHtml(monstrosNoBanco[id].nome || id)}</span>
                         <div class="item-acervo-botoes">
                             <button class="btn-slot-acervo" onclick="mestreAbrir(1, 'monstro', '${id}')">1</button>
                             <button class="btn-slot-acervo" onclick="mestreAbrir(2, 'monstro', '${id}')">2</button>
@@ -767,7 +1154,7 @@ window.toggleSidebarJogador = function(numSlot) {
             for(let id in hordasNoBanco) {
                 htmlHordas += `
                     <div class="item-acervo">
-                        <span class="item-acervo-nome">${hordasNoBanco[id].nome}</span>
+                        <span class="item-acervo-nome">${escapeHtml(hordasNoBanco[id].nome || id)}</span>
                         <div class="item-acervo-botoes">
                             <button class="btn-slot-acervo" onclick="mestreAbrir(1, 'horda', '${id}')">1</button>
                             <button class="btn-slot-acervo" onclick="mestreAbrir(2, 'horda', '${id}')">2</button>
@@ -789,9 +1176,10 @@ window.toggleSidebarJogador = function(numSlot) {
             if(newVal < 0) newVal = 0;
             if(newVal === current) return;
             input.value = newVal;
-            
-            // Trigger input event to save to Firebase
-            input.dispatchEvent(new Event('input'));
+
+            const idFicha = slotsDeVisao[numSlot].idFicha;
+            if(!idFicha || slotsDeVisao[numSlot].tipo === 'horda') return;
+            await safeUpdate(`fichas/${idFicha}`, { [`item${i}-qtd`]: newVal });
         }
 
         window.toggleSidebarMestre = function() {
@@ -839,6 +1227,7 @@ window.toggleSidebarJogador = function(numSlot) {
             document.getElementById(`container-slot${numSlot}-horda`).style.display = 'none';
             if (slotsDeVisao[numSlot].ouvinte) { slotsDeVisao[numSlot].ouvinte(); }
             slotsDeVisao[numSlot] = { ouvinte: null, idFicha: null, tipo: null, dados: {} };
+            if(visaoTaticaMestreAtiva) renderizarVisaoTaticaMestre();
         }
 
         function formatarIdElemento(numSlot, tipoFicha, campoDB) {
@@ -857,6 +1246,7 @@ window.toggleSidebarJogador = function(numSlot) {
 
         function renderizarHtmlHordaDinamico(idHorda, membros, numSlot) {
             let nomeHorda = hordasNoBanco[idHorda] ? hordasNoBanco[idHorda].nome : "Horda";
+            const nomeHordaHtml = escapeHtml(nomeHorda);
             let h = `
             <div style="position: relative;">
                 <div class="mestre-acoes-ficha esconder-jogador" style="position: absolute; top: 5px; right: 5px; display: flex; gap: 5px; z-index: 10;">
@@ -864,13 +1254,14 @@ window.toggleSidebarJogador = function(numSlot) {
                     <button onclick="abaterAmeacaFicha(${numSlot})" style="background: rgba(0,0,0,0.5); border: 1px solid #8c1c13; color: #d95757; padding: 3px 8px; font-size: 10px; cursor: pointer;">🩸 Abater</button>
                     <button onclick="deletarAmeacaFicha(${numSlot})" style="background: rgba(0,0,0,0.5); border: 1px solid #5c1818; color: #8c1c13; padding: 3px 8px; font-size: 10px; cursor: pointer;">🗑️ Apagar</button>
                 </div>
-                <div class="section-title" style="color:#d4af37; border-color:#8b6d43; margin-top:0;">🛡️ ${nomeHorda}</div>
+                <div class="section-title" style="color:#d4af37; border-color:#8b6d43; margin-top:0;">🛡️ ${nomeHordaHtml}</div>
             </div>
             `;
             h += `<div style="display:flex; flex-direction:column; gap:15px; margin-top:15px;">`;
             
             for(let mId in membros) {
                 let m = membros[mId];
+                const nomeMembroHtml = escapeHtml(m.nome || mId);
                 
                 let hpAtual = Number(m['hp-atual']) || 0;
                 let hpMax = Number(m['hp-max']) || 1;
@@ -887,7 +1278,7 @@ window.toggleSidebarJogador = function(numSlot) {
                 h += `
                 <div class="horda-member-card" style="display: flex; flex-direction: column; background: rgba(0,0,0,0.3); border: 1px solid #4a2e1b; border-radius: 4px; padding: 10px;">
                     <div style="display:flex; justify-content: space-between; align-items:center; gap: 20px; flex-wrap: wrap;">
-                        <h4 style="color:#a84242; margin:0; text-transform: uppercase; font-size: 14px; min-width: 100px;">${m.nome}</h4>
+                        <h4 style="color:#a84242; margin:0; text-transform: uppercase; font-size: 14px; min-width: 100px;">${nomeMembroHtml}</h4>
                         
                         <div style="display:flex; gap:15px; flex: 1;">
                             <div id="caixa-hp-horda-${mId}" class="caixa-status ${isAlertaMorte}" style="padding: 2px; flex: 1;">
@@ -966,6 +1357,7 @@ window.toggleSidebarJogador = function(numSlot) {
 
             for(let i=1; i<=qtd; i++) {
                 hordaData.membros['m_' + i] = {
+                    tipo: 'horda',
                     nome: mData.nome + " " + i,
                     'hp-atual': mData['hp-max'] || 20, 'hp-max': mData['hp-max'] || 20,
                     'mana-atual': mData['mana-max'] || 20, 'mana-max': mData['mana-max'] || 20,
@@ -992,7 +1384,9 @@ window.toggleSidebarJogador = function(numSlot) {
 
             const alvos = Array.from(checkboxes).map(cb => cb.value);
             for(let alvo of alvos) {
-                await aplicarEfeitoVidaPath('fichas/' + alvo, dano, 'dano');
+                const pathAlvo = 'fichas/' + alvo;
+                const meta = await aplicarEfeitoVidaPath(pathAlvo, dano, 'dano');
+                registrarFeedbackELog(pathAlvo, meta, 'Ataque da horda');
             }
             inputDano.value = '';
             checkboxes.forEach(cb => cb.checked = false);
@@ -1225,6 +1619,7 @@ window.toggleSidebarJogador = function(numSlot) {
                     if(usuarioAtual.cargo === 'Jogador') {
                         document.querySelectorAll('.esconder-jogador').forEach(el => el.style.display = 'none');
                     }
+                    if(visaoTaticaMestreAtiva) renderizarVisaoTaticaMestre();
                     return; 
                 }
 
@@ -1338,27 +1733,16 @@ window.toggleSidebarJogador = function(numSlot) {
                         }
                     }
 
-                    for(let i=1; i<=5; i++) {
-                        let isEquipado = dados[`item${i}-equipado`] || false;
-                        let btn = document.getElementById(`slot${numSlot}-btn-equip-${i}`);
-                        if(!btn) continue;
-                        if(isEquipado) {
-                            btn.innerText = "Deseq."; btn.classList.add("equipado");
-                            document.getElementById(`slot${numSlot}-item${i}-nome`).disabled = true;
-                            document.getElementById(`slot${numSlot}-item${i}-attr1`).disabled = true;
-                            document.getElementById(`slot${numSlot}-item${i}-mod1`).disabled = true;
-                            document.getElementById(`slot${numSlot}-item${i}-attr2`).disabled = true;
-                            document.getElementById(`slot${numSlot}-item${i}-mod2`).disabled = true;
-                        } else {
-                            btn.innerText = "Equip."; btn.classList.remove("equipado");
-                        }
-                    }
+                    // LEGADO: a UI atual de inventario nao possui slotX-btn-equip nem item-attr/mod.
+                    // O inventario atual continua ativo; este bloco antigo fica isolado para nao acessar elementos inexistentes.
                 }
 
                 renderizarEfeitosNoSlot(numSlot, tipo, dados.efeitos || []);
                 if(tipo === 'heroi') renderizarGrimorioNoSlot(numSlot, dados.grimorio || {});
+                if(tipo === 'heroi') sincronizarHabilidadesSistemaSeNecessario(idFicha, dados);
                 atualizarBarrasEAlertaNoSlot(numSlot, tipo);
                 atualizarTooltipsAtributosNoSlot(numSlot, tipo, dados);
+                if(visaoTaticaMestreAtiva) renderizarVisaoTaticaMestre();
             });
 
             slotsDeVisao[numSlot].ouvinte = novoOuvinte;
@@ -1582,12 +1966,14 @@ window.toggleSidebarJogador = function(numSlot) {
                 if(efeito.modHp !== 0) detalhes.push(`HP: ${efeito.modHp > 0 ? '+' : ''}${efeito.modHp}/t`);
                 if(efeito.modMana !== 0) detalhes.push(`Mana: ${efeito.modMana > 0 ? '+' : ''}${efeito.modMana}/t`);
                 if(efeito.attrDestino && efeito.modAttr !== 0) detalhes.push(`${efeito.attrDestino.toUpperCase()}: ${efeito.modAttr > 0 ? '+' : ''}${efeito.modAttr}`);
+                const nomeEfeitoHtml = escapeHtml(efeito.nome || '');
+                const detalhesHtml = escapeHtml(detalhes.join(' | '));
                 
                 listaDiv.innerHTML += `
                     <div class="buff-item ${isDebuff ? 'debuff-item' : ''}">
                         <div>
-                            <strong style="color: ${isDebuff ? '#d95757' : '#27ae60'}">${efeito.nome}</strong>
-                            <span style="font-size: 10px; margin-left: 10px; color: #9c8464;">(${detalhes.join(' | ')})</span>
+                            <strong style="color: ${isDebuff ? '#d95757' : '#27ae60'}">${nomeEfeitoHtml}</strong>
+                            <span style="font-size: 10px; margin-left: 10px; color: #9c8464;">(${detalhesHtml})</span>
                         </div>
                         <div>
                             <span style="margin-right: 15px;">⏳ <b>${efeito.turnos}</b></span>
@@ -1616,6 +2002,7 @@ window.toggleSidebarJogador = function(numSlot) {
 
             let modsItens = {for:0, des:0, con:0, int:0, sab:0, car:0, per:0};
             if(tipo === 'heroi') {
+                // LEGADO: suporte somente a dados antigos de item-attr/mod; a UI atual nao cria esses campos.
                 for(let i=1; i<=5; i++) {
                     if(dados[`item${i}-equipado`]) {
                         let a1 = dados[`item${i}-attr1`]; let m1 = Number(dados[`item${i}-mod1`]) || 0;
@@ -1660,7 +2047,9 @@ window.toggleSidebarJogador = function(numSlot) {
             const alvos = Array.from(checkboxes).map(cb => cb.value);
 
             for(let alvo of alvos) {
-                await aplicarEfeitoVidaPath('fichas/' + alvo, dano, 'dano');
+                const pathAlvo = 'fichas/' + alvo;
+                const meta = await aplicarEfeitoVidaPath(pathAlvo, dano, 'dano');
+                registrarFeedbackELog(pathAlvo, meta, 'Ataque do mestre');
             }
             
             inputDano.value = '';
@@ -1669,7 +2058,11 @@ window.toggleSidebarJogador = function(numSlot) {
 
         window.lancarAmeacaFicha = function(numSlot) {
             const idAlvo = slotsDeVisao[numSlot].idFicha;
-            if(idAlvo) safeUpdate('estado_combate', { ativo: idAlvo });
+            if(idAlvo) {
+                safeUpdate('estado_combate', { ativo: idAlvo });
+                adicionarCombatLog(`${slotsDeVisao[numSlot].dados?.nome || idAlvo} entrou em combate.`, 'info');
+                if(visaoTaticaMestreAtiva) renderizarVisaoTaticaMestre();
+            }
         }
         
         window.abaterAmeacaFicha = async function(numSlot) {
@@ -1687,6 +2080,8 @@ window.toggleSidebarJogador = function(numSlot) {
                         return { ...dadosAtuais, 'hp-atual': 0 };
                     });
                 }
+                mostrarCombatToast("Ameaça abatida/removida do combate.");
+                if(visaoTaticaMestreAtiva) renderizarVisaoTaticaMestre();
             }
         }
 
@@ -1868,25 +2263,27 @@ window.toggleSidebarJogador = function(numSlot) {
                     let hab = enrichHab(habId, grimorio[habId]);
                     if(!hab.equipada) continue;
                     
-                    let icon = hab.icon || '✨';
+                    let icon = escapeHtml(hab.icon || '✨');
+                    let nomeHabHtml = escapeHtml(hab.nome || habId);
+                    let formulaHabHtml = escapeHtml(hab.formula || '');
 
                     if(hab.tipo === 'passiva') {
                         let iconUrl = `Icones/${habId}.png`;
                         htmlPassivas += `
-                            <div class="passiva-mini" title="${hab.desc}">
+                            <div class="passiva-mini">
                                 <div class="passiva-mini-icon">
                                     <div style="width:100%;height:100%;background-image:url('${iconUrl}');background-size:cover;background-position:center;border-radius:50%;position:absolute;top:0;left:0;z-index:2;"></div>
-                                    <div class="skill-icon-glow" style="z-index:1;">${hab.icon || '✨'}</div>
+                                    <div class="skill-icon-glow" style="z-index:1;">${icon}</div>
                                 </div>
-                                <div class="passiva-mini-nome">${hab.nome}</div>
+                                <div class="passiva-mini-nome">${nomeHabHtml}</div>
                             </div>
                         `;
                     } else {
-                        const meta = hab.formula ? ` • ${hab.formula}` : '';
+                        const meta = hab.formula ? ` • ${formulaHabHtml}` : '';
                         htmlFeiticos += `
                             <label class="magia-radio-item">
                                 <input type="radio" name="feitico-selecionado-slot${numSlot}" value="${habId}">
-                                <span class="magia-icon-mini">${icon}</span> <span>${hab.nome}${meta}</span>
+                                <span class="magia-icon-mini">${icon}</span> <span>${nomeHabHtml}${meta}</span>
                             </label>
                         `;
                     }
@@ -1917,6 +2314,12 @@ window.toggleSidebarJogador = function(numSlot) {
             for(let habId in grimorio) {
                 let hab = enrichHab(habId, grimorio[habId]);
                 let isEquipada = hab.equipada || false;
+                const iconHtml = escapeHtml(hab.icon || '✨');
+                const nomeHabHtml = escapeHtml(hab.nome || habId);
+                const descHabHtml = escapeHtml(hab.desc || '');
+                const effectKindHtml = escapeHtml(hab.effectKind || '');
+                const alvoHtml = escapeHtml(hab.alvo || '');
+                const formulaHtml = escapeHtml(hab.formula || '');
                 
                 let btnEquiparHtml = '';
                 // Passivas nunca recebem botão de equipar (sempre ativas nativamente)
@@ -1932,15 +2335,15 @@ window.toggleSidebarJogador = function(numSlot) {
                         ${delHtml}
                         <div class="skill-icon-container">
                             <div style="width:100%;height:100%;background-image:url('${iconUrl}');background-size:cover;background-position:center;position:absolute;top:0;left:0;z-index:2;border-radius:50%;"></div>
-                            <div class="skill-icon-glow" style="z-index:1;">${hab.icon || '✨'}</div>
+                            <div class="skill-icon-glow" style="z-index:1;">${iconHtml}</div>
                         </div>
                         <div class="skill-data-visual">
-                            <div class="skill-title-visual">${hab.nome}</div>
+                            <div class="skill-title-visual">${nomeHabHtml}</div>
                             <div class="skill-stats-visual" style="font-size: 11px; color:#dcd0ba; margin-bottom:5px;">
-                                <span>${hab.tipo === 'passiva' ? '🔒 Passiva' : '⚡ Ativa'} · Efeito: ${hab.effectKind} · Alvo: ${hab.alvo}</span>
-                                ${hab.formula ? `<span style="display:block; color:#d4af37; margin-top:3px;">Fórmula: ${hab.formula}</span>` : ''}
+                                <span>${hab.tipo === 'passiva' ? '🔒 Passiva' : '⚡ Ativa'} · Efeito: ${effectKindHtml} · Alvo: ${alvoHtml}</span>
+                                ${hab.formula ? `<span style="display:block; color:#d4af37; margin-top:3px;">Fórmula: ${formulaHtml}</span>` : ''}
                             </div>
-                            <div class="skill-desc-visual">${hab.desc}</div>
+                            <div class="skill-desc-visual">${descHabHtml}</div>
                             ${btnEquiparHtml}
                         </div>
                     </div>
@@ -2030,13 +2433,18 @@ window.toggleSidebarJogador = function(numSlot) {
             }
 
             const alvos = Array.from(checkboxes).map(cb => cb.value);
+            const origemLog = feiticoId === 'fisico' ? 'Ataque do jogador' : `Magia ${habSelecionada?.nome || feiticoId}`;
             for(let alvo of alvos) {
                 if(alvo.startsWith("horda_") && ameacaEmCombateGlobal && alvo.startsWith(ameacaEmCombateGlobal + "_")) {
                     let hordaId = ameacaEmCombateGlobal;
                     let mId = alvo.replace(hordaId + "_", "");
-                    await aplicarEfeitoVidaPath(`hordas/${hordaId}/membros/${mId}`, valorEfeito, tipoFeitico);
+                    const pathAlvo = `hordas/${hordaId}/membros/${mId}`;
+                    const meta = await aplicarEfeitoVidaPath(pathAlvo, valorEfeito, tipoFeitico);
+                    registrarFeedbackELog(pathAlvo, meta, origemLog);
                 } else {
-                    await aplicarEfeitoVidaPath(`fichas/${alvo}`, valorEfeito, tipoFeitico);
+                    const pathAlvo = `fichas/${alvo}`;
+                    const meta = await aplicarEfeitoVidaPath(pathAlvo, valorEfeito, tipoFeitico);
+                    registrarFeedbackELog(pathAlvo, meta, origemLog);
                 }
             }
             
@@ -2047,6 +2455,18 @@ window.toggleSidebarJogador = function(numSlot) {
         };
         
         window.adicionarHabilidade = function(numSlot) {
+            const idsLegado = [
+                `slot${numSlot}-hab-nome`,
+                `slot${numSlot}-hab-ap`,
+                `slot${numSlot}-hab-mana`,
+                `slot${numSlot}-hab-tipo`,
+                `slot${numSlot}-hab-desc`
+            ];
+            if(idsLegado.some(id => !document.getElementById(id))) {
+                console.warn("LEGADO: adicionarHabilidade usa campos antigos de grimorio que nao existem na UI atual.");
+                return;
+            }
+
             let nome = document.getElementById(`slot${numSlot}-hab-nome`).value;
             let ap = Number(document.getElementById(`slot${numSlot}-hab-ap`).value) || 0;
             let mana = Number(document.getElementById(`slot${numSlot}-hab-mana`).value) || 0;
@@ -2075,39 +2495,74 @@ window.toggleSidebarJogador = function(numSlot) {
             }
         };
 
+        function stableStringify(value) {
+            if(value === null || typeof value !== 'object') return JSON.stringify(value);
+            if(Array.isArray(value)) return `[${value.map(stableStringify).join(',')}]`;
+            return `{${Object.keys(value).sort().map(k => `${JSON.stringify(k)}:${stableStringify(value[k])}`).join(',')}}`;
+        }
+
+        function idExisteEmHabilidadesSistema(habId) {
+            for (let grupo in HABILIDADES_SISTEMA) {
+                if (HABILIDADES_SISTEMA[grupo]?.[habId]) return true;
+            }
+            return false;
+        }
+
+        function montarGrimorioSistemaSincronizado(dados = {}) {
+            const racaSel = dados.raca || '';
+            const classeSel = dados.classe || '';
+            const grimorioAntigo = dados.grimorio || {};
+            const idsSistemaAtuais = new Set();
+            const novoGrimorio = {};
+
+            [racaSel, classeSel].forEach(grupo => {
+                if(!HABILIDADES_SISTEMA[grupo]) return;
+                for(let k in HABILIDADES_SISTEMA[grupo]) idsSistemaAtuais.add(k);
+            });
+
+            for(let k in grimorioAntigo) {
+                const h = grimorioAntigo[k];
+                const ehHabSistemaConhecida = idExisteEmHabilidadesSistema(k);
+                if(!h?.isSystemObj && !ehHabSistemaConhecida) novoGrimorio[k] = h;
+            }
+
+            idsSistemaAtuais.forEach(k => {
+                let habFonte = null;
+                [racaSel, classeSel].forEach(grupo => {
+                    if(HABILIDADES_SISTEMA[grupo]?.[k]) habFonte = HABILIDADES_SISTEMA[grupo][k];
+                });
+                if(!habFonte) return;
+
+                const habBase = normalizeHabV1(k, habFonte);
+                const existente = grimorioAntigo[k] ? normalizeHabV1(k, grimorioAntigo[k]) : null;
+                novoGrimorio[k] = {
+                    ...habBase,
+                    ...(existente || {}),
+                    isSystemObj: true,
+                    equipada: existente && Object.prototype.hasOwnProperty.call(existente, 'equipada')
+                        ? Boolean(existente.equipada)
+                        : habBase.tipo === 'passiva'
+                };
+            });
+
+            return {
+                grimorio: novoGrimorio,
+                mudou: stableStringify(grimorioAntigo) !== stableStringify(novoGrimorio)
+            };
+        }
+
+        async function sincronizarHabilidadesSistemaSeNecessario(idFicha, dados = {}) {
+            if(!dados.raca && !dados.classe) return;
+            const resultado = montarGrimorioSistemaSincronizado(dados);
+            if(resultado.mudou) await safeUpdate(`fichas/${idFicha}`, { grimorio: resultado.grimorio });
+        }
+
         window.atualizarHabilidadesSistema = async function(idFicha, numSlot) {
             const snap = await safeGet(`fichas/${idFicha}`);
             if(!snap.exists()) return;
-            
-            let dados = snap.val();
-            let racaSel = dados.raca || '';
-            let classeSel = dados.classe || '';
-            let grimorioAntigo = dados.grimorio || {};
-            
-            let novoGrimorio = {};
-            
-            // Mantenha habilidades antigas que NÃO SÃO de classe ou raça (por exemplo, upadas à parte)
-            for(let k in grimorioAntigo) {
-                let h = grimorioAntigo[k];
-                if(!h.isSystemObj) novoGrimorio[k] = h;
-            }
-            
-            // Injetar Raça
-            if(HABILIDADES_SISTEMA[racaSel]) {
-                for(let k in HABILIDADES_SISTEMA[racaSel]) {
-                    const habBase = normalizeHabV1(k, HABILIDADES_SISTEMA[racaSel][k]);
-                    novoGrimorio[k] = { ...habBase, isSystemObj: true, equipada: habBase.tipo === 'passiva' ? true : false };
-                }
-            }
-            // Injetar Classe
-            if(HABILIDADES_SISTEMA[classeSel]) {
-                for(let k in HABILIDADES_SISTEMA[classeSel]) {
-                    const habBase = normalizeHabV1(k, HABILIDADES_SISTEMA[classeSel][k]);
-                    novoGrimorio[k] = { ...habBase, isSystemObj: true, equipada: habBase.tipo === 'passiva' ? true : false };
-                }
-            }
-            
-            await safeUpdate(`fichas/${idFicha}`, { grimorio: novoGrimorio });
+
+            const resultado = montarGrimorioSistemaSincronizado(snap.val() || {});
+            if(resultado.mudou) await safeUpdate(`fichas/${idFicha}`, { grimorio: resultado.grimorio });
         };
 
         // ==========================================
@@ -2123,7 +2578,7 @@ window.toggleSidebarJogador = function(numSlot) {
                 if(!numSlot || !slotsDeVisao[numSlot].idFicha) return;
                 let parts = e.target.id.split('-'); 
                 const campoHorda = parts.slice(2).join('-');
-                const valorHorda = e.target.value === "" ? "" : Number(e.target.value);
+                const valorHorda = normalizarValorParaSalvar(campoHorda, e.target.value, { compacto: true });
                 await safeTransaction(`hordas/${slotsDeVisao[numSlot].idFicha}/membros/${parts[1]}`, (dadosAtuais) => {
                     const dados = dadosAtuais || {};
                     return { ...dados, [campoHorda]: valorHorda };
@@ -2194,7 +2649,7 @@ window.toggleSidebarJogador = function(numSlot) {
                     return; 
                 }
 
-                if (tipo === 'heroi' && ['for', 'des', 'con', 'int', 'sab', 'car', 'per'].includes(chaveDoBanco)) {
+                if (tipo === 'heroi' && ATTRS.includes(chaveDoBanco) && novoValor !== "") {
                     novoValor = Number(novoValor);
                     let minG = baseAtual[chaveDoBanco];
                     if (novoValor < minG) novoValor = minG;
@@ -2231,10 +2686,12 @@ window.toggleSidebarJogador = function(numSlot) {
                     }
                 }
                 
+                const valorParaSalvar = normalizarValorParaSalvar(chaveDoBanco, novoValor);
+
                 if (['hp-atual', 'hp-max', 'mana-atual', 'mana-max', 'escudo', 'ap'].includes(chaveDoBanco)) {
-                    await safeTransaction(`fichas/${idFicha}/${chaveDoBanco}`, () => novoValor);
+                    await safeTransaction(`fichas/${idFicha}/${chaveDoBanco}`, () => valorParaSalvar);
                 } else {
-                    safeUpdate('fichas/' + idFicha, { [chaveDoBanco]: novoValor });
+                    safeUpdate('fichas/' + idFicha, { [chaveDoBanco]: valorParaSalvar });
                 }
                 if(chaveDoBanco.includes('hp') || chaveDoBanco.includes('mana')) atualizarBarrasEAlertaNoSlot(numSlot, tipo);
             }
