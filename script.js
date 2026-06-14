@@ -164,6 +164,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
         let combatLog = [];
         let combatLogRecolhido = true;
         let visaoTaticaMestreAtiva = false;
+        const eventosLocaisPublicados = new Set();
 
         const ATTRS = ['for', 'des', 'con', 'int', 'sab', 'car', 'per'];
         const FORMULAS_PADRAO_HABILIDADES = {
@@ -684,13 +685,33 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
             return 'dano';
         }
 
+        function gerarIdEventoCombate() {
+            return crypto.randomUUID?.() || `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+        }
+
+        function metaFromUltimoEvento(evento = {}) {
+            return {
+                effectKind: evento.tipo || 'dano',
+                danoHp: toNumber(evento.danoHp, 0),
+                curaHp: toNumber(evento.curaHp, 0),
+                escudoGanho: toNumber(evento.escudoGanho, 0),
+                escudoAbsorvido: toNumber(evento.escudoAbsorvido, 0),
+                hpAntes: toNumber(evento.hpAntes, 0),
+                hpDepois: toNumber(evento.hpDepois, 0),
+                hpMax: toNumber(evento.hpMax, 1),
+                escudoAntes: toNumber(evento.escudoAntes, 0),
+                escudoDepois: toNumber(evento.escudoDepois, 0)
+            };
+        }
+
         function montarUltimoEvento(path, meta, contexto = {}) {
             if(!meta) return null;
             const ctx = typeof contexto === 'string' ? { ator: contexto } : (contexto || {});
             const alvoInfo = pathParaEvento(path);
             const textos = textosUltimoEvento(meta);
+            const logTexto = formatarLogCombate(path, meta, contexto);
             return {
-                id: Date.now(),
+                id: gerarIdEventoCombate(),
                 tipo: tipoEventoPorMeta(meta),
                 atorNome: ctx.ator || '',
                 alvoNome: ctx.alvo || getNomeAlvoPorPath(path),
@@ -701,24 +722,42 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
                 curaHp: toNumber(meta.curaHp, 0),
                 escudoGanho: toNumber(meta.escudoGanho, 0),
                 escudoAbsorvido: toNumber(meta.escudoAbsorvido, 0),
-                texto: textos.map(item => item.texto).join(' | ')
+                hpAntes: toNumber(meta.hpAntes, 0),
+                hpDepois: toNumber(meta.hpDepois, 0),
+                hpMax: toNumber(meta.hpMax, 1),
+                escudoAntes: toNumber(meta.escudoAntes, 0),
+                escudoDepois: toNumber(meta.escudoDepois, 0),
+                texto: textos.map(item => item.texto).join(' | '),
+                logTexto
             };
         }
 
         async function publicarUltimoEvento(evento) {
             if(!evento) return;
+            if(!evento.id) evento.id = gerarIdEventoCombate();
+            eventosLocaisPublicados.add(evento.id);
             try {
                 await safeUpdate('estado_combate/ultimo_evento', evento);
             } catch (err) {
+                eventosLocaisPublicados.delete(evento.id);
                 console.warn('Falha ao publicar ultimo_evento', err);
             }
         }
 
         function aplicarUltimoEventoVisual(evento) {
             if(!evento || evento.tipo === 'fim') return;
+            if(evento.id && eventosLocaisPublicados.has(evento.id)) {
+                eventosLocaisPublicados.delete(evento.id);
+                return;
+            }
             const path = pathFromEvento(evento);
             if(!path) return;
+            const meta = metaFromUltimoEvento(evento);
+            mostrarFeedbackFlutuante(path, meta);
             mostrarUltimoEventoNoCard(path, evento);
+            aplicarHpAtrasadoVisual(path, meta);
+            const logTexto = evento.logTexto || formatarLogCombate(path, meta, { ator: evento.atorNome, alvo: evento.alvoNome });
+            if(logTexto) adicionarCombatLog(logTexto, meta.effectKind || 'info');
         }
 
         function registrarFeedbackELog(path, meta, contexto = 'Ação') {
@@ -2321,7 +2360,7 @@ window.toggleSidebarJogador = function(numSlot) {
             const idAlvo = slotsDeVisao[numSlot].idFicha;
             const nomeAlvo = slotsDeVisao[numSlot]?.dados?.nome || getNomeAlvoPorPath(`fichas/${idAlvo || ameacaEmCombateGlobal || ''}`);
             await publicarUltimoEvento({
-                id: Date.now(),
+                id: gerarIdEventoCombate(),
                 tipo: 'fim',
                 atorNome: usuarioAtual?.nome || '',
                 alvoNome: nomeAlvo || '',
