@@ -1803,37 +1803,105 @@ window.toggleSidebarJogador = function(numSlot) {
                 nodes: [
                     treeNode("mon_fund_01", "Respiração Marcial", "passiva", "passiva", 1, 0, 0, [], "", "Controla a respiração para manter foco e constância em combate.", "icon-breath"),
                     treeNode("mon_fund_02", "Postura do Monge", "melhoria", "melhoria", 1, 180, 0, ["mon_fund_01"], "", "Refina a base corporal e melhora a estabilidade durante técnicas.", "icon-stance"),
-                    treeNode("mon_fund_03", "Disciplina do Corpo", "passiva", "passiva", 1, 360, 0, ["mon_fund_02"], "", "Transforma treino repetido em resistência, controle e presença.", "icon-discipline"),
+                    treeNode("mon_fund_03", "Disciplina do Corpo", "passiva", "passiva", 1, 360, 0, [], "", "Transforma treino repetido em resistência, controle e presença.", "icon-discipline", {
+                        prereqAnyCount: { from: ["mon_fund_02", "mon_fund_b"], count: 1 }
+                    }),
                     treeNode("mon_fund_a", "Passo Leve", "passiva", "passiva", 1, 120, -180, [], "", "Movimenta-se com menos ruído e melhor recuperação de posição.", "icon-step"),
-                    treeNode("mon_fund_b", "Reflexo Sereno", "passiva", "passiva", 1, 260, -180, [], "", "Mantém calma sob pressão e reage com menos hesitação.", "icon-reflex"),
+                    treeNode("mon_fund_b", "Reflexo Sereno", "passiva", "passiva", 1, 260, -180, ["mon_fund_a"], "", "Mantém calma sob pressão e reage com menos hesitação.", "icon-reflex"),
                     treeNode("mon_fund_c", "Mente Clara", "melhoria", "melhoria", 1, 120, 180, [], "", "Organiza pensamento e intenção antes da ação.", "icon-mind"),
                     treeNode("mon_fund_d", "Golpe Treinado", "ativa", "ativa", 1, 260, 180, [], "", "Um ataque simples, limpo e confiável para abrir sequências.", "icon-strike"),
-                    treeNode("mon_path_punho", "Caminho do Punho", "caminho", "", 1, 580, -260, ["mon_fund_03"], "punho", "Escolhe o Caminho do Punho. Os outros caminhos serão bloqueados.", "icon-path-punch"),
-                    treeNode("mon_path_res", "Caminho da Resiliência", "caminho", "", 1, 580, 260, ["mon_fund_03"], "resiliencia", "Escolhe o Caminho da Resiliência. Os outros caminhos serão bloqueados.", "icon-path-res"),
-                    treeNode("mon_path_ki", "Caminho do Ki Interior", "caminho", "", 1, 580, 0, [], "ki", "Escolhe o Caminho do Ki Interior após dominar duas fundações paralelas.", "icon-path-ki", {
-                        prereqAnyCount: { from: ["mon_fund_a", "mon_fund_b", "mon_fund_c", "mon_fund_d"], count: 2 }
+                    treeNode("mon_path_punho", "Caminho do Punho", "caminho", "", 1, 580, -260, ["mon_fund_d"], "punho", "Escolhe o Caminho do Punho. Os outros caminhos serão bloqueados.", "icon-path-punch", {
+                        prereqAnyCount: { from: ["mon_fund_02", "mon_fund_03"], count: 1 }
                     }),
+                    treeNode("mon_path_res", "Caminho da Resiliência", "caminho", "", 1, 580, 260, ["mon_fund_c"], "resiliencia", "Escolhe o Caminho da Resiliência. Os outros caminhos serão bloqueados.", "icon-path-res", {
+                        prereqAnyCount: { from: ["mon_fund_02", "mon_fund_03"], count: 1 }
+                    }),
+                    treeNode("mon_path_ki", "Caminho do Ki Interior", "caminho", "", 1, 580, 0, ["mon_fund_b"], "ki", "Escolhe o Caminho do Ki Interior após dominar Reflexo Sereno.", "icon-path-ki"),
                     treeNode("mon_punho_01", "Punho Preciso", "passiva", "passiva", 2, 760, -260, ["mon_path_punho"], "punho", "Aprimora golpes diretos e reduz desperdício de movimento.", "icon-punch"),
                     treeNode("mon_punho_02", "Sequência Rápida", "ativa", "ativa", 2, 940, -260, ["mon_punho_01"], "punho", "Permite encadear ataques curtos em uma abertura.", "icon-combo"),
-                    treeNode("mon_punho_03", "Pressão Constante", "melhoria", "melhoria", 2, 1120, -260, ["mon_punho_02"], "punho", "Mantém o inimigo reagindo e limita contra-ataques.", "icon-pressure"),
-                    treeNode("mon_punho_04", "Quebra-Guarda", "ativa", "ativa", 2, 1300, -340, ["mon_punho_03"], "punho", "Um golpe técnico para abrir defesas fechadas.", "icon-break"),
-                    treeNode("mon_punho_05", "Combo Crescente", "melhoria", "melhoria", 2, 1300, -180, ["mon_punho_03"], "punho", "Sequências bem-sucedidas aumentam o ritmo ofensivo.", "icon-rise"),
-                    treeNode("mon_punho_06", "Impacto Interno", "passiva", "passiva", 3, 1500, -260, ["mon_punho_04", "mon_punho_05"], "punho", "Canaliza força através da guarda e atinge pontos vitais.", "icon-impact"),
+                    treeNode("mon_punho_03", "Pressão Constante", "melhoria", "melhoria", 2, 1120, -260, ["mon_punho_01"], "punho", "Mantém o inimigo reagindo e limita contra-ataques.", "icon-pressure"),
+                    treeNode("mon_punho_04", "Quebra-Guarda", "ativa", "ativa", 2, 1300, -340, [], "punho", "Um golpe técnico para abrir defesas fechadas.", "icon-break", {
+                        prereqAnyCount: { from: ["mon_punho_02", "mon_punho_03"], count: 1 }
+                    }),
+                    treeNode("mon_punho_05", "Combo Crescente", "melhoria", "melhoria", 2, 1300, -180, [], "punho", "Sequências bem-sucedidas aumentam o ritmo ofensivo.", "icon-rise", {
+                        prereqAnyCount: { from: ["mon_punho_02", "mon_punho_03"], count: 1 }
+                    }),
+                    treeNode("mon_punho_06", "Impacto Interno", "passiva", "passiva", 3, 1500, -260, [], "punho", "Canaliza força através da guarda e atinge pontos vitais.", "icon-impact", {
+                        prereqAnyCount: { from: ["mon_punho_04", "mon_punho_05"], count: 1 }
+                    }),
                     treeNode("mon_punho_final", "Último Golpe do Punho", "final", "ativa", 3, 1720, -260, ["mon_punho_06"], "punho", "Finaliza uma sequência com um golpe concentrado e decisivo.", "icon-finish"),
                     treeNode("mon_ki_01", "Reserva Interior", "passiva", "passiva", 2, 760, 0, ["mon_path_ki"], "ki", "Aumenta a consciência sobre energia interna e seu uso.", "icon-reserve"),
                     treeNode("mon_ki_02", "Passo do Vento", "ativa", "ativa", 2, 940, -80, ["mon_ki_01"], "ki", "Usa ki para reposicionamento rápido e leve.", "icon-wind"),
                     treeNode("mon_ki_03", "Canalizar Ki", "melhoria", "melhoria", 2, 940, 80, ["mon_ki_01"], "ki", "Melhora o controle entre mana, fôlego e intenção.", "icon-channel"),
-                    treeNode("mon_ki_04", "Palma Espiritual", "ativa", "ativa", 2, 1120, -80, ["mon_ki_02"], "ki", "Projeta energia concentrada através da palma.", "icon-palm"),
-                    treeNode("mon_ki_05", "Fluxo de Mana", "passiva", "passiva", 2, 1120, 80, ["mon_ki_03"], "ki", "Reduz oscilação energética e favorece técnicas longas.", "icon-flow"),
-                    treeNode("mon_ki_06", "Corpo Etéreo", "ativa", "ativa", 3, 1320, 0, ["mon_ki_04", "mon_ki_05"], "ki", "Por um instante, o corpo responde como se fosse mais leve que a dor.", "icon-ethereal"),
+                    treeNode("mon_ki_04", "Palma Espiritual", "ativa", "ativa", 2, 1120, -80, [], "ki", "Projeta energia concentrada através da palma.", "icon-palm", {
+                        prereqAnyCount: { from: ["mon_ki_02", "mon_ki_03"], count: 1 }
+                    }),
+                    treeNode("mon_ki_05", "Fluxo de Mana", "passiva", "passiva", 2, 1120, 80, [], "ki", "Reduz oscilação energética e favorece técnicas longas.", "icon-flow", {
+                        prereqAnyCount: { from: ["mon_ki_02", "mon_ki_03"], count: 1 }
+                    }),
+                    treeNode("mon_ki_06", "Corpo Etéreo", "ativa", "ativa", 3, 1320, 0, [], "ki", "Por um instante, o corpo responde como se fosse mais leve que a dor.", "icon-ethereal", {
+                        prereqAnyCount: { from: ["mon_ki_04", "mon_ki_05"], count: 1 }
+                    }),
                     treeNode("mon_ki_final", "Técnica do Ki Interior", "final", "ativa", 3, 1540, 0, ["mon_ki_06"], "ki", "Libera uma técnica espiritual plena, exigindo foco absoluto.", "icon-spirit"),
                     treeNode("mon_res_01", "Corpo Inabalável", "passiva", "passiva", 2, 760, 260, ["mon_path_res"], "resiliencia", "Fortalece postura e tolerância contra impacto.", "icon-body"),
                     treeNode("mon_res_02", "Defesa Circular", "ativa", "ativa", 2, 940, 180, ["mon_res_01"], "resiliencia", "Redireciona pressão inimiga com movimentos circulares.", "icon-circle"),
                     treeNode("mon_res_03", "Pele de Pedra", "melhoria", "melhoria", 2, 940, 340, ["mon_res_01"], "resiliencia", "Treino físico endurece resposta contra dano direto.", "icon-stone"),
-                    treeNode("mon_res_04", "Fôlego de Ferro", "passiva", "passiva", 2, 1120, 180, ["mon_res_02"], "resiliencia", "Mantém ação mesmo após cansaço ou dor intensa.", "icon-breath-iron"),
-                    treeNode("mon_res_05", "Vontade Imóvel", "melhoria", "melhoria", 2, 1120, 340, ["mon_res_03"], "resiliencia", "Resiste melhor a medo, manipulação e colapso mental.", "icon-will"),
-                    treeNode("mon_res_06", "Recusar a Queda", "ativa", "ativa", 3, 1320, 260, ["mon_res_04", "mon_res_05"], "resiliencia", "Força o corpo a permanecer de pé quando deveria cair.", "icon-stand"),
+                    treeNode("mon_res_04", "Fôlego de Ferro", "passiva", "passiva", 2, 1120, 180, [], "resiliencia", "Mantém ação mesmo após cansaço ou dor intensa.", "icon-breath-iron", {
+                        prereqAnyCount: { from: ["mon_res_02", "mon_res_03"], count: 1 }
+                    }),
+                    treeNode("mon_res_05", "Vontade Imóvel", "melhoria", "melhoria", 2, 1120, 340, [], "resiliencia", "Resiste melhor a medo, manipulação e colapso mental.", "icon-will", {
+                        prereqAnyCount: { from: ["mon_res_02", "mon_res_03"], count: 1 }
+                    }),
+                    treeNode("mon_res_06", "Recusar a Queda", "ativa", "ativa", 3, 1320, 260, [], "resiliencia", "Força o corpo a permanecer de pé quando deveria cair.", "icon-stand", {
+                        prereqAnyCount: { from: ["mon_res_04", "mon_res_05"], count: 1 }
+                    }),
                     treeNode("mon_res_final", "Selo da Montanha Viva", "final", "passiva", 3, 1540, 260, ["mon_res_06"], "resiliencia", "A resistência do monge se torna uma presença quase imóvel.", "icon-mountain")
+                ],
+                connections: [
+                    { from: "mon_fund_01", to: "mon_fund_02" },
+                    { from: "mon_fund_02", to: "mon_fund_03", points: [{ x: 300, y: 0 }] },
+                    { from: "mon_fund_a", to: "mon_fund_b" },
+                    { from: "mon_fund_b", to: "mon_fund_03", points: [{ x: 330, y: -180 }, { x: 330, y: 0 }] },
+                    { from: "mon_fund_b", to: "mon_path_ki", points: [{ x: 420, y: -180 }, { x: 420, y: 0 }] },
+                    { from: "mon_fund_c", to: "mon_path_res", points: [{ x: 360, y: 180 }, { x: 360, y: 260 }] },
+                    { from: "mon_fund_d", to: "mon_path_punho", points: [{ x: 420, y: 180 }, { x: 420, y: -260 }] },
+                    { from: "mon_fund_02", to: "mon_path_punho", points: [{ x: 300, y: -80 }, { x: 520, y: -80 }, { x: 520, y: -260 }] },
+                    { from: "mon_fund_03", to: "mon_path_punho", points: [{ x: 470, y: 0 }, { x: 470, y: -260 }] },
+                    { from: "mon_fund_02", to: "mon_path_res", points: [{ x: 300, y: 90 }, { x: 520, y: 90 }, { x: 520, y: 260 }] },
+                    { from: "mon_fund_03", to: "mon_path_res", points: [{ x: 470, y: 0 }, { x: 470, y: 260 }] },
+
+                    { from: "mon_path_punho", to: "mon_punho_01" },
+                    { from: "mon_punho_01", to: "mon_punho_02", points: [{ x: 850, y: -300 }] },
+                    { from: "mon_punho_01", to: "mon_punho_03", points: [{ x: 850, y: -220 }, { x: 1030, y: -220 }] },
+                    { from: "mon_punho_02", to: "mon_punho_04", points: [{ x: 1040, y: -340 }] },
+                    { from: "mon_punho_03", to: "mon_punho_04", points: [{ x: 1210, y: -300 }, { x: 1210, y: -340 }] },
+                    { from: "mon_punho_02", to: "mon_punho_05", points: [{ x: 1040, y: -180 }] },
+                    { from: "mon_punho_03", to: "mon_punho_05", points: [{ x: 1210, y: -220 }, { x: 1210, y: -180 }] },
+                    { from: "mon_punho_04", to: "mon_punho_06", points: [{ x: 1420, y: -340 }, { x: 1420, y: -260 }] },
+                    { from: "mon_punho_05", to: "mon_punho_06", points: [{ x: 1420, y: -180 }, { x: 1420, y: -260 }] },
+                    { from: "mon_punho_06", to: "mon_punho_final" },
+
+                    { from: "mon_path_ki", to: "mon_ki_01" },
+                    { from: "mon_ki_01", to: "mon_ki_02", points: [{ x: 850, y: -80 }] },
+                    { from: "mon_ki_01", to: "mon_ki_03", points: [{ x: 850, y: 80 }] },
+                    { from: "mon_ki_02", to: "mon_ki_04" },
+                    { from: "mon_ki_03", to: "mon_ki_04", points: [{ x: 1030, y: 80 }, { x: 1030, y: -80 }] },
+                    { from: "mon_ki_02", to: "mon_ki_05", points: [{ x: 1030, y: -80 }, { x: 1030, y: 80 }] },
+                    { from: "mon_ki_03", to: "mon_ki_05" },
+                    { from: "mon_ki_04", to: "mon_ki_06", points: [{ x: 1220, y: -80 }, { x: 1220, y: 0 }] },
+                    { from: "mon_ki_05", to: "mon_ki_06", points: [{ x: 1220, y: 80 }, { x: 1220, y: 0 }] },
+                    { from: "mon_ki_06", to: "mon_ki_final" },
+
+                    { from: "mon_path_res", to: "mon_res_01" },
+                    { from: "mon_res_01", to: "mon_res_02", points: [{ x: 850, y: 180 }] },
+                    { from: "mon_res_01", to: "mon_res_03", points: [{ x: 850, y: 340 }] },
+                    { from: "mon_res_02", to: "mon_res_04" },
+                    { from: "mon_res_03", to: "mon_res_04", points: [{ x: 1030, y: 340 }, { x: 1030, y: 180 }] },
+                    { from: "mon_res_02", to: "mon_res_05", points: [{ x: 1030, y: 180 }, { x: 1030, y: 340 }] },
+                    { from: "mon_res_03", to: "mon_res_05" },
+                    { from: "mon_res_04", to: "mon_res_06", points: [{ x: 1220, y: 180 }, { x: 1220, y: 260 }] },
+                    { from: "mon_res_05", to: "mon_res_06", points: [{ x: 1220, y: 340 }, { x: 1220, y: 260 }] },
+                    { from: "mon_res_06", to: "mon_res_final" }
                 ]
             }
         };
@@ -1925,6 +1993,9 @@ window.toggleSidebarJogador = function(numSlot) {
         }
 
         function gerarConexoesArvore(tree) {
+            if(Array.isArray(tree.connections) && tree.connections.length) {
+                return tree.connections;
+            }
             const conexoes = [];
             tree.nodes.forEach(node => {
                 (node.prereq || []).forEach(from => conexoes.push({ from, to: node.id, kind: "required" }));
@@ -1946,6 +2017,10 @@ window.toggleSidebarJogador = function(numSlot) {
 
         function posNode(node, layout) {
             return { x: node.x - layout.minX, y: node.y - layout.minY };
+        }
+
+        function posWorldPoint(point, layout) {
+            return { x: point.x - layout.minX, y: point.y - layout.minY };
         }
 
         function getNodeState(dados, skill, numSlot) {
@@ -1972,10 +2047,14 @@ window.toggleSidebarJogador = function(numSlot) {
                 if(!from || !to) return "";
                 const a = posNode(from, layout);
                 const b = posNode(to, layout);
+                const points = (conn.points || []).map(point => posWorldPoint(point, layout));
+                const pathPoints = [a, ...points, b];
+                const d = pathPoints.map((point, index) => `${index === 0 ? "M" : "L"} ${point.x} ${point.y}`).join(" ");
                 const active = isSkillUnlocked(dados, from.id) && isSkillUnlocked(dados, to.id);
                 const rival = isBloqueadoPorCaminho(dados, to);
-                const cls = ["arvore-link", active ? "ativa" : "", rival ? "bloqueada-caminho" : "", conn.kind === "any" ? "opcional" : ""].filter(Boolean).join(" ");
-                return `<line class="${cls}" x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}"></line>`;
+                const compravel = isSkillUnlocked(dados, from.id) && !isSkillUnlocked(dados, to.id) && canBuySkill(dados, to, numSlotArvoreAberta).ok;
+                const cls = ["arvore-link", active ? "ativa" : "", compravel ? "compravel" : "", rival ? "bloqueada-caminho" : ""].filter(Boolean).join(" ");
+                return `<path class="${cls}" d="${d}" fill="none"></path>`;
             }).join("");
         }
 
@@ -2109,6 +2188,13 @@ window.toggleSidebarJogador = function(numSlot) {
                             <button onclick="resetArvoreCamera()">Resetar visão</button>
                             <span id="arvore-zoom-resumo">${Math.round(arvoreCamera.zoom * 100)}%</span>
                         </div>
+                    </div>
+                    <div class="arvore-legenda" aria-label="Legenda da árvore">
+                        <span><i class="legenda-forma legenda-passiva"></i> círculo = passiva</span>
+                        <span><i class="legenda-forma legenda-ativa"></i> losango = ativa</span>
+                        <span><i class="legenda-forma legenda-melhoria"></i> quadrado = melhoria</span>
+                        <span><i class="legenda-forma legenda-caminho"></i> hexágono = caminho</span>
+                        <span><i class="legenda-forma legenda-final"></i> selo maior = final</span>
                     </div>
                     <div class="arvore-main-layout">
                         <div class="arvore-viewport" id="arvore-viewport">

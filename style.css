@@ -2026,6 +2026,58 @@ input:focus, textarea:focus {
     font-size: 13px;
 }
 
+.arvore-legenda {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    padding: 8px 14px;
+    background: rgba(8,4,2,0.72);
+    border-bottom: 1px solid #2d1a0e;
+    color: #b89c72;
+    font-size: 11px;
+    font-weight: bold;
+}
+
+.arvore-legenda span {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+}
+
+.legenda-forma {
+    width: 16px;
+    height: 16px;
+    display: inline-block;
+    background: #090604;
+    border: 2px solid #8b6d43;
+    box-shadow: 0 0 8px rgba(0,0,0,0.5);
+}
+
+.legenda-passiva {
+    border-radius: 50%;
+}
+
+.legenda-ativa {
+    border-radius: 3px;
+    transform: rotate(45deg);
+}
+
+.legenda-melhoria {
+    border-radius: 3px;
+}
+
+.legenda-caminho {
+    clip-path: polygon(25% 3%, 75% 3%, 100% 50%, 75% 97%, 25% 97%, 0 50%);
+}
+
+.legenda-final {
+    width: 20px;
+    height: 20px;
+    clip-path: polygon(50% 0, 64% 17%, 86% 12%, 88% 36%, 100% 50%, 88% 64%, 86% 88%, 64% 83%, 50% 100%, 36% 83%, 14% 88%, 12% 64%, 0 50%, 12% 36%, 14% 12%, 36% 17%);
+}
+
 .arvore-zoom-controls button,
 .btn-comprar-skill {
     background: #1a0f0a;
@@ -2089,14 +2141,16 @@ input:focus, textarea:focus {
     opacity: 0.78;
 }
 
-.arvore-link.opcional {
-    stroke-dasharray: 8 10;
-}
-
 .arvore-link.ativa {
     stroke: #d4af37;
     opacity: 1;
     filter: drop-shadow(0 0 6px rgba(212,175,55,0.65));
+}
+
+.arvore-link.compravel {
+    stroke: #8b6d43;
+    opacity: 0.95;
+    filter: drop-shadow(0 0 4px rgba(212,175,55,0.28));
 }
 
 .arvore-link.bloqueada-caminho {
@@ -2118,6 +2172,10 @@ input:focus, textarea:focus {
     overflow: visible;
     cursor: pointer;
     z-index: 3;
+}
+
+.arvore-monge-shell .skill-node:hover {
+    transform: translate(-50%, -50%);
 }
 
 .arvore-monge-shell .skill-node::before {
@@ -2247,6 +2305,22 @@ input:focus, textarea:focus {
 .arvore-monge-shell .skill-node.selecionada::before {
     border-color: #f0d77a;
     box-shadow: 0 0 20px rgba(212,175,55,0.55), 0 8px 18px rgba(0,0,0,0.75);
+}
+
+.arvore-monge-shell .skill-node:hover::before {
+    background: #d4af37;
+    border-color: #f0d77a;
+    box-shadow: 0 0 24px rgba(212,175,55,0.78), inset 0 0 12px rgba(255,255,255,0.18);
+}
+
+.arvore-monge-shell .skill-node:hover .skill-icon {
+    color: #070402;
+}
+
+.arvore-monge-shell .skill-node:hover .skill-cost-badge {
+    background: #d4af37;
+    border-color: #070402;
+    color: #070402;
 }
 
 .arvore-detail-panel {
