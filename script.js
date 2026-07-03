@@ -1062,6 +1062,7 @@ function gerarHtmlHeroi(numSlot) {
                         <option value="Monge">Monge</option>
                     </select>
                 </div>
+                <div id="slot${numSlot}-caminho-arvore" class="caminho-arvore-ficha" style="grid-column: span 2;">Caminho: Nenhum escolhido</div>
                 <div><label>Gênero</label><input type="text" id="slot${numSlot}-genero" class="editavel-slot${numSlot}"></div>
                 
                 <!-- Árvore logo abaixo das caixas de texto -->
@@ -1776,6 +1777,460 @@ window.toggleSidebarJogador = function(numSlot) {
             modalArvore.style.display = "none";
         }
 
+        const ARVORE_ZOOM_MIN = 0.45;
+        const ARVORE_ZOOM_MAX = 1.5;
+        const ARVORE_ZOOM_STEP = 0.12;
+        const ARVORE_ESCOLHA_RIVAL_MSG = "Você fez sua escolha, agora viva com ela";
+        const ARVORE_CAMINHOS = {
+            punho: "Caminho do Punho",
+            ki: "Caminho do Ki Interior",
+            resiliencia: "Caminho da Resiliência"
+        };
+        const arvoreCamera = {
+            x: 80, y: 0, zoom: 0.72,
+            dragging: false, dragStartX: 0, dragStartY: 0,
+            startX: 0, startY: 0, mapBounds: null
+        };
+        let numSlotArvoreAberta = null;
+        let nodeArvoreSelecionado = null;
+
+        function treeNode(id, nome, tipo, grimorioTipo, custo, x, y, prereq, caminho, desc, iconClass, extra = {}) {
+            return { id, nome, tipo, grimorioTipo, custo, x, y, prereq: prereq || [], caminho: caminho || "", desc, iconClass, ...extra };
+        }
+
+        const SKILL_TREES = {
+            Monge: {
+                nodes: [
+                    treeNode("mon_fund_01", "Respiração Marcial", "passiva", "passiva", 1, 0, 0, [], "", "Controla a respiração para manter foco e constância em combate.", "icon-breath"),
+                    treeNode("mon_fund_02", "Postura do Monge", "melhoria", "melhoria", 1, 180, 0, ["mon_fund_01"], "", "Refina a base corporal e melhora a estabilidade durante técnicas.", "icon-stance"),
+                    treeNode("mon_fund_03", "Disciplina do Corpo", "passiva", "passiva", 1, 360, 0, ["mon_fund_02"], "", "Transforma treino repetido em resistência, controle e presença.", "icon-discipline"),
+                    treeNode("mon_fund_a", "Passo Leve", "passiva", "passiva", 1, 120, -180, [], "", "Movimenta-se com menos ruído e melhor recuperação de posição.", "icon-step"),
+                    treeNode("mon_fund_b", "Reflexo Sereno", "passiva", "passiva", 1, 260, -180, [], "", "Mantém calma sob pressão e reage com menos hesitação.", "icon-reflex"),
+                    treeNode("mon_fund_c", "Mente Clara", "melhoria", "melhoria", 1, 120, 180, [], "", "Organiza pensamento e intenção antes da ação.", "icon-mind"),
+                    treeNode("mon_fund_d", "Golpe Treinado", "ativa", "ativa", 1, 260, 180, [], "", "Um ataque simples, limpo e confiável para abrir sequências.", "icon-strike"),
+                    treeNode("mon_path_punho", "Caminho do Punho", "caminho", "", 1, 580, -260, ["mon_fund_03"], "punho", "Escolhe o Caminho do Punho. Os outros caminhos serão bloqueados.", "icon-path-punch"),
+                    treeNode("mon_path_res", "Caminho da Resiliência", "caminho", "", 1, 580, 260, ["mon_fund_03"], "resiliencia", "Escolhe o Caminho da Resiliência. Os outros caminhos serão bloqueados.", "icon-path-res"),
+                    treeNode("mon_path_ki", "Caminho do Ki Interior", "caminho", "", 1, 580, 0, [], "ki", "Escolhe o Caminho do Ki Interior após dominar duas fundações paralelas.", "icon-path-ki", {
+                        prereqAnyCount: { from: ["mon_fund_a", "mon_fund_b", "mon_fund_c", "mon_fund_d"], count: 2 }
+                    }),
+                    treeNode("mon_punho_01", "Punho Preciso", "passiva", "passiva", 2, 760, -260, ["mon_path_punho"], "punho", "Aprimora golpes diretos e reduz desperdício de movimento.", "icon-punch"),
+                    treeNode("mon_punho_02", "Sequência Rápida", "ativa", "ativa", 2, 940, -260, ["mon_punho_01"], "punho", "Permite encadear ataques curtos em uma abertura.", "icon-combo"),
+                    treeNode("mon_punho_03", "Pressão Constante", "melhoria", "melhoria", 2, 1120, -260, ["mon_punho_02"], "punho", "Mantém o inimigo reagindo e limita contra-ataques.", "icon-pressure"),
+                    treeNode("mon_punho_04", "Quebra-Guarda", "ativa", "ativa", 2, 1300, -340, ["mon_punho_03"], "punho", "Um golpe técnico para abrir defesas fechadas.", "icon-break"),
+                    treeNode("mon_punho_05", "Combo Crescente", "melhoria", "melhoria", 2, 1300, -180, ["mon_punho_03"], "punho", "Sequências bem-sucedidas aumentam o ritmo ofensivo.", "icon-rise"),
+                    treeNode("mon_punho_06", "Impacto Interno", "passiva", "passiva", 3, 1500, -260, ["mon_punho_04", "mon_punho_05"], "punho", "Canaliza força através da guarda e atinge pontos vitais.", "icon-impact"),
+                    treeNode("mon_punho_final", "Último Golpe do Punho", "final", "ativa", 3, 1720, -260, ["mon_punho_06"], "punho", "Finaliza uma sequência com um golpe concentrado e decisivo.", "icon-finish"),
+                    treeNode("mon_ki_01", "Reserva Interior", "passiva", "passiva", 2, 760, 0, ["mon_path_ki"], "ki", "Aumenta a consciência sobre energia interna e seu uso.", "icon-reserve"),
+                    treeNode("mon_ki_02", "Passo do Vento", "ativa", "ativa", 2, 940, -80, ["mon_ki_01"], "ki", "Usa ki para reposicionamento rápido e leve.", "icon-wind"),
+                    treeNode("mon_ki_03", "Canalizar Ki", "melhoria", "melhoria", 2, 940, 80, ["mon_ki_01"], "ki", "Melhora o controle entre mana, fôlego e intenção.", "icon-channel"),
+                    treeNode("mon_ki_04", "Palma Espiritual", "ativa", "ativa", 2, 1120, -80, ["mon_ki_02"], "ki", "Projeta energia concentrada através da palma.", "icon-palm"),
+                    treeNode("mon_ki_05", "Fluxo de Mana", "passiva", "passiva", 2, 1120, 80, ["mon_ki_03"], "ki", "Reduz oscilação energética e favorece técnicas longas.", "icon-flow"),
+                    treeNode("mon_ki_06", "Corpo Etéreo", "ativa", "ativa", 3, 1320, 0, ["mon_ki_04", "mon_ki_05"], "ki", "Por um instante, o corpo responde como se fosse mais leve que a dor.", "icon-ethereal"),
+                    treeNode("mon_ki_final", "Técnica do Ki Interior", "final", "ativa", 3, 1540, 0, ["mon_ki_06"], "ki", "Libera uma técnica espiritual plena, exigindo foco absoluto.", "icon-spirit"),
+                    treeNode("mon_res_01", "Corpo Inabalável", "passiva", "passiva", 2, 760, 260, ["mon_path_res"], "resiliencia", "Fortalece postura e tolerância contra impacto.", "icon-body"),
+                    treeNode("mon_res_02", "Defesa Circular", "ativa", "ativa", 2, 940, 180, ["mon_res_01"], "resiliencia", "Redireciona pressão inimiga com movimentos circulares.", "icon-circle"),
+                    treeNode("mon_res_03", "Pele de Pedra", "melhoria", "melhoria", 2, 940, 340, ["mon_res_01"], "resiliencia", "Treino físico endurece resposta contra dano direto.", "icon-stone"),
+                    treeNode("mon_res_04", "Fôlego de Ferro", "passiva", "passiva", 2, 1120, 180, ["mon_res_02"], "resiliencia", "Mantém ação mesmo após cansaço ou dor intensa.", "icon-breath-iron"),
+                    treeNode("mon_res_05", "Vontade Imóvel", "melhoria", "melhoria", 2, 1120, 340, ["mon_res_03"], "resiliencia", "Resiste melhor a medo, manipulação e colapso mental.", "icon-will"),
+                    treeNode("mon_res_06", "Recusar a Queda", "ativa", "ativa", 3, 1320, 260, ["mon_res_04", "mon_res_05"], "resiliencia", "Força o corpo a permanecer de pé quando deveria cair.", "icon-stand"),
+                    treeNode("mon_res_final", "Selo da Montanha Viva", "final", "passiva", 3, 1540, 260, ["mon_res_06"], "resiliencia", "A resistência do monge se torna uma presença quase imóvel.", "icon-mountain")
+                ]
+            }
+        };
+
+        function getSkillTreeForClass(classe) {
+            return SKILL_TREES[classe] || null;
+        }
+
+        function getTreeSkillById(classe, skillId) {
+            const tree = getSkillTreeForClass(classe);
+            return tree?.nodes?.find(n => n.id === skillId) || null;
+        }
+
+        function getArvoreDataFromFicha(dados = {}) {
+            const arvore = dados.arvore || {};
+            return {
+                classe: arvore.classe || dados.classe || "",
+                caminhoEscolhido: arvore.caminhoEscolhido || "",
+                habilidadesDesbloqueadas: { ...(arvore.habilidadesDesbloqueadas || {}) }
+            };
+        }
+
+        function getNomeCaminhoArvore(dados = {}) {
+            const arvore = getArvoreDataFromFicha(dados);
+            return ARVORE_CAMINHOS[arvore.caminhoEscolhido] || "Nenhum escolhido";
+        }
+
+        function isSkillUnlocked(dados, skillId) {
+            return Boolean(getArvoreDataFromFicha(dados).habilidadesDesbloqueadas?.[skillId]);
+        }
+
+        function getPontosAprendizagem(dados = {}) {
+            const classe = dados.classe || getArvoreDataFromFicha(dados).classe;
+            const tree = getSkillTreeForClass(classe);
+            const unlocked = getArvoreDataFromFicha(dados).habilidadesDesbloqueadas;
+            const total = getLevelData(toNumber(dados.expTotal, 0)).level;
+            const gastos = tree ? tree.nodes.reduce((sum, skill) => sum + (unlocked[skill.id] ? toNumber(skill.custo, 0) : 0), 0) : 0;
+            return { total, gastos, disponiveis: total - gastos };
+        }
+
+        function checkPrereqs(dados, skill) {
+            const faltando = (skill.prereq || []).filter(id => !isSkillUnlocked(dados, id));
+            const anyRule = skill.prereqAnyCount;
+            let anyOk = true;
+            if(anyRule?.from?.length) {
+                const anyCount = anyRule.from.filter(id => isSkillUnlocked(dados, id)).length;
+                anyOk = anyCount >= toNumber(anyRule.count, 0);
+            }
+            return { ok: faltando.length === 0 && anyOk, faltando, anyOk };
+        }
+
+        function isBloqueadoPorCaminho(dados, skill) {
+            const escolhido = getArvoreDataFromFicha(dados).caminhoEscolhido;
+            return Boolean(escolhido && skill?.caminho && skill.caminho !== escolhido);
+        }
+
+        function canBuySkill(dados, skill, numSlot) {
+            if(!skill) return { ok: false, motivo: "Habilidade inválida." };
+            const slot = slotsDeVisao[Number(numSlot)];
+            const arvore = getArvoreDataFromFicha(dados);
+            if(usuarioAtual?.cargo === "Mestre") return { ok: false, motivo: "Mestre pode inspecionar, mas não comprar habilidades nesta etapa." };
+            if(!slot?.idFicha || usuarioAtual?.idFicha !== slot.idFicha) return { ok: false, motivo: "Você só pode comprar habilidades da própria ficha." };
+            if((dados.classe || arvore.classe) !== "Monge") return { ok: false, motivo: "Este protótipo só está disponível para Monge." };
+            if(isSkillUnlocked(dados, skill.id)) return { ok: false, motivo: "Habilidade já desbloqueada." };
+            if(isBloqueadoPorCaminho(dados, skill)) return { ok: false, motivo: ARVORE_ESCOLHA_RIVAL_MSG, rival: true };
+            if(skill.tipo === "caminho" && arvore.caminhoEscolhido) return { ok: false, motivo: ARVORE_ESCOLHA_RIVAL_MSG, rival: true };
+            if(skill.tipo !== "caminho" && skill.caminho && arvore.caminhoEscolhido !== skill.caminho) return { ok: false, motivo: "Escolha este caminho antes de comprar esta habilidade." };
+            if(!checkPrereqs(dados, skill).ok) return { ok: false, motivo: "Pré-requisitos incompletos." };
+            if(getPontosAprendizagem(dados).disponiveis < toNumber(skill.custo, 0)) return { ok: false, motivo: "Pontos de Aprendizagem insuficientes." };
+            return { ok: true, motivo: "Disponível para compra." };
+        }
+
+        function criarEntradaGrimorioDaArvore(skill) {
+            if(!skill.grimorioTipo) return null;
+            return normalizeHabV1(skill.id, {
+                nome: skill.nome,
+                desc: skill.desc,
+                tipo: skill.grimorioTipo,
+                alvo: "self",
+                targetMode: "self",
+                ap: 0,
+                mana: 0,
+                icon: "SK",
+                treeSkill: true,
+                sourceClass: "Monge",
+                isSystemObj: false,
+                equipada: skill.grimorioTipo === "passiva" || skill.grimorioTipo === "melhoria"
+            });
+        }
+
+        function gerarConexoesArvore(tree) {
+            const conexoes = [];
+            tree.nodes.forEach(node => {
+                (node.prereq || []).forEach(from => conexoes.push({ from, to: node.id, kind: "required" }));
+                (node.prereqAnyCount?.from || []).forEach(from => conexoes.push({ from, to: node.id, kind: "any" }));
+            });
+            return conexoes;
+        }
+
+        function calcularLayoutArvore(tree) {
+            const xs = tree.nodes.map(n => n.x);
+            const ys = tree.nodes.map(n => n.y);
+            const padding = 180;
+            const minX = Math.min(...xs) - padding;
+            const maxX = Math.max(...xs) + padding;
+            const minY = Math.min(...ys) - padding;
+            const maxY = Math.max(...ys) + padding;
+            return { minX, maxX, minY, maxY, width: maxX - minX, height: maxY - minY };
+        }
+
+        function posNode(node, layout) {
+            return { x: node.x - layout.minX, y: node.y - layout.minY };
+        }
+
+        function getNodeState(dados, skill, numSlot) {
+            if(isSkillUnlocked(dados, skill.id)) return "desbloqueada";
+            const check = canBuySkill(dados, skill, numSlot);
+            if(check.rival) return "bloqueada-caminho";
+            return check.ok ? "compravel" : "bloqueada";
+        }
+
+        function getSkillSymbol(skill) {
+            if(skill.tipo === "passiva") return "P";
+            if(skill.tipo === "ativa") return "A";
+            if(skill.tipo === "melhoria") return "+";
+            if(skill.tipo === "caminho") return "C";
+            if(skill.tipo === "final") return "F";
+            return "*";
+        }
+
+        function renderSkillConnections(tree, dados, layout) {
+            const byId = Object.fromEntries(tree.nodes.map(n => [n.id, n]));
+            return gerarConexoesArvore(tree).map(conn => {
+                const from = byId[conn.from];
+                const to = byId[conn.to];
+                if(!from || !to) return "";
+                const a = posNode(from, layout);
+                const b = posNode(to, layout);
+                const active = isSkillUnlocked(dados, from.id) && isSkillUnlocked(dados, to.id);
+                const rival = isBloqueadoPorCaminho(dados, to);
+                const cls = ["arvore-link", active ? "ativa" : "", rival ? "bloqueada-caminho" : "", conn.kind === "any" ? "opcional" : ""].filter(Boolean).join(" ");
+                return `<line class="${cls}" x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}"></line>`;
+            }).join("");
+        }
+
+        function renderSkillNode(skill, dados, numSlot, layout) {
+            const pos = posNode(skill, layout);
+            const state = getNodeState(dados, skill, numSlot);
+            const title = state === "bloqueada-caminho" ? ARVORE_ESCOLHA_RIVAL_MSG : skill.nome;
+            return `
+                <button class="skill-node node-${skill.tipo} ${state} ${escapeHtml(skill.iconClass)}"
+                    style="left:${pos.x}px; top:${pos.y}px;"
+                    data-skill-id="${escapeHtml(skill.id)}"
+                    title="${escapeHtml(title)}"
+                    onmouseenter="previewSkillTreeNode(${numSlot}, '${escapeHtml(skill.id)}')"
+                    onclick="selectSkillTreeNode(${numSlot}, '${escapeHtml(skill.id)}')">
+                    <span class="skill-icon">${escapeHtml(getSkillSymbol(skill))}</span>
+                    <span class="skill-cost-badge">${escapeHtml(skill.custo)}</span>
+                    <span class="skill-name">${escapeHtml(skill.nome)}</span>
+                </button>
+            `;
+        }
+
+        function getPrereqLabels(skill, tree) {
+            const labels = (skill.prereq || []).map(id => tree.nodes.find(n => n.id === id)?.nome || id);
+            if(skill.prereqAnyCount?.from?.length) {
+                const nomes = skill.prereqAnyCount.from.map(id => tree.nodes.find(n => n.id === id)?.nome || id);
+                labels.push(`${skill.prereqAnyCount.count} de: ${nomes.join(", ")}`);
+            }
+            return labels;
+        }
+
+        function renderSkillDetailPanel(numSlot, skillId) {
+            const slot = slotsDeVisao[Number(numSlot)];
+            const dados = slot?.dados || {};
+            const tree = getSkillTreeForClass(dados.classe || "Monge");
+            const panel = document.getElementById("arvore-detail-panel");
+            if(!panel || !tree) return;
+            const skill = tree.nodes.find(n => n.id === skillId) || tree.nodes[0];
+            nodeArvoreSelecionado = skill.id;
+            const state = getNodeState(dados, skill, numSlot);
+            const check = canBuySkill(dados, skill, numSlot);
+            const tipoLabel = { passiva: "Passiva", ativa: "Ativa", melhoria: "Melhoria", caminho: "Escolha de Caminho", final: "Habilidade Final" }[skill.tipo] || skill.tipo;
+            const estadoLabel = state === "desbloqueada" ? "Desbloqueada" : (state === "compravel" ? "Comprável" : (state === "bloqueada-caminho" ? "Caminho bloqueado" : "Bloqueada"));
+            const prereqs = getPrereqLabels(skill, tree);
+            const buyHtml = check.ok ? `<button class="btn-comprar-skill" onclick="buySkill(${numSlot}, '${escapeHtml(skill.id)}')">Comprar</button>` : "";
+            panel.innerHTML = `
+                <div class="arvore-detail-kicker">${escapeHtml(tipoLabel)}</div>
+                <h3>${escapeHtml(skill.nome)}</h3>
+                <div class="arvore-detail-meta"><span>Custo: ${escapeHtml(skill.custo)} PA</span><span>Estado: ${escapeHtml(estadoLabel)}</span></div>
+                <p>${escapeHtml(skill.desc)}</p>
+                <div class="arvore-detail-block"><strong>Pré-requisitos</strong><span>${prereqs.length ? escapeHtml(prereqs.join(" | ")) : "Nenhum"}</span></div>
+                <div class="arvore-detail-block"><strong>Resultado</strong><span>${escapeHtml(check.motivo)}</span></div>
+                ${state === "bloqueada-caminho" ? `<div class="arvore-rival-msg">${ARVORE_ESCOLHA_RIVAL_MSG}</div>` : ""}
+                ${buyHtml}
+            `;
+            document.querySelectorAll(".arvore-monge-shell .skill-node.selecionada").forEach(el => el.classList.remove("selecionada"));
+            document.querySelector(`.arvore-monge-shell .skill-node[data-skill-id="${skill.id}"]`)?.classList.add("selecionada");
+        }
+
+        function setArvoreCamera(x, y, zoom) {
+            arvoreCamera.x = toNumber(x, arvoreCamera.x);
+            arvoreCamera.y = toNumber(y, arvoreCamera.y);
+            arvoreCamera.zoom = clamp(zoom, ARVORE_ZOOM_MIN, ARVORE_ZOOM_MAX);
+            const map = document.getElementById("arvore-map");
+            if(map) map.style.transform = `translate(${arvoreCamera.x}px, ${arvoreCamera.y}px) scale(${arvoreCamera.zoom})`;
+            const zoomEl = document.getElementById("arvore-zoom-resumo");
+            if(zoomEl) zoomEl.textContent = `${Math.round(arvoreCamera.zoom * 100)}%`;
+        }
+
+        function resetArvoreCamera() {
+            const viewport = document.getElementById("arvore-viewport");
+            const layout = arvoreCamera.mapBounds;
+            const startX = viewport && layout ? Math.max(40, viewport.clientWidth * 0.12) : 80;
+            const startY = viewport && layout ? (viewport.clientHeight - layout.height * 0.72) / 2 : 0;
+            setArvoreCamera(startX, startY, 0.72);
+        }
+
+        window.resetArvoreCamera = resetArvoreCamera;
+        window.zoomArvore = function(delta) {
+            setArvoreCamera(arvoreCamera.x, arvoreCamera.y, arvoreCamera.zoom + delta);
+        };
+
+        function bindArvorePanZoom() {
+            const viewport = document.getElementById("arvore-viewport");
+            if(!viewport) return;
+            viewport.onwheel = (e) => {
+                e.preventDefault();
+                if(e.ctrlKey) {
+                    setArvoreCamera(arvoreCamera.x, arvoreCamera.y, arvoreCamera.zoom + (e.deltaY > 0 ? -ARVORE_ZOOM_STEP : ARVORE_ZOOM_STEP));
+                } else {
+                    setArvoreCamera(arvoreCamera.x - e.deltaY, arvoreCamera.y, arvoreCamera.zoom);
+                }
+            };
+            viewport.onpointerdown = (e) => {
+                if(e.button !== 0) return;
+                arvoreCamera.dragging = true;
+                arvoreCamera.dragStartX = e.clientX;
+                arvoreCamera.dragStartY = e.clientY;
+                arvoreCamera.startX = arvoreCamera.x;
+                arvoreCamera.startY = arvoreCamera.y;
+                viewport.setPointerCapture(e.pointerId);
+                viewport.classList.add("arrastando");
+            };
+            viewport.onpointermove = (e) => {
+                if(!arvoreCamera.dragging) return;
+                setArvoreCamera(arvoreCamera.startX + (e.clientX - arvoreCamera.dragStartX), arvoreCamera.startY + (e.clientY - arvoreCamera.dragStartY), arvoreCamera.zoom);
+            };
+            viewport.onpointerup = (e) => {
+                arvoreCamera.dragging = false;
+                viewport.classList.remove("arrastando");
+                try { viewport.releasePointerCapture(e.pointerId); } catch (_) {}
+            };
+            viewport.onpointercancel = () => {
+                arvoreCamera.dragging = false;
+                viewport.classList.remove("arrastando");
+            };
+        }
+
+        function renderSkillTree(numSlot, dados) {
+            const tree = getSkillTreeForClass(dados.classe);
+            const layout = calcularLayoutArvore(tree);
+            arvoreCamera.mapBounds = layout;
+            const pontos = getPontosAprendizagem(dados);
+            return `
+                <div class="arvore-monge-shell">
+                    <div class="arvore-toolbar">
+                        <div><span class="arvore-toolbar-label">Pontos de Aprendizagem</span><strong id="arvore-pa-resumo">${pontos.disponiveis} disponíveis / ${pontos.total} totais</strong></div>
+                        <div><span class="arvore-toolbar-label">Caminho</span><strong id="arvore-caminho-resumo">${escapeHtml(getNomeCaminhoArvore(dados))}</strong></div>
+                        <div class="arvore-zoom-controls">
+                            <button onclick="zoomArvore(${ARVORE_ZOOM_STEP})">+</button>
+                            <button onclick="zoomArvore(${-ARVORE_ZOOM_STEP})">-</button>
+                            <button onclick="resetArvoreCamera()">Resetar visão</button>
+                            <span id="arvore-zoom-resumo">${Math.round(arvoreCamera.zoom * 100)}%</span>
+                        </div>
+                    </div>
+                    <div class="arvore-main-layout">
+                        <div class="arvore-viewport" id="arvore-viewport">
+                            <div class="arvore-map" id="arvore-map" style="width:${layout.width}px;height:${layout.height}px;">
+                                <svg class="arvore-connections" width="${layout.width}" height="${layout.height}" viewBox="0 0 ${layout.width} ${layout.height}" aria-hidden="true">${renderSkillConnections(tree, dados, layout)}</svg>
+                                ${tree.nodes.map(skill => renderSkillNode(skill, dados, numSlot, layout)).join("")}
+                            </div>
+                        </div>
+                        <aside class="arvore-detail-panel" id="arvore-detail-panel"></aside>
+                    </div>
+                </div>
+            `;
+        }
+
+        window.previewSkillTreeNode = function(numSlot, skillId) {
+            const dados = slotsDeVisao[Number(numSlot)]?.dados || {};
+            const skill = getTreeSkillById(dados.classe || "Monge", skillId);
+            if(skill && isBloqueadoPorCaminho(dados, skill)) renderSkillDetailPanel(numSlot, skillId);
+        };
+
+        window.selectSkillTreeNode = function(numSlot, skillId) {
+            renderSkillDetailPanel(numSlot, skillId);
+        };
+
+        function renderizarCaminhoNaFicha(numSlot, dados = {}) {
+            const el = document.getElementById(`slot${numSlot}-caminho-arvore`);
+            if(el) el.textContent = `Caminho: ${getNomeCaminhoArvore(dados)}`;
+        }
+
+        function renderizarArvoreAberta(numSlot, dados, selectedSkillId) {
+            const view = document.querySelector("#arvore-views-container .arvore-view.ativa");
+            if(!view || !getSkillTreeForClass(dados.classe)) return;
+            view.innerHTML = renderSkillTree(numSlot, dados);
+            bindArvorePanZoom();
+            setArvoreCamera(arvoreCamera.x, arvoreCamera.y, arvoreCamera.zoom);
+            renderSkillDetailPanel(numSlot, selectedSkillId || nodeArvoreSelecionado || "mon_fund_01");
+        }
+
+        window.buySkill = async function(numSlot, skillId) {
+            numSlot = Number(numSlot);
+            const slot = slotsDeVisao[numSlot];
+            const idFicha = slot?.idFicha;
+            if(!idFicha) return alert("Ficha não encontrada.");
+            if(usuarioAtual?.cargo === "Mestre") return alert("Mestre pode inspecionar, mas não comprar habilidades nesta etapa.");
+            if(usuarioAtual?.idFicha !== idFicha) return alert("Você só pode comprar habilidades da própria ficha.");
+            const skill = getTreeSkillById(slot.dados?.classe || "Monge", skillId);
+            const precheck = canBuySkill(slot.dados || {}, skill, numSlot);
+            if(!precheck.ok) return alert(precheck.motivo);
+
+            const resultado = await safeTransaction(`fichas/${idFicha}`, (dadosAtuais) => {
+                if(!dadosAtuais) return;
+                const skillAtual = getTreeSkillById(dadosAtuais.classe || "Monge", skillId);
+                const check = canBuySkill(dadosAtuais, skillAtual, numSlot);
+                if(!check.ok) return;
+                const arvore = getArvoreDataFromFicha(dadosAtuais);
+                const novaArvore = {
+                    classe: "Monge",
+                    caminhoEscolhido: skillAtual.tipo === "caminho" ? skillAtual.caminho : arvore.caminhoEscolhido,
+                    habilidadesDesbloqueadas: { ...arvore.habilidadesDesbloqueadas, [skillId]: true }
+                };
+                const grimorio = { ...(dadosAtuais.grimorio || {}) };
+                const entrada = criarEntradaGrimorioDaArvore(skillAtual);
+                if(entrada && !grimorio[skillAtual.id]) grimorio[skillAtual.id] = entrada;
+                return { ...dadosAtuais, arvore: novaArvore, grimorio };
+            });
+            if(!resultado.committed) return alert("Não foi possível comprar esta habilidade. Confira pontos e pré-requisitos.");
+            const dadosNovos = resultado.snapshot.val() || {};
+            slotsDeVisao[numSlot].dados = dadosNovos;
+            renderizarArvoreAberta(numSlot, dadosNovos, skillId);
+            renderizarCaminhoNaFicha(numSlot, dadosNovos);
+        };
+
+        window.abrirArvoreHabilidades = function(numSlot) {
+            numSlot = Number(numSlot);
+            const selectClasse = document.getElementById(`slot${numSlot}-classe`);
+            const dados = slotsDeVisao[numSlot]?.dados || {};
+            const classeEscolhida = selectClasse ? selectClasse.value : (dados.classe || "");
+            if (!classeEscolhida) {
+                alert("Escolha uma Classe primeiro na ficha para liberar sua árvore de melhorias!");
+                return;
+            }
+            numSlotArvoreAberta = numSlot;
+            nodeArvoreSelecionado = null;
+            const tabsContainer = document.getElementById("arvore-tabs-container");
+            const viewsContainer = document.getElementById("arvore-views-container");
+            tabsContainer.innerHTML = "";
+            viewsContainer.innerHTML = "";
+            classesRpg.forEach(classe => {
+                const isEscolhida = (classe === classeEscolhida);
+                const tab = document.createElement("button");
+                tab.className = `tab-classe ${isEscolhida ? "ativa" : "bloqueada"}`;
+                tab.innerText = classe;
+                tabsContainer.appendChild(tab);
+                const view = document.createElement("div");
+                view.className = `arvore-view ${isEscolhida ? "ativa" : ""}`;
+                if(isEscolhida) {
+                    const dadosView = { ...dados, classe: classeEscolhida };
+                    view.innerHTML = getSkillTreeForClass(classeEscolhida)
+                        ? renderSkillTree(numSlot, dadosView)
+                        : `<div class="arvore-empty-state"><h3>${escapeHtml(classeEscolhida)}</h3><p>Protótipo real disponível primeiro para Monge.</p></div>`;
+                }
+                viewsContainer.appendChild(view);
+            });
+            const modalArvore = document.getElementById("modal-arvore");
+            modalArvore.style.display = "flex";
+            void modalArvore.offsetWidth;
+            modalArvore.classList.add("aberto");
+            if(getSkillTreeForClass(classeEscolhida)) {
+                bindArvorePanZoom();
+                resetArvoreCamera();
+                renderSkillDetailPanel(numSlot, "mon_fund_01");
+            }
+        };
+
+        window.fecharArvore = function() {
+            const modalArvore = document.getElementById("modal-arvore");
+            modalArvore.classList.remove("aberto");
+            modalArvore.style.display = "none";
+            numSlotArvoreAberta = null;
+            nodeArvoreSelecionado = null;
+        };
+
         window.aplicarExpLote = async function() {
             if(usuarioAtual.cargo !== "Mestre") return;
             const amount = Number(document.getElementById('exp-amount-input').value);
@@ -1956,6 +2411,10 @@ window.toggleSidebarJogador = function(numSlot) {
                     expText.innerText = `${levelData.currentExp} / ${levelData.requiredForNext}`;
                     let glow = percExp / 6;
                     expText.style.textShadow = `0 0 ${glow}px rgba(255, 215, 0, 0.9), 1px 1px 2px black`;
+                    renderizarCaminhoNaFicha(numSlot, dados);
+                    if(numSlotArvoreAberta === numSlot && getSkillTreeForClass(dados.classe)) {
+                        renderizarArvoreAberta(numSlot, dados, nodeArvoreSelecionado || "mon_fund_01");
+                    }
                     
                     // Lógica para Ouro Derretido que cresce com XP
                     const elBarra = document.getElementById(`bar-exp-slot${numSlot}`);
@@ -2581,7 +3040,7 @@ window.toggleSidebarJogador = function(numSlot) {
                     let nomeHabHtml = escapeHtml(hab.nome || habId);
                     let formulaHabHtml = escapeHtml(hab.formula || '');
 
-                    if(hab.tipo === 'passiva') {
+                    if(hab.tipo === 'passiva' || hab.tipo === 'melhoria') {
                         let iconUrl = `Icones/${habId}.png`;
                         let descHabHtml = escapeHtml(hab.desc || '');
                         let tooltipHabHtml = escapeHtml(`${hab.nome || habId}${hab.desc ? ': ' + hab.desc : ''}`);
@@ -2627,6 +3086,12 @@ window.toggleSidebarJogador = function(numSlot) {
             divAtivas.innerHTML = '';
             divPassivas.innerHTML = '';
             
+            const dadosFicha = slotsDeVisao[numSlot]?.dados || {};
+            const metaArvore = document.getElementById('grimorio-meta-arvore');
+            if(metaArvore) {
+                metaArvore.textContent = `Classe: ${dadosFicha.classe || 'Nenhuma'} · Caminho: ${getNomeCaminhoArvore(dadosFicha)}`;
+            }
+
             const temPermissao = (usuarioAtual.cargo === "Mestre") || (usuarioAtual.idFicha === slotsDeVisao[numSlot].idFicha);
             
             for(let habId in grimorio) {
@@ -2640,12 +3105,12 @@ window.toggleSidebarJogador = function(numSlot) {
                 const formulaHtml = escapeHtml(hab.formula || '');
                 
                 let btnEquiparHtml = '';
-                // Passivas nunca recebem botão de equipar (sempre ativas nativamente)
-                if(temPermissao && hab.tipo !== 'passiva') {
+                // Passivas e melhorias nunca recebem botão de equipar (sempre ativas nativamente)
+                if(temPermissao && hab.tipo !== 'passiva' && hab.tipo !== 'melhoria' && !(hab.treeSkill && usuarioAtual.cargo === "Mestre")) {
                     btnEquiparHtml = `<button onclick="toggleEquiparHabilidade(${numSlot}, '${habId}')" class="btn-equipar-visual">${isEquipada ? 'Desequipar' : 'Equipar'}</button>`;
                 }
                 
-                let delHtml = temPermissao ? `<button onclick="deletarHabilidade(${numSlot}, '${habId}')" style="position: absolute; top: 10px; right: 10px; background:none; border:none; color:#8c1c13; cursor:pointer; font-size: 16px;" title="Apagar Habilidade">🗑️</button>` : '';
+                let delHtml = (temPermissao && !hab.treeSkill) ? `<button onclick="deletarHabilidade(${numSlot}, '${habId}')" style="position: absolute; top: 10px; right: 10px; background:none; border:none; color:#8c1c13; cursor:pointer; font-size: 16px;" title="Apagar Habilidade">🗑️</button>` : '';
                 
                 let iconUrl = `Icones/${habId}.png`;
                 let cardHtml = `
@@ -2658,7 +3123,7 @@ window.toggleSidebarJogador = function(numSlot) {
                         <div class="skill-data-visual">
                             <div class="skill-title-visual">${nomeHabHtml}</div>
                             <div class="skill-stats-visual" style="font-size: 11px; color:#dcd0ba; margin-bottom:5px;">
-                                <span>${hab.tipo === 'passiva' ? '🔒 Passiva' : '⚡ Ativa'} · Efeito: ${effectKindHtml} · Alvo: ${alvoHtml}</span>
+                                <span>${hab.tipo === 'passiva' ? '🔒 Passiva' : (hab.tipo === 'melhoria' ? '+ Melhoria' : '⚡ Ativa')} · Efeito: ${effectKindHtml} · Alvo: ${alvoHtml}</span>
                                 ${hab.formula ? `<span style="display:block; color:#d4af37; margin-top:3px;">Fórmula: ${formulaHtml}</span>` : ''}
                             </div>
                             <div class="skill-desc-visual">${descHabHtml}</div>
@@ -2667,7 +3132,7 @@ window.toggleSidebarJogador = function(numSlot) {
                     </div>
                 `;
                 
-                if(hab.tipo === 'passiva') divPassivas.innerHTML += cardHtml;
+                if(hab.tipo === 'passiva' || hab.tipo === 'melhoria') divPassivas.innerHTML += cardHtml;
                 else divAtivas.innerHTML += cardHtml;
             }
         }
@@ -2678,6 +3143,8 @@ window.toggleSidebarJogador = function(numSlot) {
             safeGet(`fichas/${idFicha}/grimorio/${habId}`).then(snap => {
                 if(snap.exists()) {
                     let hab = snap.val();
+                    if(hab.treeSkill && usuarioAtual.cargo === "Mestre") return alert("Mestre pode inspecionar, mas não alterar habilidades da árvore nesta etapa.");
+                    if(hab.treeSkill && hab.tipo === 'melhoria') return;
                     safeUpdate(`fichas/${idFicha}/grimorio/${habId}`, { equipada: !hab.equipada });
                 }
             });
@@ -2808,10 +3275,15 @@ window.toggleSidebarJogador = function(numSlot) {
         };
 
         window.deletarHabilidade = function(numSlot, habId) {
-            if(confirm("Tem certeza que deseja apagar essa habilidade do grimório?")) {
-                const idFicha = slotsDeVisao[numSlot].idFicha;
-                safeRemove(`fichas/${idFicha}/grimorio/${habId}`);
-            }
+            const idFicha = slotsDeVisao[numSlot].idFicha;
+            if(!idFicha) return;
+            safeGet(`fichas/${idFicha}/grimorio/${habId}`).then(snap => {
+                if(!snap.exists()) return;
+                if(snap.val()?.treeSkill) return alert("Habilidades da árvore não podem ser removidas pelo Grimório.");
+                if(confirm("Tem certeza que deseja apagar essa habilidade do grimório?")) {
+                    safeRemove(`fichas/${idFicha}/grimorio/${habId}`);
+                }
+            });
         };
 
         function stableStringify(value) {

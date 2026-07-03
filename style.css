@@ -1940,3 +1940,401 @@ input:focus, textarea:focus {
         animation: none;
     }
 }
+
+/* ÁRVORE REAL DO MONGE */
+.caminho-arvore-ficha {
+    color: #d4af37;
+    background: rgba(0,0,0,0.35);
+    border: 1px solid #3a2212;
+    border-radius: 4px;
+    padding: 7px 10px;
+    font-size: 12px;
+    font-weight: bold;
+    text-align: center;
+    letter-spacing: 0;
+}
+
+.grimorio-meta-arvore {
+    color: #b89c72;
+    font-size: 12px;
+    margin-top: 4px;
+    letter-spacing: 0;
+    text-transform: none;
+}
+
+#modal-arvore .arvore-container {
+    width: 94vw;
+    max-width: 1280px;
+    height: 88vh;
+}
+
+#modal-arvore .arvore-header {
+    padding: 16px 20px 12px;
+}
+
+#modal-arvore .arvore-content {
+    padding: 0;
+    overflow: hidden;
+    align-items: stretch;
+    justify-content: stretch;
+}
+
+#modal-arvore .arvore-view.ativa {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: stretch;
+    justify-content: stretch;
+}
+
+.arvore-monge-shell {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    min-height: 0;
+}
+
+.arvore-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 14px;
+    background: rgba(0,0,0,0.45);
+    border-bottom: 1px solid #3a2212;
+    color: #dcd0ba;
+    flex-wrap: wrap;
+}
+
+.arvore-toolbar > div {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.arvore-toolbar-label {
+    color: #9c8464;
+    font-size: 11px;
+    text-transform: uppercase;
+    font-weight: bold;
+}
+
+.arvore-toolbar strong {
+    color: #d4af37;
+    font-size: 13px;
+}
+
+.arvore-zoom-controls button,
+.btn-comprar-skill {
+    background: #1a0f0a;
+    border: 1px solid #8b6d43;
+    color: #d4af37;
+    border-radius: 4px;
+    cursor: pointer;
+    font-family: Georgia, serif;
+    font-weight: bold;
+    padding: 7px 10px;
+}
+
+.arvore-zoom-controls button:hover,
+.btn-comprar-skill:hover {
+    background: #d4af37;
+    color: #140c08;
+}
+
+.arvore-main-layout {
+    flex: 1;
+    min-height: 0;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 290px;
+}
+
+.arvore-viewport {
+    position: relative;
+    overflow: hidden;
+    cursor: grab;
+    background:
+        linear-gradient(rgba(212,175,55,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(212,175,55,0.03) 1px, transparent 1px),
+        radial-gradient(circle at center, #1c130d 0%, #0a0503 100%);
+    background-size: 72px 72px, 72px 72px, auto;
+    touch-action: none;
+}
+
+.arvore-viewport.arrastando {
+    cursor: grabbing;
+}
+
+.arvore-map {
+    position: absolute;
+    left: 0;
+    top: 0;
+    transform-origin: 0 0;
+    transition: transform 0.06s linear;
+}
+
+.arvore-connections {
+    position: absolute;
+    inset: 0;
+    overflow: visible;
+    z-index: 1;
+}
+
+.arvore-link {
+    stroke: #3a2212;
+    stroke-width: 5;
+    stroke-linecap: round;
+    opacity: 0.78;
+}
+
+.arvore-link.opcional {
+    stroke-dasharray: 8 10;
+}
+
+.arvore-link.ativa {
+    stroke: #d4af37;
+    opacity: 1;
+    filter: drop-shadow(0 0 6px rgba(212,175,55,0.65));
+}
+
+.arvore-link.bloqueada-caminho {
+    stroke: #080604;
+    opacity: 0.55;
+    filter: none;
+}
+
+.arvore-monge-shell .skill-node {
+    position: absolute;
+    width: 78px;
+    height: 78px;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+    transform: translate(-50%, -50%);
+    overflow: visible;
+    cursor: pointer;
+    z-index: 3;
+}
+
+.arvore-monge-shell .skill-node::before {
+    content: "";
+    position: absolute;
+    inset: 8px;
+    background: #090604;
+    border: 3px solid #5c3a21;
+    box-shadow: 0 6px 16px rgba(0,0,0,0.75);
+    transition: 0.18s ease;
+}
+
+.arvore-monge-shell .node-passiva::before {
+    border-radius: 50%;
+}
+
+.arvore-monge-shell .node-ativa::before {
+    border-radius: 5px;
+    transform: rotate(45deg);
+}
+
+.arvore-monge-shell .node-melhoria::before {
+    border-radius: 4px;
+}
+
+.arvore-monge-shell .node-caminho::before {
+    clip-path: polygon(25% 3%, 75% 3%, 100% 50%, 75% 97%, 25% 97%, 0 50%);
+}
+
+.arvore-monge-shell .node-final {
+    width: 96px;
+    height: 96px;
+}
+
+.arvore-monge-shell .node-final::before {
+    inset: 6px;
+    clip-path: polygon(50% 0, 64% 17%, 86% 12%, 88% 36%, 100% 50%, 88% 64%, 86% 88%, 64% 83%, 50% 100%, 36% 83%, 14% 88%, 12% 64%, 0 50%, 12% 36%, 14% 12%, 36% 17%);
+}
+
+.arvore-monge-shell .skill-icon {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #9c8464;
+    font-size: 22px;
+    font-weight: bold;
+    z-index: 2;
+}
+
+.arvore-monge-shell .skill-cost-badge {
+    position: absolute;
+    right: 2px;
+    top: 2px;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: #140c08;
+    border: 1px solid #8b6d43;
+    color: #d4af37;
+    font-size: 11px;
+    font-weight: bold;
+    z-index: 4;
+}
+
+.arvore-monge-shell .skill-name {
+    position: absolute;
+    left: 50%;
+    top: 78px;
+    transform: translateX(-50%);
+    width: 126px;
+    color: #b89c72;
+    font-size: 11px;
+    font-weight: bold;
+    line-height: 1.1;
+    text-align: center;
+    text-shadow: 1px 1px 2px #000;
+    pointer-events: none;
+}
+
+.arvore-monge-shell .node-final .skill-name {
+    top: 96px;
+    color: #d4af37;
+}
+
+.arvore-monge-shell .skill-node.compravel::before {
+    border-color: #b89c72;
+    box-shadow: 0 0 12px rgba(212,175,55,0.22), 0 8px 18px rgba(0,0,0,0.75);
+}
+
+.arvore-monge-shell .skill-node.desbloqueada::before {
+    background: #2b1a0f;
+    border-color: #d4af37;
+    box-shadow: 0 0 22px rgba(212,175,55,0.72), inset 0 0 18px rgba(212,175,55,0.14);
+}
+
+.arvore-monge-shell .skill-node.desbloqueada .skill-icon,
+.arvore-monge-shell .skill-node.desbloqueada .skill-name {
+    color: #d4af37;
+}
+
+.arvore-monge-shell .skill-node.bloqueada {
+    opacity: 0.46;
+}
+
+.arvore-monge-shell .skill-node.bloqueada-caminho {
+    opacity: 1;
+}
+
+.arvore-monge-shell .skill-node.bloqueada-caminho::before {
+    background: #030201;
+    border-color: #120c08;
+    box-shadow: none;
+    filter: grayscale(1);
+}
+
+.arvore-monge-shell .skill-node.bloqueada-caminho .skill-icon,
+.arvore-monge-shell .skill-node.bloqueada-caminho .skill-name {
+    color: #2b2119;
+}
+
+.arvore-monge-shell .skill-node:hover::before,
+.arvore-monge-shell .skill-node.selecionada::before {
+    border-color: #f0d77a;
+    box-shadow: 0 0 20px rgba(212,175,55,0.55), 0 8px 18px rgba(0,0,0,0.75);
+}
+
+.arvore-detail-panel {
+    border-left: 2px solid #3a2212;
+    background: rgba(10,5,3,0.96);
+    padding: 18px;
+    overflow-y: auto;
+    color: #dcd0ba;
+}
+
+.arvore-detail-panel h3 {
+    color: #d4af37;
+    margin: 4px 0 10px;
+    font-size: 20px;
+    line-height: 1.15;
+}
+
+.arvore-detail-kicker {
+    color: #9c8464;
+    font-size: 11px;
+    font-weight: bold;
+    text-transform: uppercase;
+}
+
+.arvore-detail-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    color: #b89c72;
+    font-size: 12px;
+    margin-bottom: 12px;
+}
+
+.arvore-detail-panel p {
+    color: #dcd0ba;
+    font-size: 13px;
+    line-height: 1.45;
+}
+
+.arvore-detail-block {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    border-top: 1px dashed #3a2212;
+    padding-top: 10px;
+    margin-top: 10px;
+    font-size: 12px;
+}
+
+.arvore-detail-block strong {
+    color: #d4af37;
+}
+
+.arvore-rival-msg {
+    margin-top: 14px;
+    padding: 10px;
+    border: 1px solid #5c1818;
+    background: rgba(92,24,24,0.28);
+    color: #d95757;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+.btn-comprar-skill {
+    width: 100%;
+    margin-top: 14px;
+    padding: 10px;
+    text-transform: uppercase;
+}
+
+.arvore-empty-state {
+    margin: auto;
+    text-align: center;
+    color: #9c8464;
+}
+
+.arvore-empty-state h3 {
+    color: #d4af37;
+}
+
+@media (max-width: 860px) {
+    .arvore-main-layout {
+        grid-template-columns: 1fr;
+        grid-template-rows: minmax(0, 1fr) 235px;
+    }
+
+    .arvore-detail-panel {
+        border-left: 0;
+        border-top: 2px solid #3a2212;
+    }
+}
