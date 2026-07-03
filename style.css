@@ -2029,30 +2029,60 @@ input:focus, textarea:focus {
 .arvore-legenda {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 16px;
     flex-wrap: wrap;
-    padding: 8px 14px;
-    background: rgba(8,4,2,0.72);
-    border-bottom: 1px solid #2d1a0e;
-    color: #b89c72;
-    font-size: 11px;
+    padding: 11px 16px;
+    background: rgba(8,4,2,0.82);
+    border-bottom: 1px solid #3a2414;
+    color: #d2bb8e;
+    font-size: 12px;
     font-weight: bold;
 }
 
-.arvore-legenda span {
+.arvore-legenda .legenda-item {
+    position: relative;
     display: inline-flex;
     align-items: center;
-    gap: 6px;
+    gap: 8px;
     white-space: nowrap;
+    cursor: help;
+}
+
+.arvore-legenda .legenda-item::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    left: 50%;
+    bottom: calc(100% + 10px);
+    width: min(300px, 72vw);
+    transform: translateX(-50%);
+    padding: 10px 12px;
+    background: rgba(7,4,2,0.98);
+    border: 1px solid #b89c72;
+    border-radius: 4px;
+    color: #efe2c8;
+    font-size: 11px;
+    font-weight: normal;
+    line-height: 1.35;
+    text-align: left;
+    white-space: normal;
+    box-shadow: 0 8px 22px rgba(0,0,0,0.72), 0 0 12px rgba(212,175,55,0.18);
+    opacity: 0;
+    pointer-events: none;
+    z-index: 20;
+}
+
+.arvore-legenda .legenda-item:hover::after {
+    opacity: 1;
 }
 
 .legenda-forma {
-    width: 16px;
-    height: 16px;
+    width: 20px;
+    height: 20px;
+    flex: 0 0 auto;
     display: inline-block;
     background: #090604;
-    border: 2px solid #8b6d43;
-    box-shadow: 0 0 8px rgba(0,0,0,0.5);
+    border: 2px solid #b89c72;
+    box-shadow: 0 0 9px rgba(0,0,0,0.55), inset 0 0 8px rgba(212,175,55,0.08);
 }
 
 .legenda-passiva {
@@ -2073,8 +2103,8 @@ input:focus, textarea:focus {
 }
 
 .legenda-final {
-    width: 20px;
-    height: 20px;
+    width: 25px;
+    height: 25px;
     clip-path: polygon(50% 0, 64% 17%, 86% 12%, 88% 36%, 100% 50%, 88% 64%, 86% 88%, 64% 83%, 50% 100%, 36% 83%, 14% 88%, 12% 64%, 0 50%, 12% 36%, 14% 12%, 36% 17%);
 }
 
@@ -2168,14 +2198,20 @@ input:focus, textarea:focus {
     border: 0;
     background: transparent;
     box-shadow: none;
-    transform: translate(-50%, -50%);
+    transform: translate(-50%, -50%) !important;
     overflow: visible;
     cursor: pointer;
     z-index: 3;
 }
 
-.arvore-monge-shell .skill-node:hover {
-    transform: translate(-50%, -50%);
+.arvore-monge-shell .skill-node:hover,
+.arvore-monge-shell .skill-node:active,
+.arvore-monge-shell .skill-node:focus,
+.arvore-monge-shell .skill-node:hover:not(:disabled),
+.arvore-monge-shell .skill-node:active:not(:disabled) {
+    transform: translate(-50%, -50%) !important;
+    background: transparent;
+    outline: none;
 }
 
 .arvore-monge-shell .skill-node::before {
@@ -2313,6 +2349,39 @@ input:focus, textarea:focus {
     box-shadow: 0 0 24px rgba(212,175,55,0.78), inset 0 0 12px rgba(255,255,255,0.18);
 }
 
+.arvore-monge-shell .node-caminho.compravel::before,
+.arvore-monge-shell .node-caminho.desbloqueada::before,
+.arvore-monge-shell .node-caminho.selecionada::before,
+.arvore-monge-shell .node-caminho:hover::before,
+.arvore-monge-shell .node-final.compravel::before,
+.arvore-monge-shell .node-final.desbloqueada::before,
+.arvore-monge-shell .node-final.selecionada::before,
+.arvore-monge-shell .node-final:hover::before {
+    background: #d4af37;
+    border-color: #f0d77a;
+    box-shadow: 0 0 26px rgba(212,175,55,0.78), inset 0 0 14px rgba(255,255,255,0.2);
+}
+
+.arvore-monge-shell .node-caminho.compravel .skill-icon,
+.arvore-monge-shell .node-caminho.desbloqueada .skill-icon,
+.arvore-monge-shell .node-caminho.selecionada .skill-icon,
+.arvore-monge-shell .node-final.compravel .skill-icon,
+.arvore-monge-shell .node-final.desbloqueada .skill-icon,
+.arvore-monge-shell .node-final.selecionada .skill-icon {
+    color: #070402;
+}
+
+.arvore-monge-shell .node-caminho.compravel .skill-cost-badge,
+.arvore-monge-shell .node-caminho.desbloqueada .skill-cost-badge,
+.arvore-monge-shell .node-caminho.selecionada .skill-cost-badge,
+.arvore-monge-shell .node-final.compravel .skill-cost-badge,
+.arvore-monge-shell .node-final.desbloqueada .skill-cost-badge,
+.arvore-monge-shell .node-final.selecionada .skill-cost-badge {
+    background: #d4af37;
+    border-color: #070402;
+    color: #070402;
+}
+
 .arvore-monge-shell .skill-node:hover .skill-icon {
     color: #070402;
 }
@@ -2321,6 +2390,25 @@ input:focus, textarea:focus {
     background: #d4af37;
     border-color: #070402;
     color: #070402;
+}
+
+.arvore-monge-shell .skill-node.bloqueada-caminho:hover::before,
+.arvore-monge-shell .node-caminho.bloqueada-caminho:hover::before,
+.arvore-monge-shell .node-final.bloqueada-caminho:hover::before {
+    background: #030201;
+    border-color: #120c08;
+    box-shadow: none;
+    filter: grayscale(1);
+}
+
+.arvore-monge-shell .skill-node.bloqueada-caminho:hover .skill-icon,
+.arvore-monge-shell .skill-node.bloqueada-caminho:hover .skill-cost-badge {
+    color: #2b2119;
+}
+
+.arvore-monge-shell .skill-node.bloqueada-caminho:hover .skill-cost-badge {
+    background: #070403;
+    border-color: #120c08;
 }
 
 .arvore-detail-panel {

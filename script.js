@@ -1803,20 +1803,14 @@ window.toggleSidebarJogador = function(numSlot) {
                 nodes: [
                     treeNode("mon_fund_01", "Respiração Marcial", "passiva", "passiva", 1, 0, 0, [], "", "Controla a respiração para manter foco e constância em combate.", "icon-breath"),
                     treeNode("mon_fund_02", "Postura do Monge", "melhoria", "melhoria", 1, 180, 0, ["mon_fund_01"], "", "Refina a base corporal e melhora a estabilidade durante técnicas.", "icon-stance"),
-                    treeNode("mon_fund_03", "Disciplina do Corpo", "passiva", "passiva", 1, 360, 0, [], "", "Transforma treino repetido em resistência, controle e presença.", "icon-discipline", {
-                        prereqAnyCount: { from: ["mon_fund_02", "mon_fund_b"], count: 1 }
-                    }),
+                    treeNode("mon_fund_03", "Disciplina do Corpo", "passiva", "passiva", 1, 360, 0, ["mon_fund_02"], "", "Transforma treino repetido em resistência, controle e presença.", "icon-discipline"),
                     treeNode("mon_fund_a", "Passo Leve", "passiva", "passiva", 1, 120, -180, [], "", "Movimenta-se com menos ruído e melhor recuperação de posição.", "icon-step"),
                     treeNode("mon_fund_b", "Reflexo Sereno", "passiva", "passiva", 1, 260, -180, ["mon_fund_a"], "", "Mantém calma sob pressão e reage com menos hesitação.", "icon-reflex"),
                     treeNode("mon_fund_c", "Mente Clara", "melhoria", "melhoria", 1, 120, 180, [], "", "Organiza pensamento e intenção antes da ação.", "icon-mind"),
-                    treeNode("mon_fund_d", "Golpe Treinado", "ativa", "ativa", 1, 260, 180, [], "", "Um ataque simples, limpo e confiável para abrir sequências.", "icon-strike"),
-                    treeNode("mon_path_punho", "Caminho do Punho", "caminho", "", 1, 580, -260, ["mon_fund_d"], "punho", "Escolhe o Caminho do Punho. Os outros caminhos serão bloqueados.", "icon-path-punch", {
-                        prereqAnyCount: { from: ["mon_fund_02", "mon_fund_03"], count: 1 }
-                    }),
-                    treeNode("mon_path_res", "Caminho da Resiliência", "caminho", "", 1, 580, 260, ["mon_fund_c"], "resiliencia", "Escolhe o Caminho da Resiliência. Os outros caminhos serão bloqueados.", "icon-path-res", {
-                        prereqAnyCount: { from: ["mon_fund_02", "mon_fund_03"], count: 1 }
-                    }),
-                    treeNode("mon_path_ki", "Caminho do Ki Interior", "caminho", "", 1, 580, 0, ["mon_fund_b"], "ki", "Escolhe o Caminho do Ki Interior após dominar Reflexo Sereno.", "icon-path-ki"),
+                    treeNode("mon_fund_d", "Golpe Treinado", "ativa", "ativa", 1, 260, 180, ["mon_fund_c"], "", "Um ataque simples, limpo e confiável para abrir sequências.", "icon-strike"),
+                    treeNode("mon_path_punho", "Caminho do Punho", "caminho", "", 1, 580, -260, ["mon_fund_b"], "punho", "Escolhe o Caminho do Punho. Os outros caminhos serão bloqueados.", "icon-path-punch"),
+                    treeNode("mon_path_res", "Caminho da Resiliência", "caminho", "", 1, 580, 260, ["mon_fund_d"], "resiliencia", "Escolhe o Caminho da Resiliência. Os outros caminhos serão bloqueados.", "icon-path-res"),
+                    treeNode("mon_path_ki", "Caminho do Ki Interior", "caminho", "", 1, 580, 0, ["mon_fund_03"], "ki", "Escolhe o Caminho do Ki Interior após dominar a Disciplina do Corpo.", "icon-path-ki"),
                     treeNode("mon_punho_01", "Punho Preciso", "passiva", "passiva", 2, 760, -260, ["mon_path_punho"], "punho", "Aprimora golpes diretos e reduz desperdício de movimento.", "icon-punch"),
                     treeNode("mon_punho_02", "Sequência Rápida", "ativa", "ativa", 2, 940, -260, ["mon_punho_01"], "punho", "Permite encadear ataques curtos em uma abertura.", "icon-combo"),
                     treeNode("mon_punho_03", "Pressão Constante", "melhoria", "melhoria", 2, 1120, -260, ["mon_punho_01"], "punho", "Mantém o inimigo reagindo e limita contra-ataques.", "icon-pressure"),
@@ -1858,17 +1852,13 @@ window.toggleSidebarJogador = function(numSlot) {
                     treeNode("mon_res_final", "Selo da Montanha Viva", "final", "passiva", 3, 1540, 260, ["mon_res_06"], "resiliencia", "A resistência do monge se torna uma presença quase imóvel.", "icon-mountain")
                 ],
                 connections: [
+                    { from: "mon_fund_a", to: "mon_fund_b" },
+                    { from: "mon_fund_b", to: "mon_path_punho", points: [{ x: 420, y: -180 }, { x: 420, y: -260 }] },
                     { from: "mon_fund_01", to: "mon_fund_02" },
                     { from: "mon_fund_02", to: "mon_fund_03", points: [{ x: 300, y: 0 }] },
-                    { from: "mon_fund_a", to: "mon_fund_b" },
-                    { from: "mon_fund_b", to: "mon_fund_03", points: [{ x: 330, y: -180 }, { x: 330, y: 0 }] },
-                    { from: "mon_fund_b", to: "mon_path_ki", points: [{ x: 420, y: -180 }, { x: 420, y: 0 }] },
-                    { from: "mon_fund_c", to: "mon_path_res", points: [{ x: 360, y: 180 }, { x: 360, y: 260 }] },
-                    { from: "mon_fund_d", to: "mon_path_punho", points: [{ x: 420, y: 180 }, { x: 420, y: -260 }] },
-                    { from: "mon_fund_02", to: "mon_path_punho", points: [{ x: 300, y: -80 }, { x: 520, y: -80 }, { x: 520, y: -260 }] },
-                    { from: "mon_fund_03", to: "mon_path_punho", points: [{ x: 470, y: 0 }, { x: 470, y: -260 }] },
-                    { from: "mon_fund_02", to: "mon_path_res", points: [{ x: 300, y: 90 }, { x: 520, y: 90 }, { x: 520, y: 260 }] },
-                    { from: "mon_fund_03", to: "mon_path_res", points: [{ x: 470, y: 0 }, { x: 470, y: 260 }] },
+                    { from: "mon_fund_03", to: "mon_path_ki" },
+                    { from: "mon_fund_c", to: "mon_fund_d" },
+                    { from: "mon_fund_d", to: "mon_path_res", points: [{ x: 420, y: 180 }, { x: 420, y: 260 }] },
 
                     { from: "mon_path_punho", to: "mon_punho_01" },
                     { from: "mon_punho_01", to: "mon_punho_02", points: [{ x: 850, y: -300 }] },
@@ -2190,11 +2180,11 @@ window.toggleSidebarJogador = function(numSlot) {
                         </div>
                     </div>
                     <div class="arvore-legenda" aria-label="Legenda da árvore">
-                        <span><i class="legenda-forma legenda-passiva"></i> círculo = passiva</span>
-                        <span><i class="legenda-forma legenda-ativa"></i> losango = ativa</span>
-                        <span><i class="legenda-forma legenda-melhoria"></i> quadrado = melhoria</span>
-                        <span><i class="legenda-forma legenda-caminho"></i> hexágono = caminho</span>
-                        <span><i class="legenda-forma legenda-final"></i> selo maior = final</span>
+                        <span class="legenda-item" data-tooltip="Habilidade sempre ativa ou efeito permanente. Normalmente fortalece o personagem sem precisar gastar ação."><i class="legenda-forma legenda-passiva"></i> círculo = Passiva</span>
+                        <span class="legenda-item" data-tooltip="Habilidade usada conscientemente durante a cena ou combate. Pode representar golpe, técnica ou manobra."><i class="legenda-forma legenda-ativa"></i> losango = Ativa</span>
+                        <span class="legenda-item" data-tooltip="Aprimoramento de uma técnica ou atributo de combate. Geralmente modifica algo que o personagem já sabe fazer."><i class="legenda-forma legenda-melhoria"></i> quadrado = Melhoria</span>
+                        <span class="legenda-item" data-tooltip="Escolha principal da árvore. Ao escolher um Caminho, os outros Caminhos ficam bloqueados."><i class="legenda-forma legenda-caminho"></i> hexágono = Caminho</span>
+                        <span class="legenda-item" data-tooltip="Habilidade mais poderosa de um Caminho. Representa a técnica máxima daquela especialização."><i class="legenda-forma legenda-final"></i> selo maior = Final</span>
                     </div>
                     <div class="arvore-main-layout">
                         <div class="arvore-viewport" id="arvore-viewport">
