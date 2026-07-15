@@ -149,12 +149,13 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
 
         const playersList = ['lais', 'gomes', 'kamy', 'arthur'];
 
-        let usuarioAtual = null; 
+        let usuarioAtual = null;
         let ameacaEmCombateGlobal = null;
         let hudVisivel = false;
         let monstrosNoBanco = {};
         let hordasNoBanco = {};
         let fichasNoBanco = {};
+        let fotosNoBanco = {};
 
         let slotsDeVisao = {
             1: { ouvinte: null, idFicha: null, tipo: null, dados: {} },
@@ -167,6 +168,14 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
         const eventosLocaisPublicados = new Set();
 
         const ATTRS = ['for', 'des', 'con', 'int', 'sab', 'car', 'per'];
+        const INICIATIVA_SCHEMA_VERSION = 1;
+        const INICIATIVA_ESTADOS = Object.freeze({ COLETANDO: 'coletando', ORGANIZANDO: 'organizando', ATIVA: 'ativa' });
+        const PATH_ESTADO_COMBATE = 'estado_combate';
+        const PATH_INICIATIVA = 'estado_combate/iniciativa';
+        let iniciativaAtual = null;
+        let unsubscribeIniciativa = null;
+        let iniciativaTurnoTravado = false;
+
         const FORMULAS_PADRAO_HABILIDADES = {
             pal_cura: "1d8+CAR",
             cur_cura: "2d8+SAB"
@@ -971,14 +980,14 @@ function gerarHtmlHeroi(numSlot) {
     <div id="sidebar-jogador-slot${numSlot}" class="sidebar-mestre sidebar-fechada sidebar-jogador-custom">
         <button id="btn-toggle-jogador-slot${numSlot}" class="btn-toggle-sidebar-jogador" onclick="toggleSidebarJogador(${numSlot})">▶</button>
         <div class="sidebar-header" style="text-align: center; font-size: 18px; margin-bottom: 20px; color:#d4af37;">Ações e Combate</div>
-        
+
         <div style="overflow-y:auto; padding:0 15px; flex:1; margin-bottom:20px;">
             <div class="buff-container" style="border-color:#3a2212; background:rgba(0, 0, 0, 0.4); padding: 15px;">
                 <div style="margin-bottom: 15px;">
                     <label style="color:#d95757; font-weight:bold;">Ameaça na Mesa:</label>
                     <span id="nome-ameaca-ativa-slot${numSlot}" style="color:#fff;">Nenhuma ameaça na mesa no momento...</span>
                 </div>
-                
+
                 <div style="margin-bottom: 15px;">
                     <label style="color:#b89c72;">Alvos Disponíveis</label>
                     <div id="alvos-combate-slot${numSlot}" style="background: rgba(0,0,0,0.5); border: 1px solid #5c1818; padding: 5px; border-radius: 4px; overflow-y:auto; max-height:100px; display:flex; flex-direction:column; gap:5px;">
@@ -999,7 +1008,7 @@ function gerarHtmlHeroi(numSlot) {
                     <input type="number" id="slot${numSlot}-jogador-ataque-dano" class="editavel-slot${numSlot}" placeholder="Valor" style="text-align:center; font-size: 16px; padding: 5px; border-color:#d4af37; color:#fff; width: 80px;">
                 </div>
 
-                <button id="btn-acao-combate-slot${numSlot}" onclick="jogadorLancarFeitico(${numSlot})" class="btn-lancar-feitico editavel-slot${numSlot}">ATACAR</button>
+                <button id="btn-acao-combate-slot${numSlot}" data-acao-combate="ataque-jogador" onclick="jogadorLancarFeitico(${numSlot})" class="btn-lancar-feitico editavel-slot${numSlot}">ATACAR</button>
 
                 <div class="box-passivas-combate">
                     <div class="titulo-passivas">Passivas em Vigor no Combate</div>
@@ -1021,7 +1030,7 @@ function gerarHtmlHeroi(numSlot) {
                 <img id="img-foto-slot${numSlot}" class="foto-personagem" src="" alt="Sem foto">
                 <label class="btn-upload editavel-slot${numSlot}-label">📁 Enviar do PC<input type="file" class="editavel-slot${numSlot}" accept="image/*" style="display:none;" onchange="processarUploadOtimizado(event, ${numSlot})"></label>
             </div>
-            
+
             <!-- Coluna Direita: Info -->
             <div class="info-grid">
                 <div style="display: flex; gap: 10px; grid-column: span 2; align-items: center; border-bottom: 1px dashed #3a2212; padding-bottom: 10px;">
@@ -1064,7 +1073,7 @@ function gerarHtmlHeroi(numSlot) {
                 </div>
                 <div id="slot${numSlot}-caminho-arvore" class="caminho-arvore-ficha" style="grid-column: span 2;">Caminho: Nenhum escolhido</div>
                 <div><label>Gênero</label><input type="text" id="slot${numSlot}-genero" class="editavel-slot${numSlot}"></div>
-                
+
                 <!-- Árvore logo abaixo das caixas de texto -->
                 <div style="grid-column: span 2; margin-top: 15px;">
                     <button class="btn-mini-acao editavel-slot${numSlot}" onclick="abrirArvoreHabilidades('${numSlot}')" style="width: 100%; padding: 12px; font-size: 16px; border-color: #d4af37; color: #d4af37; box-shadow: 0 0 15px rgba(212, 175, 55, 0.3); background: rgba(0,0,0,0.6); letter-spacing: 1px;">📜 ÁRVORE DE HABILIDADES</button>
@@ -1160,7 +1169,7 @@ window.toggleSidebarJogador = function(numSlot) {
 
         function gerarHtmlMonstro(numSlot) {
             let alvosHtml = playersList.map(p => `<label class="checkbox-alvo"><input type="checkbox" value="${p}" class="alvo-ataque-slot${numSlot}"> ${p}</label>`).join('');
-            
+
             return `
             <div class="container monstro-theme" id="container-slot${numSlot}-monstro">
                 <div class="header-grid" style="grid-template-columns: 100px 1fr;">
@@ -1206,10 +1215,10 @@ window.toggleSidebarJogador = function(numSlot) {
                             <label style="color: #b89c72;">Alvos (Players)</label>
                             <div style="display: flex; gap: 15px; flex-wrap: wrap; background: rgba(20, 10, 5, 0.8); padding: 10px; border: 1px solid #5c3a21; border-radius: 4px; min-height: 20px; align-items: center;">${alvosHtml}</div>
                         </div>
-                        <button class="editavel-slot${numSlot}" onclick="executarAtaque(${numSlot})" style="background: linear-gradient(to bottom, #8c1c13, #4a1111); border-color:#d95757; color: #fff; padding: 10px 20px; font-weight: bold; text-shadow: 1px 1px 2px black;">⚔️ ATACAR</button>
+                        <button class="editavel-slot${numSlot}" data-acao-combate="ataque-monstro" onclick="executarAtaque(${numSlot})" style="background: linear-gradient(to bottom, #8c1c13, #4a1111); border-color:#d95757; color: #fff; padding: 10px 20px; font-weight: bold; text-shadow: 1px 1px 2px black;">⚔️ ATACAR</button>
                     </div>
                 </div>
-                
+
                 <div class="section-title">Atributos</div>
                 <div class="atributos-grid">
                     <div class="attr-box"><label>FOR</label><input type="number" id="slot${numSlot}-monstro-for" class="editavel-slot${numSlot}"></div>
@@ -1234,7 +1243,7 @@ window.toggleSidebarJogador = function(numSlot) {
                     </div>
                     <div id="lista-efeitos-monstro-slot${numSlot}"></div>
                 </div>
-                
+
                 <div class="section-title esconder-jogador" style="margin-top:40px; border-color:#b8860b; color:#d4af37;">Gerar Horda</div>
                 <div class="esconder-jogador" style="display:flex; gap:10px; background: rgba(0,0,0,0.5); padding:15px; border:1px solid #8b6d43; border-radius:4px;">
                     <input type="number" id="slot${numSlot}-qtd-horda" placeholder="Tamanho Total da Horda (ex: 4)" style="flex:1;">
@@ -1260,18 +1269,18 @@ window.toggleSidebarJogador = function(numSlot) {
                 usuarioAtual = usuarios[digitado];
                 document.getElementById('tela-login').style.display = "none";
                 document.getElementById('tela-app').style.display = "block";
-                
+
                 document.getElementById('usuario-logado').innerText = usuarioAtual.nome;
                 document.getElementById('badge-cargo').innerText = usuarioAtual.cargo;
                 document.body.classList.add(usuarioAtual.cargo === "Mestre" ? 'is-mestre' : 'is-jogador');
                 initCombatUi();
-                
+
                 if(usuarioAtual.cargo === "Mestre") {
                     document.getElementById('badge-cargo').style.borderColor = "#8c1c13";
                     document.getElementById('badge-cargo').style.color = "#a84242";
                     document.getElementById('painel-mestre').style.display = "flex";
                     document.getElementById('sidebar-mestre').style.display = "flex";
-                    document.getElementById('btn-toggle-hud').style.display = "block"; 
+                    document.getElementById('btn-toggle-hud').style.display = "block";
                     atualizarSidebarMestre();
                     initHudGlobais();
                 } else {
@@ -1290,7 +1299,41 @@ window.toggleSidebarJogador = function(numSlot) {
             }
         }
 
+        function gerarIdIniciativa(prefixo = 'id') { return globalThis.crypto?.randomUUID ? globalThis.crypto.randomUUID() : `${prefixo}_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`; }
+        function chaveParticipanteIniciativa(tipo, id) { return `${tipo}__${String(id || '').replace(/[^a-zA-Z0-9_-]/g, '_')}`; }
+        function ordenarParticipantesIniciativa(participantes = {}) { return Object.values(participantes).sort((a,b)=>{ const ia=toNumber(a.iniciativa,0), ib=toNumber(b.iniciativa,0); if(ia===0&&ib!==0)return 1; if(ib===0&&ia!==0)return -1; if(ib!==ia)return ib-ia; return toNumber(a.ordemEntrada,0)-toNumber(b.ordemEntrada,0); }).map(p=>p.chave); }
+        function getParticipanteAtual(iniciativa = iniciativaAtual) { const ch=(iniciativa?.ordem||[])[toNumber(iniciativa?.indiceAtual,0)]; return iniciativa?.participantes?.[ch] || null; }
+        function membrosVivosHorda(hordaId) { const membros=hordasNoBanco?.[hordaId]?.membros||{}; return Object.keys(membros).filter(id=>toNumber(membros[id]?.['hp-atual'],0)>0).sort((a,b)=>toNumber(a.replace(/\D/g,''),0)-toNumber(b.replace(/\D/g,''),0)); }
+        function isParticipanteValidoIniciativa(p) { if(!p)return false; if(p.tipo==='jogador')return Boolean(usuarios[p.id]); if(p.tipo==='monstro')return Boolean(fichasNoBanco[p.id])&&toNumber(fichasNoBanco[p.id]?.['hp-atual'],0)>0; if(p.tipo==='horda')return membrosVivosHorda(p.id).length>0; return false; }
+        function normalizarHordaTurno(iniciativa) { const atual=getParticipanteAtual(iniciativa); if(!atual||atual.tipo!=='horda')return { hordaId:'', membroAtualId:'', membrosConcluidos:{} }; const vivos=membrosVivosHorda(atual.id); const concl=iniciativa.hordaTurno?.hordaId===atual.id ? {...(iniciativa.hordaTurno?.membrosConcluidos||{})} : {}; return { hordaId: atual.id, membroAtualId: vivos.find(id=>!concl[id]) || '', membrosConcluidos: concl }; }
+        function normalizarEstadoIniciativa(iniciativa, contextoAtual = {}) { if(!iniciativa||iniciativa.estado!==INICIATIVA_ESTADOS.ATIVA)return null; const antes=JSON.stringify({o:iniciativa.ordem,i:iniciativa.indiceAtual,r:iniciativa.rodada,h:iniciativa.hordaTurno,e:iniciativa.estadoInterno}); const participantes={...(iniciativa.participantes||{})}; let ordem=[...(iniciativa.ordem||[])].filter(ch=>participantes[ch]&&isParticipanteValidoIniciativa(participantes[ch])); let indiceAtual=Math.max(0,Math.min(toNumber(iniciativa.indiceAtual,0),Math.max(ordem.length-1,0))); let rodada=Math.max(1,toNumber(iniciativa.rodada,1)); if(ordem.length && indiceAtual>=ordem.length){ indiceAtual=0; rodada++; } const prox={...iniciativa, participantes, ordem, indiceAtual, rodada, estadoInterno: ordem.length?'normal':'sem_participantes'}; prox.hordaTurno=normalizarHordaTurno(prox); return antes===JSON.stringify({o:prox.ordem,i:prox.indiceAtual,r:prox.rodada,h:prox.hordaTurno,e:prox.estadoInterno}) ? null : prox; }
+        async function persistirNormalizacaoIniciativa() { if(usuarioAtual?.cargo!=='Mestre'||!iniciativaAtual?.combateId)return; const combateId=iniciativaAtual.combateId; try { await safeTransaction(PATH_INICIATIVA, atual=>{ if(!atual||atual.combateId!==combateId||atual.estado!==INICIATIVA_ESTADOS.ATIVA)return; return normalizarEstadoIniciativa(atual,{}) || atual; }); } catch(err) { console.error('Erro ao normalizar iniciativa.', err); } }
+        async function criarEstadoInicialIniciativa(ameacaId, tipoAmeaca) { const participantes={}; let ordemEntrada=0; playersList.forEach(id=>{ if(fichasNoBanco[id]||usuarios[id]){ const ch=chaveParticipanteIniciativa('jogador',id); participantes[ch]={chave:ch,id,tipo:'jogador',nome:usuarios[id]?.nome||id,iniciativa:0,confirmado:false,ordemEntrada:ordemEntrada++}; } }); const dados=tipoAmeaca==='horda'?hordasNoBanco[ameacaId]:fichasNoBanco[ameacaId]; const ch=chaveParticipanteIniciativa(tipoAmeaca,ameacaId); participantes[ch]={chave:ch,id:ameacaId,tipo:tipoAmeaca,nome:dados?.nome||ameacaId,iniciativa:0,confirmado:true,ordemEntrada:ordemEntrada++}; return { schemaVersion: INICIATIVA_SCHEMA_VERSION, combateId: gerarIdIniciativa('combate'), ameacaId, ameacaTipo: tipoAmeaca, estado: INICIATIVA_ESTADOS.COLETANDO, estadoInterno: 'normal', rodada: 1, indiceAtual: 0, versaoTurno: 0, participantes, ordem: ordenarParticipantesIniciativa(participantes), hordaTurno: { hordaId:'', membroAtualId:'', membrosConcluidos:{} }, ultimaAcaoId: '', criadoEm: Date.now() }; }
+        async function ativarCombateComIniciativa(ameacaId, tipoAmeaca) { if(usuarioAtual?.cargo!=='Mestre') throw new Error('Somente o Mestre pode iniciar combate.'); const existe=tipoAmeaca==='horda' ? (hordasNoBanco[ameacaId] || (await safeGet(`hordas/${ameacaId}`)).val()) : (fichasNoBanco[ameacaId] || (await safeGet(`fichas/${ameacaId}`)).val()); if(!ameacaId||!existe) throw new Error(`Ameaça inexistente para iniciativa: ${ameacaId}`); const iniciativa=await criarEstadoInicialIniciativa(ameacaId,tipoAmeaca); await safeUpdate(PATH_ESTADO_COMBATE, { ativo: ameacaId, iniciativa }); return iniciativa; }
+        async function encerrarCombateComIniciativa() { await safeUpdate(PATH_ESTADO_COMBATE, { ativo: null, iniciativa: null }); limparInterfaceIniciativa(); }
+        function limparInterfaceIniciativa() { iniciativaAtual=null; iniciativaTurnoTravado=false; ['initiative-player-modal','initiative-master-modal'].forEach(id=>{ const el=document.getElementById(id); if(el){ el.classList.remove('is-open'); el.setAttribute('aria-hidden','true'); } }); const board=document.getElementById('initiative-turn-board'); if(board) board.hidden=true; document.querySelectorAll('[data-acao-combate]').forEach(el=>el.disabled=false); }
+        function abrirModalIniciativa(el){ if(el){ el.classList.add('is-open'); el.setAttribute('aria-hidden','false'); setTimeout(()=>el.querySelector('input,button')?.focus(),0); } }
+        function fecharModalIniciativa(el){ if(el){ el.classList.remove('is-open'); el.setAttribute('aria-hidden','true'); } }
+        function renderizarIniciativa(){ try{ if(!iniciativaAtual)return limparInterfaceIniciativa(); renderizarModalJogadorIniciativa(); renderizarModalMestreIniciativa(); renderizarQuadroTurnosIniciativa(); atualizarPermissoesAcoesCombate(); }catch(err){ console.error('Erro ao renderizar iniciativa.',err); } }
+        function renderizarModalJogadorIniciativa(){ const modal=document.getElementById('initiative-player-modal'); if(!modal||usuarioAtual?.cargo!=='Jogador'||iniciativaAtual?.estado!==INICIATIVA_ESTADOS.COLETANDO)return fecharModalIniciativa(modal); const ch=chaveParticipanteIniciativa('jogador',usuarioAtual.idFicha); const p=iniciativaAtual.participantes?.[ch]; if(!p||p.confirmado)return fecharModalIniciativa(modal); const input=document.getElementById('initiative-player-input'), btn=document.getElementById('initiative-player-confirm'); const validar=()=>{const v=Number(input.value); btn.disabled=!(Number.isInteger(v)&&v>=1&&v<=20);}; input.oninput=validar; input.onkeydown=e=>{ if(e.key==='Enter'&&!btn.disabled)btn.click(); if(e.key==='Escape')e.preventDefault(); }; btn.onclick=async()=>{ const v=Number(input.value); if(!(Number.isInteger(v)&&v>=1&&v<=20))return; btn.disabled=true; const combateId=iniciativaAtual.combateId; const r=await safeTransaction(PATH_INICIATIVA, atual=>{ if(!atual||atual.combateId!==combateId||atual.estado!==INICIATIVA_ESTADOS.COLETANDO)return; const part=atual.participantes?.[ch]; if(!part||part.confirmado)return; const participantes={...atual.participantes,[ch]:{...part,iniciativa:v,confirmado:true,confirmadoEm:Date.now()}}; return {...atual,participantes,ordem:ordenarParticipantesIniciativa(participantes)}; }); if(r.committed)fecharModalIniciativa(modal); else btn.disabled=false; }; validar(); abrirModalIniciativa(modal); }
+        function renderizarModalMestreIniciativa(){ const modal=document.getElementById('initiative-master-modal'); if(!modal||usuarioAtual?.cargo!=='Mestre')return fecharModalIniciativa(modal); if(![INICIATIVA_ESTADOS.COLETANDO,INICIATIVA_ESTADOS.ORGANIZANDO].includes(iniciativaAtual?.estado))return fecharModalIniciativa(modal); const lista=document.getElementById('initiative-master-list'), action=document.getElementById('initiative-master-action'); lista.textContent=''; const ordem=iniciativaAtual.estado===INICIATIVA_ESTADOS.COLETANDO?ordenarParticipantesIniciativa(iniciativaAtual.participantes):(iniciativaAtual.ordem||[]); ordem.forEach((ch,idx)=>{ const p=iniciativaAtual.participantes[ch]; if(!p)return; const row=document.createElement('div'); row.className='initiative-row'; const up=document.createElement('button'); up.type='button'; up.textContent='↑'; up.disabled=iniciativaAtual.estado!==INICIATIVA_ESTADOS.ORGANIZANDO||idx===0; up.onclick=()=>moverParticipanteIniciativa(idx,-1); const name=document.createElement('div'); name.className='initiative-row-name'; name.textContent=p.nome||p.id; const st=document.createElement('div'); st.className='initiative-row-status'; st.textContent=p.confirmado?'enviado':'pendente'; name.appendChild(st); const inp=document.createElement('input'); inp.type='number'; inp.value=toNumber(p.iniciativa,0); inp.disabled=iniciativaAtual.estado===INICIATIVA_ESTADOS.COLETANDO&&p.tipo==='jogador'; inp.onchange=()=>editarIniciativaParticipante(ch,Number(inp.value)||0); const down=document.createElement('button'); down.type='button'; down.textContent='↓'; down.disabled=iniciativaAtual.estado!==INICIATIVA_ESTADOS.ORGANIZANDO||idx===ordem.length-1; down.onclick=()=>moverParticipanteIniciativa(idx,1); row.append(up,name,inp,down); lista.appendChild(row); }); action.textContent=iniciativaAtual.estado===INICIATIVA_ESTADOS.COLETANDO?'ORGANIZAR ORDEM':'CONFIRMAR ORDEM'; action.onclick=iniciativaAtual.estado===INICIATIVA_ESTADOS.COLETANDO?organizarOrdemIniciativa:confirmarOrdemIniciativa; abrirModalIniciativa(modal); }
+        async function editarIniciativaParticipante(ch,valor){ const combateId=iniciativaAtual?.combateId; await safeTransaction(PATH_INICIATIVA,atual=>{ if(!atual||atual.combateId!==combateId||![INICIATIVA_ESTADOS.COLETANDO,INICIATIVA_ESTADOS.ORGANIZANDO].includes(atual.estado)||!atual.participantes?.[ch])return; const participantes={...atual.participantes,[ch]:{...atual.participantes[ch],iniciativa:Math.max(0,Math.trunc(valor))}}; return {...atual,participantes,ordem:atual.estado===INICIATIVA_ESTADOS.COLETANDO?ordenarParticipantesIniciativa(participantes):atual.ordem}; }); }
+        async function organizarOrdemIniciativa(){ const combateId=iniciativaAtual?.combateId; await safeTransaction(PATH_INICIATIVA,atual=>!atual||atual.combateId!==combateId||atual.estado!==INICIATIVA_ESTADOS.COLETANDO?undefined:{...atual,estado:INICIATIVA_ESTADOS.ORGANIZANDO,ordem:ordenarParticipantesIniciativa(atual.participantes)}); }
+        async function moverParticipanteIniciativa(idx,delta){ const combateId=iniciativaAtual?.combateId; await safeTransaction(PATH_INICIATIVA,atual=>{ if(!atual||atual.combateId!==combateId||atual.estado!==INICIATIVA_ESTADOS.ORGANIZANDO)return; const ordem=[...(atual.ordem||[])], j=idx+delta; if(j<0||j>=ordem.length)return; [ordem[idx],ordem[j]]=[ordem[j],ordem[idx]]; return {...atual,ordem}; }); }
+        async function confirmarOrdemIniciativa(){ const combateId=iniciativaAtual?.combateId; await safeTransaction(PATH_INICIATIVA,atual=>{ if(!atual||atual.combateId!==combateId||atual.estado!==INICIATIVA_ESTADOS.ORGANIZANDO)return; let prox={...atual,estado:INICIATIVA_ESTADOS.ATIVA,rodada:1,indiceAtual:0,versaoTurno:toNumber(atual.versaoTurno,0)+1}; prox=normalizarEstadoIniciativa(prox,{})||prox; prox.hordaTurno=normalizarHordaTurno(prox); return prox; }); }
+        function getFotoParticipante(p){ if(!p)return ''; const foto=fotosNoBanco[p.id]; return foto?.base64 || foto || ''; }
+        function renderizarQuadroTurnosIniciativa(){ const board=document.getElementById('initiative-turn-board'); if(!board)return; const atual=getParticipanteAtual(); if(!ameacaEmCombateGlobal||iniciativaAtual?.estado!==INICIATIVA_ESTADOS.ATIVA||!atual||iniciativaAtual.estadoInterno==='sem_participantes'){ board.hidden=true; return; } board.hidden=false; document.getElementById('initiative-round').textContent=`Rodada ${toNumber(iniciativaAtual.rodada,1)}`; const cont=document.getElementById('initiative-portraits'); cont.textContent=''; (iniciativaAtual.ordem||[]).slice(toNumber(iniciativaAtual.indiceAtual,0),toNumber(iniciativaAtual.indiceAtual,0)+5).forEach((ch,i)=>{ const p=iniciativaAtual.participantes[ch]; if(!p)return; const item=document.createElement('div'); item.className='initiative-portrait'+(i===0?' is-current':''); item.tabIndex=0; if(i===0)item.setAttribute('aria-current','true'); const foto=getFotoParticipante(p); if(foto){ const img=document.createElement('img'); img.src=foto; img.alt=''; item.appendChild(img); } const tip=document.createElement('div'); tip.className='initiative-tooltip'; let texto=p.nome||p.id; if(p.tipo==='horda'){ const vivos=membrosVivosHorda(p.id); texto += ` - membro ${iniciativaAtual.hordaTurno?.membroAtualId || vivos[0] || '-'} - vivos ${vivos.length}`; } tip.textContent=texto; item.appendChild(tip); cont.appendChild(item); }); const btn=document.getElementById('initiative-end-turn'); btn.disabled=iniciativaTurnoTravado||!podeEncerrarTurno(usuarioAtual,atual); btn.onclick=encerrarTurnoIniciativa; }
+        function podeEncerrarTurno(usuario,participanteAtual){ if(!usuario||!participanteAtual)return false; if(usuario.cargo==='Mestre')return true; return participanteAtual.tipo==='jogador'&&usuario.idFicha===participanteAtual.id; }
+        function podeUsuarioAgirAgora(slotNum=null,contexto={}){ if(!iniciativaAtual||iniciativaAtual.estado!==INICIATIVA_ESTADOS.ATIVA)return true; const atual=getParticipanteAtual(); if(!atual)return false; if(usuarioAtual?.cargo==='Mestre')return atual.tipo!=='jogador'; return atual.tipo==='jogador'&&usuarioAtual?.idFicha===atual.id; }
+        function atualizarPermissoesAcoesCombate(){ document.querySelectorAll('[data-acao-combate]').forEach(el=>{ el.disabled=!podeUsuarioAgirAgora(); }); }
+        async function processarFimTurnoIndividual(participante, contexto) { return {}; }
+        async function encerrarTurnoIniciativa(){ const atual=getParticipanteAtual(); if(!podeEncerrarTurno(usuarioAtual,atual))return; iniciativaTurnoTravado=true; renderizarQuadroTurnosIniciativa(); await processarFimTurnoIndividual(atual,{iniciativa:iniciativaAtual}); const esperado={combateId:iniciativaAtual.combateId,ameacaId:iniciativaAtual.ameacaId,indiceAtual:toNumber(iniciativaAtual.indiceAtual,0),versaoTurno:toNumber(iniciativaAtual.versaoTurno,0),chave:atual.chave}; const acaoId=gerarIdIniciativa('acao'); const r=await safeTransaction(PATH_INICIATIVA,ini=>{ if(!ini||ini.combateId!==esperado.combateId||ini.ameacaId!==esperado.ameacaId||ini.estado!==INICIATIVA_ESTADOS.ATIVA||toNumber(ini.indiceAtual,0)!==esperado.indiceAtual||toNumber(ini.versaoTurno,0)!==esperado.versaoTurno||(ini.ordem||[])[ini.indiceAtual]!==esperado.chave)return; const p=ini.participantes?.[esperado.chave]; let prox={...ini,ultimaAcaoId:acaoId,versaoTurno:esperado.versaoTurno+1}; if(p?.tipo==='horda'){ const ht=normalizarHordaTurno(prox), concl={...(ht.membrosConcluidos||{})}; if(ht.membroAtualId)concl[ht.membroAtualId]=true; const proxM=membrosVivosHorda(p.id).find(id=>!concl[id]); if(proxM)return {...prox,hordaTurno:{hordaId:p.id,membroAtualId:proxM,membrosConcluidos:concl}}; } if(esperado.indiceAtual>=(prox.ordem||[]).length-1){ prox.indiceAtual=0; prox.rodada=toNumber(prox.rodada,1)+1; prox.hordaTurno={hordaId:'',membroAtualId:'',membrosConcluidos:{}}; } else prox.indiceAtual=esperado.indiceAtual+1; return normalizarEstadoIniciativa(prox,{})||prox; }); if(!r.committed)iniciativaTurnoTravado=false; }
+        function iniciarOuvinteIniciativa(){ if(unsubscribeIniciativa)unsubscribeIniciativa(); unsubscribeIniciativa=onValue(dbRef(PATH_INICIATIVA),snap=>{ iniciativaAtual=snap.val(); renderizarIniciativa(); persistirNormalizacaoIniciativa(); }); }
+
         function iniciarOuvintesGerais() {
+            iniciarOuvinteIniciativa();
+            onValue(dbRef('fotos'), (snapshot) => { fotosNoBanco = snapshot.val() || {}; renderizarQuadroTurnosIniciativa(); });
+            onValue(dbRef('fichas'), (snapshot) => { fichasNoBanco = snapshot.val() || {}; atualizarPermissoesAcoesCombate(); persistirNormalizacaoIniciativa(); });
             onValue(dbRef('lista_monstros'), (snapshot) => {
                 monstrosNoBanco = snapshot.val() || {};
                 if(usuarioAtual.cargo === "Mestre") atualizarSidebarMestre();
@@ -1303,7 +1346,7 @@ window.toggleSidebarJogador = function(numSlot) {
 
             onValue(dbRef('estado_combate/ativo'), (snapshot) => {
                 const ameacaAnterior = ameacaEmCombateGlobal;
-                ameacaEmCombateGlobal = snapshot.val(); 
+                ameacaEmCombateGlobal = snapshot.val();
 
                 if (usuarioAtual.cargo === "Jogador") {
                     if (ameacaEmCombateGlobal) {
@@ -1351,7 +1394,7 @@ window.toggleSidebarJogador = function(numSlot) {
                 playersList.forEach(p => {
                     htmlPlayers += `<label class="checkbox-alvo" style="color:#dcd0ba; font-size:12px; margin-bottom:2px;"><input type="checkbox" value="${p}"> Aliado: ${p.toUpperCase()}</label>`;
                 });
-                
+
                 let separator = `<div style="border-bottom: 1px dashed #5c1818; margin: 5px 0;"></div>`;
                 let finalHtml = htmlPlayers + separator + htmlInimigos;
 
@@ -1406,7 +1449,7 @@ window.toggleSidebarJogador = function(numSlot) {
 
         function atualizarSidebarMestre() {
             if(usuarioAtual.cargo !== "Mestre") return;
-            
+
             // Popula Jogadores
             let htmlJogadores = '';
             playersList.forEach(p => {
@@ -1455,7 +1498,7 @@ window.toggleSidebarJogador = function(numSlot) {
 
         window.mudarQtdItem = async function(numSlot, i, delta) {
             if(usuarioAtual.cargo !== "Mestre" && usuarioAtual.idFicha !== slotsDeVisao[numSlot].idFicha) return;
-            
+
             let inputId = `slot${numSlot}-item${i}-qtd`;
             let input = document.getElementById(inputId);
             if(!input) return;
@@ -1546,52 +1589,52 @@ window.toggleSidebarJogador = function(numSlot) {
             </div>
             `;
             h += `<div style="display:flex; flex-direction:column; gap:15px; margin-top:15px;">`;
-            
+
             for(let mId in membros) {
                 let m = membros[mId];
                 const nomeMembroHtml = escapeHtml(m.nome || mId);
-                
+
                 let hpAtual = Number(m['hp-atual']) || 0;
                 let hpMax = Number(m['hp-max']) || 1;
                 let manaAtual = Number(m['mana-atual']) || 0;
                 let manaMax = Number(m['mana-max']) || 1;
-                
+
                 let percHp = (hpAtual / hpMax) * 100;
                 let percMana = (manaAtual / manaMax) * 100;
                 if(percHp > 100) percHp = 100; if(percHp < 0) percHp = 0;
                 if(percMana > 100) percMana = 100; if(percMana < 0) percMana = 0;
-                
+
                 let isAlertaMorte = (percHp <= 10 && hpMax > 0 && hpAtual > 0) ? 'alerta-morte' : '';
 
                 h += `
                 <div class="horda-member-card" style="display: flex; flex-direction: column; background: rgba(0,0,0,0.3); border: 1px solid #4a2e1b; border-radius: 4px; padding: 10px;">
                     <div style="display:flex; justify-content: space-between; align-items:center; gap: 20px; flex-wrap: wrap;">
                         <h4 style="color:#a84242; margin:0; text-transform: uppercase; font-size: 14px; min-width: 100px;">${nomeMembroHtml}</h4>
-                        
+
                         <div style="display:flex; gap:15px; flex: 1;">
                             <div id="caixa-hp-horda-${mId}" class="caixa-status ${isAlertaMorte}" style="padding: 2px; flex: 1;">
                                 <div style="color:#27ae60; font-size:11px; font-weight:bold; display: flex; justify-content: center; align-items: center; gap: 3px;">
-                                    HP: 
-                                    <input type="number" id="horda-${mId}-hp-atual" class="horda-compact-input editavel-slot${numSlot}" value="${hpAtual}" style="width:50px; color:#27ae60; padding:2px; font-size: 12px; text-align: center;"> / 
+                                    HP:
+                                    <input type="number" id="horda-${mId}-hp-atual" class="horda-compact-input editavel-slot${numSlot}" value="${hpAtual}" style="width:50px; color:#27ae60; padding:2px; font-size: 12px; text-align: center;"> /
                                     <input type="number" id="horda-${mId}-hp-max" class="horda-compact-input mestre-unlocked" value="${hpMax}" style="width:50px; color:#27ae60; padding:2px; font-size: 12px; text-align: center;" disabled>
                                 </div>
                                 <div class="bar-bg" style="height: 6px; margin-top: 4px;"><div class="bar-fill hp-fill" id="bar-hp-horda-${mId}" style="width: ${percHp}%;"></div><div class="shield-fill" id="bar-shield-horda-${mId}" style="width: 0%;"></div><div class="hp-text-overlay" id="txt-escudo-horda-${mId}" style="font-size: 9px;"></div></div>
                             </div>
-                            
+
                             <div id="caixa-mana-horda-${mId}" class="caixa-status" style="padding: 2px; flex: 1;">
                                 <div style="color:#2980b9; font-size:11px; font-weight:bold; display: flex; justify-content: center; align-items: center; gap: 3px;">
-                                    MP: 
-                                    <input type="number" id="horda-${mId}-mana-atual" class="horda-compact-input editavel-slot${numSlot}" value="${manaAtual}" style="width:50px; color:#2980b9; padding:2px; font-size: 12px; text-align: center;"> / 
+                                    MP:
+                                    <input type="number" id="horda-${mId}-mana-atual" class="horda-compact-input editavel-slot${numSlot}" value="${manaAtual}" style="width:50px; color:#2980b9; padding:2px; font-size: 12px; text-align: center;"> /
                                     <input type="number" id="horda-${mId}-mana-max" class="horda-compact-input mestre-unlocked" value="${manaMax}" style="width:50px; color:#2980b9; padding:2px; font-size: 12px; text-align: center;" disabled>
                                 </div>
                                 <div class="bar-bg" style="height: 6px; margin-top: 4px;"><div class="bar-fill mana-fill" id="bar-mana-horda-${mId}" style="width: ${percMana}%;"></div></div>
                             </div>
                         </div>
-                        
+
                         <div class="esconder-jogador" style="display:flex; gap:10px; align-items:center;">
                             <input type="number" id="ataque-dano-${mId}" placeholder="Dano" style="width: 50px; padding:4px; font-size:11px; background:rgba(0,0,0,0.8); border:1px solid #8c1c13; color:#fff; text-align:center;">
                             <div style="display:flex; gap:8px;">${alvosHtmlCheckbox(mId)}</div>
-                            <button onclick="atacarMembroHorda('${mId}')" style="padding: 6px 12px; font-size:11px; background: linear-gradient(to bottom, #8c1c13, #4a1111); border-color:#d95757; color: #fff; font-weight: bold;">⚔️ ATACAR</button>
+                            <button data-acao-combate="ataque-horda" onclick="atacarMembroHorda('${mId}')" style="padding: 6px 12px; font-size:11px; background: linear-gradient(to bottom, #8c1c13, #4a1111); border-color:#d95757; color: #fff; font-weight: bold;">⚔️ ATACAR</button>
                         </div>
                     </div>
                 </div>`;
@@ -1605,27 +1648,27 @@ window.toggleSidebarJogador = function(numSlot) {
             if(!nome) return;
             nome = nome.trim();
             if(nome === "") return;
-            
+
             // Generate a clean ID
             let id = nome.toLowerCase().replace(/[^a-z0-9]/g, '');
             if(!id) id = 'monstro_' + Date.now();
             const idOriginal = id;
             const existente = await safeGet('fichas/' + id);
             if (existente.exists()) id = `${idOriginal}_${Date.now()}`;
-            
+
             // Set up basic ficha
-            await safeUpdate('fichas/' + id, { 
-                nome: nome, 
-                tipo: 'monstro', 
-                'hp-max': 20, 
-                'hp-atual': 20, 
-                'mana-max': 20, 
-                'mana-atual': 20 
+            await safeUpdate('fichas/' + id, {
+                nome: nome,
+                tipo: 'monstro',
+                'hp-max': 20,
+                'hp-atual': 20,
+                'mana-max': 20,
+                'mana-atual': 20
             });
             // Register in the list
-            await safeUpdate('lista_monstros/' + id, { 
+            await safeUpdate('lista_monstros/' + id, {
                 nome: nome,
-                ativo: true 
+                ativo: true
             });
         }
 
@@ -1659,7 +1702,7 @@ window.toggleSidebarJogador = function(numSlot) {
 
             const slotDestino = numSlot === 1 ? 2 : numSlot;
             mestreAbrir(slotDestino, 'horda', hordaId);
-            await safeUpdate('estado_combate', { ativo: hordaId });
+            await ativarCombateComIniciativa(hordaId, 'horda');
         }
 
         window.atacarMembroHorda = async function(membroId) {
@@ -1688,7 +1731,7 @@ window.toggleSidebarJogador = function(numSlot) {
         function getLevelData(expTotal) {
             let level = 1; let requiredForNext = 100; let exp = expTotal || 0;
             while(exp >= requiredForNext) {
-                exp -= requiredForNext; level++; requiredForNext *= 2; 
+                exp -= requiredForNext; level++; requiredForNext *= 2;
             }
             return { level, currentExp: exp, requiredForNext };
         }
@@ -1714,11 +1757,11 @@ window.toggleSidebarJogador = function(numSlot) {
         // ÁRVORE DE HABILIDADES
         // ==========================================
         const classesRpg = ["Guerreiro", "Paladino", "Druida", "Bárbaro", "Arqueiro", "Ladino", "Mago", "Curandeiro", "Bardo", "Monge"];
-        
+
         window.abrirArvoreHabilidades = function(numSlot) {
             const selectClasse = document.getElementById(`slot${numSlot}-classe`);
             const classeEscolhida = selectClasse ? selectClasse.value : "";
-            
+
             if (!classeEscolhida) {
                 alert("Escolha uma Classe primeiro na ficha para liberar sua árvore de melhorias!");
                 return;
@@ -1726,13 +1769,13 @@ window.toggleSidebarJogador = function(numSlot) {
 
             const tabsContainer = document.getElementById("arvore-tabs-container");
             const viewsContainer = document.getElementById("arvore-views-container");
-            
+
             tabsContainer.innerHTML = "";
             viewsContainer.innerHTML = "";
 
             classesRpg.forEach(classe => {
                 const isEscolhida = (classe === classeEscolhida);
-                
+
                 // Criar Aba
                 const tab = document.createElement("button");
                 tab.className = `tab-classe ${isEscolhida ? 'ativa' : 'bloqueada'}`;
@@ -1742,7 +1785,7 @@ window.toggleSidebarJogador = function(numSlot) {
                 // Criar Visão da Árvore
                 const view = document.createElement("div");
                 view.className = `arvore-view ${isEscolhida ? 'ativa' : ''}`;
-                
+
                 // Placeholder para a árvore
                 if (isEscolhida) {
                     view.innerHTML = `
@@ -1761,7 +1804,7 @@ window.toggleSidebarJogador = function(numSlot) {
                         </div>
                     `;
                 }
-                
+
                 viewsContainer.appendChild(view);
             });
 
@@ -2331,7 +2374,7 @@ window.toggleSidebarJogador = function(numSlot) {
         function abrirFichaNoSlot(numSlot, tipo, idFicha) {
             if(!idFicha) return;
             limparSlot(numSlot);
-            
+
             document.getElementById(`slot-${numSlot}`).style.display = 'flex';
             slotsDeVisao[numSlot].idFicha = idFicha;
             slotsDeVisao[numSlot].tipo = tipo;
@@ -2339,13 +2382,13 @@ window.toggleSidebarJogador = function(numSlot) {
             const contHeroi = document.getElementById(`container-slot${numSlot}-heroi`);
             const contMonstro = document.getElementById(`container-slot${numSlot}-monstro`);
             const contHorda = document.getElementById(`container-slot${numSlot}-horda`);
-            
+
             contHeroi.style.display = (tipo === 'heroi') ? 'block' : 'none';
             contMonstro.style.display = (tipo === 'monstro') ? 'block' : 'none';
             contHorda.style.display = (tipo === 'horda') ? 'block' : 'none';
 
             const temPermissao = (usuarioAtual.cargo === "Mestre") || (tipo === 'heroi' && usuarioAtual.idFicha === idFicha);
-            
+
             if(tipo === 'heroi') {
                 let nomeJogadorObj = Object.values(usuarios).find(u => u.idFicha === idFicha);
                 let nomeJogador = nomeJogadorObj ? nomeJogadorObj.nome : '';
@@ -2355,8 +2398,8 @@ window.toggleSidebarJogador = function(numSlot) {
 
             if(tipo !== 'horda') {
                 document.querySelectorAll(`.editavel-slot${numSlot}`).forEach(el => {
-                    if(!el.classList.contains('mestre-unlocked')) { el.disabled = !temPermissao; } 
-                    else { el.disabled = (usuarioAtual.cargo !== "Mestre"); } 
+                    if(!el.classList.contains('mestre-unlocked')) { el.disabled = !temPermissao; }
+                    else { el.disabled = (usuarioAtual.cargo !== "Mestre"); }
                     if(el.type !== 'checkbox' && el.type !== 'radio' && el.type !== 'file' && el.id !== `slot${numSlot}-jogador`) el.value = '';
                 });
 
@@ -2368,7 +2411,7 @@ window.toggleSidebarJogador = function(numSlot) {
 
             const path = tipo === 'horda' ? `hordas/${idFicha}` : `fichas/${idFicha}`;
             const refFicha = dbRef(path);
-            
+
             if(tipo === 'heroi') {
                 get(refFicha).then(snap => {
                     if(!snap.exists()) safeUpdate(path, { 'hp-max': 20, 'mana-max': 20, nome: idFicha });
@@ -2389,36 +2432,36 @@ window.toggleSidebarJogador = function(numSlot) {
                     if (contHorda.dataset.chaves !== chavesMembros) {
                         contHorda.innerHTML = renderizarHtmlHordaDinamico(idFicha, dados.membros, numSlot);
                         contHorda.dataset.chaves = chavesMembros;
-                        
+
                         document.querySelectorAll(`.horda-compact-input.editavel-slot${numSlot}`).forEach(input => {
                             if(!input.classList.contains('mestre-unlocked')) { input.disabled = !temPermissao; }
                         });
                     } else {
                         for(let mId in dados.membros) {
                             let mData = dados.membros[mId];
-                            
+
                             for(let campo in mData) {
                                 let el = document.getElementById(`horda-${mId}-${campo}`);
                                 if(el && document.activeElement !== el && el.value != mData[campo]) {
                                     el.value = mData[campo];
                                 }
                             }
-                            
+
                             let hpAtual = Number(mData['hp-atual']) || 0;
                             let hpMax = Number(mData['hp-max']) || 1;
                             let manaAtual = Number(mData['mana-atual']) || 0;
                             let manaMax = Number(mData['mana-max']) || 1;
-                            
+
                             let percHp = (hpAtual / hpMax) * 100;
                             let percMana = (manaAtual / manaMax) * 100;
                             if(percHp > 100) percHp = 100; if(percHp < 0) percHp = 0;
                             if(percMana > 100) percMana = 100; if(percMana < 0) percMana = 0;
-                            
+
                             let barHp = document.getElementById(`bar-hp-horda-${mId}`);
                             let barMana = document.getElementById(`bar-mana-horda-${mId}`);
                             if(barHp) barHp.style.width = percHp + '%';
                             if(barMana) barMana.style.width = percMana + '%';
-                            
+
                             let escudo = Number(mData['escudo']) || 0;
                             let barShield = document.getElementById(`bar-shield-horda-${mId}`);
                             let txtEscudo = document.getElementById(`txt-escudo-horda-${mId}`);
@@ -2428,7 +2471,7 @@ window.toggleSidebarJogador = function(numSlot) {
                                 barShield.style.width = escudo > 0 ? percEscudo + '%' : '0%';
                             }
                             if(txtEscudo) txtEscudo.innerText = escudo > 0 ? `+${escudo}` : '';
-                            
+
                             let caixaHp = document.getElementById(`caixa-hp-horda-${mId}`);
                             if(caixaHp) {
                                 if(percHp <= 10 && hpMax > 0 && hpAtual > 0) caixaHp.classList.add('alerta-morte');
@@ -2440,7 +2483,7 @@ window.toggleSidebarJogador = function(numSlot) {
                         document.querySelectorAll('.esconder-jogador').forEach(el => el.style.display = 'none');
                     }
                     if(visaoTaticaMestreAtiva) renderizarVisaoTaticaMestre();
-                    return; 
+                    return;
                 }
 
                 for(let chave in dados) {
@@ -2468,7 +2511,7 @@ window.toggleSidebarJogador = function(numSlot) {
                     let levelData = getLevelData(expTotal);
                     let elLevel = document.getElementById(`slot${numSlot}-level-display`);
                     let numLevelSpan = document.getElementById(`slot${numSlot}-num-level`);
-                    
+
                     if(elLevel && numLevelSpan) {
                         let lastLevel = elLevel.dataset.currentLevel || 1;
                         if(levelData.level > lastLevel) {
@@ -2482,7 +2525,7 @@ window.toggleSidebarJogador = function(numSlot) {
                     let percExp = (levelData.currentExp / levelData.requiredForNext) * 100;
                     if(percExp > 100) percExp = 100;
                     document.getElementById(`bar-exp-slot${numSlot}`).style.width = `${percExp}%`;
-                    
+
                     let expText = document.getElementById(`slot${numSlot}-exp-text`);
                     expText.innerText = `${levelData.currentExp} / ${levelData.requiredForNext}`;
                     let glow = percExp / 6;
@@ -2491,7 +2534,7 @@ window.toggleSidebarJogador = function(numSlot) {
                     if(numSlotArvoreAberta === numSlot && getSkillTreeForClass(dados.classe)) {
                         renderizarArvoreAberta(numSlot, dados, nodeArvoreSelecionado || "mon_fund_01");
                     }
-                    
+
                     // Lógica para Ouro Derretido que cresce com XP
                     const elBarra = document.getElementById(`bar-exp-slot${numSlot}`);
                     if(elBarra) {
@@ -2504,11 +2547,11 @@ window.toggleSidebarJogador = function(numSlot) {
                     }
 
                     let maxAtributos = 10 + (levelData.level - 1);
-                    
+
                     let baseBonus = { for:0, des:0, con:0, int:0, sab:0, car:0, per:0 };
                     let raca = dados.raca || '';
                     let vocacao = dados.classe || '';
-                    
+
                     if(typeof RACES !== 'undefined' && RACES[raca]) {
                         if(RACES[raca].points) maxAtributos += RACES[raca].points;
                         else {
@@ -2523,7 +2566,7 @@ window.toggleSidebarJogador = function(numSlot) {
                     ['for', 'des', 'con', 'int', 'sab', 'car', 'per'].forEach(a => {
                         let val = Number(dados[a]) || 0;
                         let minVal = baseBonus[a];
-                        
+
                         // Restringir a caixa de texto
                         let inputEl = document.getElementById(`slot${numSlot}-${a}`);
                         if(inputEl) {
@@ -2536,10 +2579,10 @@ window.toggleSidebarJogador = function(numSlot) {
                                 safeUpdate(path, { [a]: minVal });
                             }
                         }
-                        
+
                         ptsDistribuidos += Math.max(0, val - minVal);
                     });
-                    
+
                     let ptsLivres = maxAtributos - ptsDistribuidos;
 
                     let spanPts = document.getElementById(`slot${numSlot}-pts-livres`);
@@ -2547,7 +2590,7 @@ window.toggleSidebarJogador = function(numSlot) {
                         spanPts.innerText = `( ${ptsLivres} / ${maxAtributos} )`;
                         spanPts.style.color = ptsLivres > 0 ? '#27ae60' : (ptsLivres === 0 ? '#b89c72' : '#d95757');
                     }
-                    
+
                     // Lógica do Gnomo para Inventário
                     let slot5El = document.getElementById(`slot${numSlot}-item5-nome`);
                     if(slot5El) {
@@ -2576,16 +2619,16 @@ window.toggleSidebarJogador = function(numSlot) {
 
         function atualizarBarrasEAlertaNoSlot(numSlot, tipo) {
             let prefixo = tipo === 'heroi' ? `slot${numSlot}` : `slot${numSlot}-monstro`;
-            
+
             const hpAtual = Number(document.getElementById(`${prefixo}-hp-atual`).value) || 0;
             const hpMax = tipo === 'heroi' ? (Number(document.getElementById(`slot${numSlot}-hp-efetivo`).innerText) || 20) : (Number(document.getElementById(`${prefixo}-hp-max`).value) || 20);
-            
+
             const manaAtual = Number(document.getElementById(`${prefixo}-mana-atual`).value) || 0;
             const manaMax = tipo === 'heroi' ? (Number(document.getElementById(`slot${numSlot}-mana-efetivo`).innerText) || 20) : (Number(document.getElementById(`${prefixo}-mana-max`).value) || 20);
-            
+
             let percHp = (hpAtual / hpMax) * 100;
             let percMana = (manaAtual / manaMax) * 100;
-            
+
             if (percHp > 100) percHp = 100; if (percHp < 0) percHp = 0;
             if (percMana > 100) percMana = 100; if (percMana < 0) percMana = 0;
 
@@ -2635,20 +2678,20 @@ window.toggleSidebarJogador = function(numSlot) {
                 const img = new Image();
                 img.onload = function() {
                     const canvas = document.createElement('canvas');
-                    const MAX_SIZE = 400; 
+                    const MAX_SIZE = 400;
                     let width = img.width; let height = img.height;
-                    if (width > height) { if (width > MAX_SIZE) { height *= MAX_SIZE / width; width = MAX_SIZE; } } 
+                    if (width > height) { if (width > MAX_SIZE) { height *= MAX_SIZE / width; width = MAX_SIZE; } }
                     else { if (height > MAX_SIZE) { width *= MAX_SIZE / height; height = MAX_SIZE; } }
                     canvas.width = width; canvas.height = height;
                     const ctx = canvas.getContext('2d');
                     ctx.drawImage(img, 0, 0, width, height);
 
-                    const dataUrlUltraLeve = canvas.toDataURL('image/webp', 0.85); 
+                    const dataUrlUltraLeve = canvas.toDataURL('image/webp', 0.85);
                     const idFicha = slotsDeVisao[numSlot]?.idFicha;
                     const tipo = slotsDeVisao[numSlot]?.tipo || 'heroi';
                     const imgEl = tipo === 'heroi' ? document.getElementById(`img-foto-slot${numSlot}`) : document.getElementById(`img-foto-monstro-slot${numSlot}`);
                     if (imgEl) imgEl.src = dataUrlUltraLeve;
-                    
+
                     if(idFicha) safeUpdate('fotos/' + idFicha, { base64: dataUrlUltraLeve });
                 }
                 img.src = e.target.result;
@@ -2659,10 +2702,10 @@ window.toggleSidebarJogador = function(numSlot) {
         window.adicionarEfeito = async function(numSlot, isMonstro) {
             const idFicha = slotsDeVisao[numSlot].idFicha;
             if(!idFicha) return;
-            
+
             const p = `slot${numSlot}-novo-buff-`;
             const pos = isMonstro ? "-monstro" : "";
-            
+
             const nome = document.getElementById(`${p}nome${pos}`).value;
             const modHp = Number(document.getElementById(`${p}hp${pos}`).value) || 0;
             const modMana = Number(document.getElementById(`${p}mana${pos}`).value) || 0;
@@ -2686,7 +2729,7 @@ window.toggleSidebarJogador = function(numSlot) {
                 proximo.efeitos = efeitos;
                 return proximo;
             });
-            
+
             document.getElementById(`${p}nome${pos}`).value = '';
             document.getElementById(`${p}turnos${pos}`).value = '';
         }
@@ -2710,7 +2753,7 @@ window.toggleSidebarJogador = function(numSlot) {
 
         window.avancarTurnoGlobal = async function() {
             if (usuarioAtual.cargo !== "Mestre") return;
-            
+
             const refFichas = dbRef('fichas');
             const snapFichas = await get(refFichas);
             let fichas = snapFichas.val() || {};
@@ -2759,7 +2802,7 @@ window.toggleSidebarJogador = function(numSlot) {
                     return proximo;
                 });
             }
-            
+
             const snapHordas = await safeGet('hordas');
             let hordas = snapHordas.val() || {};
             for (let idHorda in hordas) {
@@ -2783,7 +2826,7 @@ window.toggleSidebarJogador = function(numSlot) {
             const listaDiv = document.getElementById(`lista-efeitos${pos}-slot${numSlot}`);
             if(!listaDiv) return;
             listaDiv.innerHTML = '';
-            
+
             efeitos.forEach(efeito => {
                 const isDebuff = (efeito.modHp < 0 || efeito.modMana < 0 || efeito.modAttr < 0);
                 let detalhes = [];
@@ -2792,7 +2835,7 @@ window.toggleSidebarJogador = function(numSlot) {
                 if(efeito.attrDestino && efeito.modAttr !== 0) detalhes.push(`${efeito.attrDestino.toUpperCase()}: ${efeito.modAttr > 0 ? '+' : ''}${efeito.modAttr}`);
                 const nomeEfeitoHtml = escapeHtml(efeito.nome || '');
                 const detalhesHtml = escapeHtml(detalhes.join(' | '));
-                
+
                 listaDiv.innerHTML += `
                     <div class="buff-item ${isDebuff ? 'debuff-item' : ''}">
                         <div>
@@ -2811,7 +2854,7 @@ window.toggleSidebarJogador = function(numSlot) {
         function atualizarTooltipsAtributosNoSlot(numSlot, tipo, dados) {
             const atributos = ['for', 'des', 'con', 'int', 'sab', 'car', 'per'];
             const prefixo = tipo === 'heroi' ? `slot${numSlot}` : `slot${numSlot}-monstro`;
-            
+
             let baseBonus = {for:0, des:0, con:0, int:0, sab:0, car:0, per:0};
             if(tipo === 'heroi') {
                 let raca = dados.raca || '';
@@ -2849,7 +2892,7 @@ window.toggleSidebarJogador = function(numSlot) {
                 let mNat = baseBonus[attr] || 0;
                 let baseTotal = total - mItem - mBuff;
                 let ptsDistribuidos = baseTotal - mNat;
-                
+
                 let inputEl = document.getElementById(`${prefixo}-${attr}`);
                 if(inputEl && inputEl.parentElement) {
                     let txt = `Distrib.: ${ptsDistribuidos > 0 ? '+'+ptsDistribuidos : ptsDistribuidos}\nNativo (Raça/Classe): ${mNat > 0 ? '+'+mNat : mNat}\nItens: ${mItem > 0 ? '+'+mItem : mItem}\nEfeitos: ${mBuff > 0 ? '+'+mBuff : mBuff}`;
@@ -2862,7 +2905,7 @@ window.toggleSidebarJogador = function(numSlot) {
         window.executarAtaque = async function(numSlot) {
             const inputDano = document.getElementById(`slot${numSlot}-ataque-dano`);
             const dano = Number(inputDano.value);
-            
+
             if(!dano || dano <= 0) return alert("Insira um valor de dano válido!");
 
             const checkboxes = document.querySelectorAll(`.alvo-ataque-slot${numSlot}:checked`);
@@ -2876,21 +2919,22 @@ window.toggleSidebarJogador = function(numSlot) {
                 const meta = await aplicarEfeitoVidaPath(pathAlvo, dano, 'dano');
                 registrarFeedbackELog(pathAlvo, meta, { ator });
             }
-            
+
             inputDano.value = '';
             checkboxes.forEach(cb => cb.checked = false);
             destacarAlvosSelecionados();
         };
 
-        window.lancarAmeacaFicha = function(numSlot) {
+        window.lancarAmeacaFicha = async function(numSlot) {
             const idAlvo = slotsDeVisao[numSlot].idFicha;
             if(idAlvo) {
-                safeUpdate('estado_combate', { ativo: idAlvo });
+                const tipo = slotsDeVisao[numSlot].tipo === 'horda' || idAlvo.startsWith('horda_') ? 'horda' : 'monstro';
+                await ativarCombateComIniciativa(idAlvo, tipo);
                 adicionarCombatLog(`${slotsDeVisao[numSlot].dados?.nome || idAlvo} entrou em combate.`, 'info');
                 if(visaoTaticaMestreAtiva) renderizarVisaoTaticaMestre();
             }
         }
-        
+
         window.abaterAmeacaFicha = async function(numSlot) {
             const idAlvo = slotsDeVisao[numSlot].idFicha;
             const nomeAlvo = slotsDeVisao[numSlot]?.dados?.nome || getNomeAlvoPorPath(`fichas/${idAlvo || ameacaEmCombateGlobal || ''}`);
@@ -2908,7 +2952,7 @@ window.toggleSidebarJogador = function(numSlot) {
                 escudoAbsorvido: 0,
                 texto: 'Combate finalizado'
             });
-            await safeRemove('estado_combate/ativo');
+            await encerrarCombateComIniciativa();
             limparCombatLog();
             limparVisuaisCombateTemporarios();
             mostrarCombatToast("Combate finalizado.");
@@ -2918,10 +2962,10 @@ window.toggleSidebarJogador = function(numSlot) {
         window.deletarAmeacaFicha = function(numSlot) {
             const idAlvo = slotsDeVisao[numSlot].idFicha;
             if(!idAlvo) return;
-            
+
             if(confirm("Tem certeza que deseja DELETAR esta ameaça para sempre?")) {
-                if(ameacaEmCombateGlobal === idAlvo) safeRemove('estado_combate/ativo'); 
-                
+                if(ameacaEmCombateGlobal === idAlvo) encerrarCombateComIniciativa();
+
                 if(idAlvo.startsWith('horda_')) {
                     safeRemove('hordas/' + idAlvo);
                 } else {
@@ -2940,10 +2984,10 @@ window.toggleSidebarJogador = function(numSlot) {
             if(!seletor) return;
             const idAlvo = seletor.value;
             if(!idAlvo) return;
-            
+
             if(confirm("Tem certeza que deseja DELETAR esta ameaça para sempre?")) {
-                if(ameacaEmCombateGlobal === idAlvo) safeRemove('estado_combate/ativo'); 
-                
+                if(ameacaEmCombateGlobal === idAlvo) encerrarCombateComIniciativa();
+
                 if(idAlvo.startsWith('horda_')) {
                     safeRemove('hordas/' + idAlvo);
                 } else {
@@ -2961,7 +3005,7 @@ window.toggleSidebarJogador = function(numSlot) {
         function initHudGlobais() {
             const listDiv = document.getElementById('hud-players-list');
             if(!listDiv) return;
-            
+
             let finalHTML = '';
             playersList.forEach(p => {
                 finalHTML += `
@@ -2970,7 +3014,7 @@ window.toggleSidebarJogador = function(numSlot) {
                         <div class="hud-stats-row">
                             <span style="color:#27ae60; font-weight:bold; font-size:11px;">HP:</span>
                             <div>
-                                <input type="number" id="hud-${p}-hp-atual" class="hud-input hud-stat-field" onchange="atualizarHudMestre('${p}', 'hp-atual', this.value)"> / 
+                                <input type="number" id="hud-${p}-hp-atual" class="hud-input hud-stat-field" onchange="atualizarHudMestre('${p}', 'hp-atual', this.value)"> /
                                 <span id="hud-${p}-hp-max" style="font-weight:bold; font-size:11px; display:inline-block; width:25px; text-align:left;">20</span>
                             </div>
                         </div>
@@ -2978,7 +3022,7 @@ window.toggleSidebarJogador = function(numSlot) {
                         <div class="hud-stats-row" style="margin-top: 5px;">
                             <span style="color:#2980b9; font-weight:bold; font-size:11px;">MP:</span>
                             <div>
-                                <input type="number" id="hud-${p}-mana-atual" class="hud-input hud-stat-field" onchange="atualizarHudMestre('${p}', 'mana-atual', this.value)"> / 
+                                <input type="number" id="hud-${p}-mana-atual" class="hud-input hud-stat-field" onchange="atualizarHudMestre('${p}', 'mana-atual', this.value)"> /
                                 <span id="hud-${p}-mana-max" style="font-weight:bold; font-size:11px; display:inline-block; width:25px; text-align:left;">20</span>
                             </div>
                         </div>
@@ -2986,7 +3030,7 @@ window.toggleSidebarJogador = function(numSlot) {
                     </div>`;
             });
             listDiv.innerHTML = finalHTML;
-            
+
             onValue(dbRef('fichas'), (snapshot) => {
                 if(!usuarioAtual || usuarioAtual.cargo !== "Mestre") return;
                 const dados = snapshot.val() || {};
@@ -2998,27 +3042,27 @@ window.toggleSidebarJogador = function(numSlot) {
 
         function preencherHUDJogadorVisualmente(jogadorId, dadosJogador) {
             const hpAtual = Number(dadosJogador['hp-atual']) || 0;
-            const hpMaxBase = dadosJogador['hp-max'] !== undefined ? Number(dadosJogador['hp-max']) : 20; 
+            const hpMaxBase = dadosJogador['hp-max'] !== undefined ? Number(dadosJogador['hp-max']) : 20;
             const con = Number(dadosJogador['con']) || 0;
             const hpMaxEfetivo = hpMaxBase + (con * 3);
 
             const manaAtual = Number(dadosJogador['mana-atual']) || 0;
-            const manaMaxBase = dadosJogador['mana-max'] !== undefined ? Number(dadosJogador['mana-max']) : 20; 
+            const manaMaxBase = dadosJogador['mana-max'] !== undefined ? Number(dadosJogador['mana-max']) : 20;
             const int = Number(dadosJogador['int']) || 0;
             const manaMaxEfetivo = manaMaxBase + (int * 2);
-            
-            let percHp = hpMaxEfetivo > 0 ? (hpAtual/hpMaxEfetivo)*100 : 0; 
-            let percMana = manaMaxEfetivo > 0 ? (manaAtual/manaMaxEfetivo)*100 : 0; 
+
+            let percHp = hpMaxEfetivo > 0 ? (hpAtual/hpMaxEfetivo)*100 : 0;
+            let percMana = manaMaxEfetivo > 0 ? (manaAtual/manaMaxEfetivo)*100 : 0;
             if(percHp>100) percHp=100; if(percHp<0) percHp=0;
             if(percMana>100) percMana=100; if(percMana<0) percMana=0;
-            
+
             let elHpAtual = document.getElementById(`hud-${jogadorId}-hp-atual`);
             let elHpMax = document.getElementById(`hud-${jogadorId}-hp-max`);
             let elManaAtual = document.getElementById(`hud-${jogadorId}-mana-atual`);
             let elManaMax = document.getElementById(`hud-${jogadorId}-mana-max`);
 
             if(elHpAtual && document.activeElement !== elHpAtual) elHpAtual.value = hpAtual;
-            if(elHpMax) elHpMax.innerText = hpMaxEfetivo; 
+            if(elHpMax) elHpMax.innerText = hpMaxEfetivo;
             if(elManaAtual && document.activeElement !== elManaAtual) elManaAtual.value = manaAtual;
             if(elManaMax) elManaMax.innerText = manaMaxEfetivo;
 
@@ -3053,7 +3097,7 @@ window.toggleSidebarJogador = function(numSlot) {
             const btn = document.getElementById('btn-toggle-hud');
             if(hudVisivel) {
                 hud.style.display = 'flex';
-                btn.style.left = '250px'; 
+                btn.style.left = '250px';
                 btn.innerText = "〰️";
             } else {
                 hud.style.display = 'none';
@@ -3074,7 +3118,7 @@ window.toggleSidebarJogador = function(numSlot) {
             let dados = slotsDeVisao[numSlot].dados || {};
             renderizarGrimorioModal(numSlot, dados.grimorio || {});
         }
-        
+
         window.fecharGrimorio = function() {
             const modal = document.getElementById('modal-grimorio');
             modal.classList.remove('aberto');
@@ -3103,15 +3147,15 @@ window.toggleSidebarJogador = function(numSlot) {
             // 1. Atualiza a Sidebar de Combate (Habilidades Equipadas)
             const containerFeiticos = document.getElementById(`lista-feiticos-combate-slot${numSlot}`);
             const containerPassivas = document.getElementById(`lista-passivas-combate-slot${numSlot}`);
-            
+
             if(containerFeiticos && containerPassivas) {
                 let htmlFeiticos = `<label class="magia-radio-item"><input type="radio" name="feitico-selecionado-slot${numSlot}" value="fisico" checked onchange="atualizarTextoBotaoAcaoJogador(${numSlot})"><span class="magia-icon-mini">⚔️</span> <span>Ataque Básico</span></label>`;
                 let htmlPassivas = '';
-                
+
                 for(let habId in grimorio) {
                     let hab = enrichHab(habId, grimorio[habId]);
                     if(!hab.equipada) continue;
-                    
+
                     let icon = escapeHtml(hab.icon || '✨');
                     let nomeHabHtml = escapeHtml(hab.nome || habId);
                     let formulaHabHtml = escapeHtml(hab.formula || '');
@@ -3140,9 +3184,9 @@ window.toggleSidebarJogador = function(numSlot) {
                         `;
                     }
                 }
-                
+
                 if(htmlPassivas === '') htmlPassivas = '<div style="color:#5c3a21; font-size: 10px; font-style: italic;">Nenhuma equipada</div>';
-                
+
                 containerFeiticos.innerHTML = htmlFeiticos;
                 containerPassivas.innerHTML = htmlPassivas;
                 atualizarTextoBotaoAcaoJogador(numSlot);
@@ -3158,10 +3202,10 @@ window.toggleSidebarJogador = function(numSlot) {
             const divAtivas = document.getElementById('grimorio-lista-ativas');
             const divPassivas = document.getElementById('grimorio-lista-passivas');
             if(!divAtivas || !divPassivas) return;
-            
+
             divAtivas.innerHTML = '';
             divPassivas.innerHTML = '';
-            
+
             const dadosFicha = slotsDeVisao[numSlot]?.dados || {};
             const metaArvore = document.getElementById('grimorio-meta-arvore');
             if(metaArvore) {
@@ -3169,7 +3213,7 @@ window.toggleSidebarJogador = function(numSlot) {
             }
 
             const temPermissao = (usuarioAtual.cargo === "Mestre") || (usuarioAtual.idFicha === slotsDeVisao[numSlot].idFicha);
-            
+
             for(let habId in grimorio) {
                 let hab = enrichHab(habId, grimorio[habId]);
                 let isEquipada = hab.equipada || false;
@@ -3179,15 +3223,15 @@ window.toggleSidebarJogador = function(numSlot) {
                 const effectKindHtml = escapeHtml(hab.effectKind || '');
                 const alvoHtml = escapeHtml(hab.alvo || '');
                 const formulaHtml = escapeHtml(hab.formula || '');
-                
+
                 let btnEquiparHtml = '';
                 // Passivas e melhorias nunca recebem botão de equipar (sempre ativas nativamente)
                 if(temPermissao && hab.tipo !== 'passiva' && hab.tipo !== 'melhoria' && !(hab.treeSkill && usuarioAtual.cargo === "Mestre")) {
                     btnEquiparHtml = `<button onclick="toggleEquiparHabilidade(${numSlot}, '${habId}')" class="btn-equipar-visual">${isEquipada ? 'Desequipar' : 'Equipar'}</button>`;
                 }
-                
+
                 let delHtml = (temPermissao && !hab.treeSkill) ? `<button onclick="deletarHabilidade(${numSlot}, '${habId}')" style="position: absolute; top: 10px; right: 10px; background:none; border:none; color:#8c1c13; cursor:pointer; font-size: 16px;" title="Apagar Habilidade">🗑️</button>` : '';
-                
+
                 let iconUrl = `Icones/${habId}.png`;
                 let cardHtml = `
                     <div class="skill-card-visual ${isEquipada ? 'equipada' : ''} tipo-${hab.tipo}">
@@ -3207,7 +3251,7 @@ window.toggleSidebarJogador = function(numSlot) {
                         </div>
                     </div>
                 `;
-                
+
                 if(hab.tipo === 'passiva' || hab.tipo === 'melhoria') divPassivas.innerHTML += cardHtml;
                 else divAtivas.innerHTML += cardHtml;
             }
@@ -3227,9 +3271,10 @@ window.toggleSidebarJogador = function(numSlot) {
         };
 
         window.jogadorLancarFeitico = async function(numSlot) {
+            if(!podeUsuarioAgirAgora(numSlot, { acao: 'ataque-jogador' })) return;
             const radioSelecionado = document.querySelector(`input[name="feitico-selecionado-slot${numSlot}"]:checked`);
             if(!radioSelecionado) return alert("Selecione um ataque ou magia primeiro.");
-            
+
             const feiticoId = radioSelecionado.value;
             const inputDano = document.getElementById(`slot${numSlot}-jogador-ataque-dano`);
             let valorEfeito = Number(inputDano.value) || 0;
@@ -3243,7 +3288,7 @@ window.toggleSidebarJogador = function(numSlot) {
             let tipoFeitico = 'dano';
             let habSelecionada = null;
             let formulaRolada = null;
-            
+
             if(feiticoId !== 'fisico') {
                 let snap = await safeGet(`fichas/${idFicha}/grimorio/${feiticoId}`);
                 if(snap.exists()) {
@@ -3309,13 +3354,13 @@ window.toggleSidebarJogador = function(numSlot) {
                     registrarFeedbackELog(pathAlvo, meta, { ator, habilidade: habilidadeLog });
                 }
             }
-            
+
             inputDano.value = '';
             checkboxes.forEach(cb => cb.checked = false);
             destacarAlvosSelecionados();
             if(formulaRolada) mostrarCombatToast(`Rolagem: ${habSelecionada.formula} = ${valorEfeito}.`);
         };
-        
+
         window.adicionarHabilidade = function(numSlot) {
             const idsLegado = [
                 `slot${numSlot}-hab-nome`,
@@ -3334,16 +3379,16 @@ window.toggleSidebarJogador = function(numSlot) {
             let mana = Number(document.getElementById(`slot${numSlot}-hab-mana`).value) || 0;
             let tipo = document.getElementById(`slot${numSlot}-hab-tipo`).value;
             let desc = document.getElementById(`slot${numSlot}-hab-desc`).value;
-            
+
             if(!nome) return alert("Habilidade precisa de um nome!");
-            
+
             const idFicha = slotsDeVisao[numSlot].idFicha;
             const habId = "hab_" + Date.now();
-            
+
             safeUpdate(`fichas/${idFicha}/grimorio/${habId}`, normalizeHabV1(habId, {
                 nome, ap, mana, tipo, desc
             }));
-            
+
             document.getElementById(`slot${numSlot}-hab-nome`).value = '';
             document.getElementById(`slot${numSlot}-hab-ap`).value = '0';
             document.getElementById(`slot${numSlot}-hab-mana`).value = '0';
@@ -3442,12 +3487,12 @@ window.toggleSidebarJogador = function(numSlot) {
         document.addEventListener('input', async (e) => {
             if (e.target.disabled) return;
             const classList = e.target.classList;
-            
+
             // 1. Inputs de Horda
             if (classList.contains('horda-compact-input')) {
                 let numSlot = classList.contains('editavel-slot1') ? 1 : (classList.contains('editavel-slot2') ? 2 : null);
                 if(!numSlot || !slotsDeVisao[numSlot].idFicha) return;
-                let parts = e.target.id.split('-'); 
+                let parts = e.target.id.split('-');
                 const campoHorda = parts.slice(2).join('-');
                 const valorHorda = normalizarValorParaSalvar(campoHorda, e.target.value, { compacto: true });
                 await safeTransaction(`hordas/${slotsDeVisao[numSlot].idFicha}/membros/${parts[1]}`, (dadosAtuais) => {
@@ -3460,10 +3505,10 @@ window.toggleSidebarJogador = function(numSlot) {
             // 2. Inputs de Ficha (Herói / Monstro)
             let isEditavelSlot1 = classList.contains('editavel-slot1');
             let isEditavelSlot2 = classList.contains('editavel-slot2');
-            
+
             if (isEditavelSlot1 || isEditavelSlot2) {
                 if(e.target.type === 'file') return;
-                
+
                 let numSlot = isEditavelSlot1 ? 1 : 2;
                 let tipo = slotsDeVisao[numSlot].tipo;
                 let idFicha = slotsDeVisao[numSlot].idFicha;
@@ -3484,7 +3529,7 @@ window.toggleSidebarJogador = function(numSlot) {
 
                 let novoValor = e.target.value;
                 let dadosAntigos = slotsDeVisao[numSlot].dados || {};
-                
+
                 let baseAtual = {for:0, des:0, con:0, int:0, sab:0, car:0, per:0};
                 let oldRaca = dadosAntigos.raca || '';
                 let oldClasse = dadosAntigos.classe || '';
@@ -3498,7 +3543,7 @@ window.toggleSidebarJogador = function(numSlot) {
                 if (tipo === 'heroi' && (chaveDoBanco === 'raca' || chaveDoBanco === 'classe')) {
                     let newRaca = chaveDoBanco === 'raca' ? novoValor : oldRaca;
                     let newClasse = chaveDoBanco === 'classe' ? novoValor : oldClasse;
-                    
+
                     let newBase = {for:0, des:0, con:0, int:0, sab:0, car:0, per:0};
                     if(typeof RACES !== 'undefined' && RACES[newRaca] && !RACES[newRaca].points) {
                         for(let a in newBase) if(RACES[newRaca][a]) newBase[a] += RACES[newRaca][a];
@@ -3506,7 +3551,7 @@ window.toggleSidebarJogador = function(numSlot) {
                     if(typeof CLASSES !== 'undefined' && CLASSES[newClasse]) {
                         for(let a in newBase) if(CLASSES[newClasse][a]) newBase[a] += CLASSES[newClasse][a];
                     }
-                    
+
                     let updates = { [chaveDoBanco]: novoValor };
                     ['for', 'des', 'con', 'int', 'sab', 'car', 'per'].forEach(attr => {
                         let delta = newBase[attr] - baseAtual[attr];
@@ -3517,14 +3562,14 @@ window.toggleSidebarJogador = function(numSlot) {
                     safeUpdate('fichas/' + idFicha, updates).then(() => {
                         atualizarHabilidadesSistema(idFicha, numSlot);
                     });
-                    return; 
+                    return;
                 }
 
                 if (tipo === 'heroi' && ATTRS.includes(chaveDoBanco) && novoValor !== "") {
                     novoValor = Number(novoValor);
                     let minG = baseAtual[chaveDoBanco];
                     if (novoValor < minG) novoValor = minG;
-                    
+
                     let expT = Number(dadosAntigos['expTotal']) || 0;
                     let lvl = typeof getLevelData === 'function' ? getLevelData(expT).level : 1;
                     let maxA = 10 + (lvl - 1);
@@ -3537,26 +3582,26 @@ window.toggleSidebarJogador = function(numSlot) {
                     });
 
                     if (ptsGastos > maxA && usuarioAtual.cargo !== "Mestre") {
-                        e.target.value = dadosAntigos[chaveDoBanco] || 0; 
-                        return; 
+                        e.target.value = dadosAntigos[chaveDoBanco] || 0;
+                        return;
                     }
-                    e.target.value = novoValor; 
+                    e.target.value = novoValor;
                 }
-                
+
                 if (usuarioAtual.cargo === 'Jogador' && (chaveDoBanco === 'hp-atual' || chaveDoBanco === 'mana-atual')) {
                     if (novoValor !== "") {
                         novoValor = Number(novoValor);
                         if (novoValor < 0) novoValor = 0;
                         let hpEf = document.getElementById(`slot${numSlot}-hp-efetivo`);
                         let manaEf = document.getElementById(`slot${numSlot}-mana-efetivo`);
-                        let maxVal = chaveDoBanco === 'hp-atual' ? 
-                            (hpEf ? Number(hpEf.innerText) : 20) : 
+                        let maxVal = chaveDoBanco === 'hp-atual' ?
+                            (hpEf ? Number(hpEf.innerText) : 20) :
                             (manaEf ? Number(manaEf.innerText) : 20);
                         if (novoValor > maxVal) novoValor = maxVal;
                         e.target.value = novoValor;
                     }
                 }
-                
+
                 const valorParaSalvar = normalizarValorParaSalvar(chaveDoBanco, novoValor);
 
                 if (['hp-atual', 'hp-max', 'mana-atual', 'mana-max', 'escudo', 'ap'].includes(chaveDoBanco)) {

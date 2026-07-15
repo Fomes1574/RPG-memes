@@ -149,6 +149,29 @@
         </div>
     </div>
 
+
+    <div id="initiative-player-modal" class="initiative-modal" role="dialog" aria-modal="true" aria-labelledby="initiative-player-title" aria-hidden="true">
+        <div class="initiative-player-card">
+            <h2 id="initiative-player-title">INICIATIVA</h2>
+            <input id="initiative-player-input" class="initiative-number-input" type="number" min="1" max="20" inputmode="numeric" aria-label="Valor de iniciativa">
+            <button id="initiative-player-confirm" type="button" disabled>CONFIRMAR</button>
+        </div>
+    </div>
+
+    <div id="initiative-master-modal" class="initiative-modal" role="dialog" aria-modal="true" aria-labelledby="initiative-master-title" aria-hidden="true">
+        <div class="initiative-master-card">
+            <h2 id="initiative-master-title">Preparar Iniciativa</h2>
+            <div id="initiative-master-list" class="initiative-master-list"></div>
+            <button id="initiative-master-action" type="button">ORGANIZAR ORDEM</button>
+        </div>
+    </div>
+
+    <section id="initiative-turn-board" class="initiative-turn-board" aria-label="Quadro de turnos" hidden>
+        <div id="initiative-round" class="initiative-round">Rodada 1</div>
+        <div id="initiative-portraits" class="initiative-portraits"></div>
+        <button id="initiative-end-turn" type="button">FIM DO TURNO</button>
+    </section>
+
     <script type="module" src="script.js"></script>
 </body>
 </html>
