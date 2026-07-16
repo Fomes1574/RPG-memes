@@ -80,12 +80,12 @@
     <div id="tela-app">
         <div class="nav-bar">
             <div class="nav-info">
-                Identidade: <strong id="usuario-logado" style="color: #d4af37; font-size: 16px;"></strong> 
+                Identidade: <strong id="usuario-logado" style="color: #d4af37; font-size: 16px;"></strong>
                 <span id="badge-cargo" style="background: #0a0503; padding: 3px 10px; border: 1px solid #5c3a21; font-size: 10px; margin-left: 8px; vertical-align: middle;"></span>
             </div>
-            
+
             <div style="display: flex; gap: 20px; align-items: center; flex-wrap: wrap;">
-                
+
                 <div id="seletor-jogador" style="display: none;">
                     <label style="display: inline-block; margin-bottom: 0;">Seu Personagem:</label>
                     <span id="nome-heroi-jogador" style="font-weight:bold; color:#d4af37; margin-left: 5px; font-size: 16px; text-transform: uppercase;">Aguardando...</span>
@@ -148,6 +148,77 @@
             </div>
         </div>
     </div>
+
+
+
+    <section id="voice-panel" class="voice-panel" aria-label="Comunicação por voz experimental" hidden>
+        <header class="voice-panel__header">
+            <div>
+                <strong>🎙️ Voz da Mesa</strong>
+                <span id="voice-status">desconectado</span>
+            </div>
+            <div class="voice-actions">
+                <button id="voice-start" type="button">Entrar na voz</button>
+                <button id="voice-reconnect" type="button">Reconectar</button>
+                <button id="voice-normalize" type="button">Normalizar</button>
+            </div>
+        </header>
+        <p class="voice-note">Protótipo gratuito: WebRTC + Web Audio + Firebase Realtime Database. Sem TURN; NAT restritivo, firewall ou CGNAT podem causar conexão parcial. STUN fica centralizado em <code>ICE_SERVERS</code> e pode ser vazio.</p>
+        <div class="voice-grid">
+            <fieldset>
+                <legend>Controles pessoais</legend>
+                <label><input id="voice-mute" type="checkbox"> Mute pessoal</label>
+                <label><input id="voice-deafen" type="checkbox"> Headphone / não ouvir ninguém</label>
+                <label>Volume privado <input id="voice-master-volume" type="range" min="0" max="2" step="0.01" value="1"></label>
+                <label>Ambiente
+                    <select id="voice-environment"><option value="normal">Normal</option><option value="cave">Caverna</option></select>
+                </label>
+                <label>Voz
+                    <select id="voice-effect"><option value="normal">Normal</option><option value="demon">Demoníaca</option><option value="dragon">Dracônica</option><option value="spectral">Espectral</option></select>
+                </label>
+                <label>Posição
+                    <select id="voice-pan"><option value="0">Centro</option><option value="-0.8">Esquerda</option><option value="0.8">Direita</option></select>
+                </label>
+                <label>Distância <input id="voice-distance" type="range" min="0" max="100" value="0"></label>
+            </fieldset>
+            <fieldset>
+                <legend>Sussurro e privacidade</legend>
+                <label><input id="voice-whisper-master" type="checkbox"> Conversa somente com o Mestre</label>
+                <div id="voice-private-targets" class="voice-check-list"></div>
+                <button id="voice-favorite-private" type="button">Favoritar seleção privada</button>
+            </fieldset>
+            <fieldset id="voice-master-controls" hidden>
+                <legend>Controle narrativo do Mestre</legend>
+                <div id="voice-master-targets" class="voice-check-list"></div>
+                <button id="voice-scene-cave" type="button">Cena: Caverna</button>
+                <button id="voice-scene-whisper" type="button">Cena: Sussurro Mestre</button>
+                <button id="voice-restore-effects" type="button">Restaurar efeitos individuais</button>
+            </fieldset>
+        </div>
+        <div id="voice-participants" class="voice-participants"></div>
+    </section>
+
+    <div id="initiative-player-modal" class="initiative-modal" role="dialog" aria-modal="true" aria-labelledby="initiative-player-title" aria-hidden="true">
+        <div class="initiative-player-card">
+            <h2 id="initiative-player-title">INICIATIVA</h2>
+            <input id="initiative-player-input" class="initiative-number-input" type="number" min="1" max="20" inputmode="numeric" aria-label="Valor de iniciativa">
+            <button id="initiative-player-confirm" type="button" disabled>CONFIRMAR</button>
+        </div>
+    </div>
+
+    <div id="initiative-master-modal" class="initiative-modal" role="dialog" aria-modal="true" aria-labelledby="initiative-master-title" aria-hidden="true">
+        <div class="initiative-master-card">
+            <h2 id="initiative-master-title">Preparar Iniciativa</h2>
+            <div id="initiative-master-list" class="initiative-master-list"></div>
+            <button id="initiative-master-action" type="button">ORGANIZAR ORDEM</button>
+        </div>
+    </div>
+
+    <section id="initiative-turn-board" class="initiative-turn-board" aria-label="Quadro de turnos" hidden>
+        <div id="initiative-round" class="initiative-round">Rodada 1</div>
+        <div id="initiative-portraits" class="initiative-portraits"></div>
+        <button id="initiative-end-turn" type="button">FIM DO TURNO</button>
+    </section>
 
     <script type="module" src="script.js"></script>
 </body>
