@@ -2,6 +2,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
         import { getDatabase, ref, onValue, update, get, remove, runTransaction } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
 
         const DB_PREFIX = "";
+        export const ICE_SERVERS = []; // STUN/TURN centralizados. Protótipo sem TURN; pode usar STUN substituível ou lista vazia.
 
         const firebaseConfig = {
             apiKey: "AIzaSyBOJ4nPQX6dUjrpODKQfCB6uTfWSQCS9uA",
@@ -1274,6 +1275,7 @@ window.toggleSidebarJogador = function(numSlot) {
                 document.getElementById('badge-cargo').innerText = usuarioAtual.cargo;
                 document.body.classList.add(usuarioAtual.cargo === "Mestre" ? 'is-mestre' : 'is-jogador');
                 initCombatUi();
+                initVoicePrototype();
 
                 if(usuarioAtual.cargo === "Mestre") {
                     document.getElementById('badge-cargo').style.borderColor = "#8c1c13";
@@ -3613,3 +3615,100 @@ window.toggleSidebarJogador = function(numSlot) {
             }
         });
 
+
+
+        // ========================= VOZ EXPERIMENTAL WEBRTC =========================
+        const VOICE_ROOM_ID = 'mesa-principal';
+        const VOICE_PATH = `voz/${VOICE_ROOM_ID}`;
+        const VOICE_USERS = Object.keys(usuarios);
+        const voiceState = {
+            started:false, localStream:null, audioContext:null, input:null, processedDestination:null,
+            peers:{}, remotes:{}, settings:{ muted:false, deafened:false, volume:1, environment:'normal', effect:'normal', pan:0, distance:0, hear:{}, speakTo:{}, whisperMaster:false },
+            masterPolicy:{ blockedSpeak:{}, blockedHear:{}, isolated:{}, scene:'normal', overrides:{} }, unsubscribers:[]
+        };
+
+        function voiceLocalKey(){ return usuarioAtual?.idFicha || 'dick'; }
+        function voiceName(id){ return usuarios[id]?.nome || id; }
+        function voicePeerIds(){ return VOICE_USERS.filter(id => id !== voiceLocalKey()); }
+        function voicePairId(a,b){ return [a,b].sort().join('__'); }
+        function voicePairPath(peerId){ return `${VOICE_PATH}/signals/${voicePairId(voiceLocalKey(), peerId)}`; }
+        function voiceCanSendTo(peerId){
+            const me=voiceLocalKey();
+            if(voiceState.settings.muted || voiceState.masterPolicy.blockedSpeak?.[me]) return false;
+            if(voiceState.masterPolicy.isolated?.[me] || voiceState.masterPolicy.isolated?.[peerId]) return false;
+            if(voiceState.settings.whisperMaster && peerId !== 'dick') return false;
+            if(voiceState.settings.speakTo[peerId] === false) return false;
+            return true;
+        }
+        function voiceCanHear(peerId){
+            const me=voiceLocalKey();
+            if(voiceState.settings.deafened || voiceState.masterPolicy.blockedHear?.[me]) return false;
+            if(voiceState.masterPolicy.isolated?.[me] || voiceState.masterPolicy.isolated?.[peerId]) return false;
+            if(voiceState.settings.hear[peerId] === false) return false;
+            return true;
+        }
+        function voiceStatus(txt){ const el=document.getElementById('voice-status'); if(el) el.textContent=txt; }
+        function saveVoiceSettings(){ localStorage.setItem(`rpgVoice:${voiceLocalKey()}`, JSON.stringify(voiceState.settings)); }
+        function loadVoiceSettings(){ try{ Object.assign(voiceState.settings, JSON.parse(localStorage.getItem(`rpgVoice:${voiceLocalKey()}`)||'{}')); }catch{} }
+
+        function buildVoiceUi(){
+            const panel=document.getElementById('voice-panel'); if(!panel||!usuarioAtual) return; panel.hidden=false;
+            document.getElementById('voice-master-controls').hidden = usuarioAtual.cargo !== 'Mestre';
+            const privateBox=document.getElementById('voice-private-targets'), masterBox=document.getElementById('voice-master-targets'); privateBox.textContent=''; masterBox.textContent='';
+            voicePeerIds().forEach(id=>{
+                const mk=(text, checked, cb)=>{ const l=document.createElement('label'); const i=document.createElement('input'); i.type='checkbox'; i.checked=checked; i.onchange=()=>cb(i.checked); l.append(i, document.createTextNode(text)); return l; };
+                privateBox.append(mk(`Enviar voz para ${voiceName(id)}`, voiceState.settings.speakTo[id]!==false, v=>{voiceState.settings.speakTo[id]=v; saveVoiceSettings(); updateVoiceSenders(); renderVoiceParticipants();}));
+                privateBox.append(mk(`Ouvir ${voiceName(id)}`, voiceState.settings.hear[id]!==false, v=>{voiceState.settings.hear[id]=v; saveVoiceSettings(); updateRemoteAudibility(); renderVoiceParticipants();}));
+                if(usuarioAtual.cargo==='Mestre') masterBox.append(mk(`Isolar ${voiceName(id)}`, !!voiceState.masterPolicy.isolated[id], v=>safeUpdate(`${VOICE_PATH}/masterPolicy/isolated`, {[id]:v||null})));
+            });
+            const bind=(id, prop, map=v=>v)=>{ const el=document.getElementById(id); if(!el)return; if(el.type==='checkbox')el.checked=!!voiceState.settings[prop]; else el.value=voiceState.settings[prop]; el.oninput=el.onchange=()=>{ voiceState.settings[prop]=map(el.type==='checkbox'?el.checked:el.value); saveVoiceSettings(); applyLocalVoiceGraph(); updateRemoteAudibility(); renderVoiceParticipants(); }; };
+            bind('voice-mute','muted',Boolean); bind('voice-deafen','deafened',Boolean); bind('voice-master-volume','volume',Number); bind('voice-environment','environment'); bind('voice-effect','effect'); bind('voice-pan','pan',Number); bind('voice-distance','distance',Number); bind('voice-whisper-master','whisperMaster',Boolean);
+            document.getElementById('voice-start').onclick=startVoicePrototype; document.getElementById('voice-reconnect').onclick=reconnectVoicePrototype; document.getElementById('voice-normalize').onclick=normalizeVoiceSession;
+            document.getElementById('voice-favorite-private').onclick=()=>{ localStorage.setItem(`rpgVoiceFavorite:privado:${voiceLocalKey()}`, JSON.stringify({hear:voiceState.settings.hear,speakTo:voiceState.settings.speakTo,whisperMaster:voiceState.settings.whisperMaster})); voiceStatus('favorito privado salvo'); };
+            document.getElementById('voice-scene-cave').onclick=()=>safeUpdate(`${VOICE_PATH}/masterPolicy`, {scene:'cave', overrides:{environment:'cave', distance:45}});
+            document.getElementById('voice-scene-whisper').onclick=()=>safeUpdate(`${VOICE_PATH}/masterPolicy`, {scene:'whisperMaster'});
+            document.getElementById('voice-restore-effects').onclick=()=>safeUpdate(`${VOICE_PATH}/masterPolicy`, {overrides:null, scene:'normal'});
+            renderVoiceParticipants();
+        }
+
+        async function startVoicePrototype(){
+            if(voiceState.started) return; if(!navigator.mediaDevices?.getUserMedia){ voiceStatus('navegador sem getUserMedia'); return; }
+            try{
+                voiceState.localStream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true, noiseSuppression:true, autoGainControl:true}, video:false});
+                voiceState.audioContext=new (window.AudioContext||window.webkitAudioContext)(); buildLocalVoiceGraph(); voiceState.started=true; voiceStatus('conectando malha P2P');
+                await safeUpdate(`${VOICE_PATH}/participants/${voiceLocalKey()}`, {nome:usuarioAtual.nome,cargo:usuarioAtual.cargo,online:true,updatedAt:Date.now()});
+                voicePeerIds().forEach(connectVoicePeer); renderVoiceParticipants();
+            }catch(err){ console.error(err); voiceStatus('microfone negado/indisponível'); }
+        }
+        function buildLocalVoiceGraph(){
+            const ctx=voiceState.audioContext; voiceState.input=ctx.createMediaStreamSource(voiceState.localStream); voiceState.processedDestination=ctx.createMediaStreamDestination(); applyLocalVoiceGraph();
+        }
+        function applyLocalVoiceGraph(){
+            if(!voiceState.input||!voiceState.processedDestination) return; const ctx=voiceState.audioContext;
+            voiceState.input.disconnect(); const gain=ctx.createGain(); gain.gain.value=voiceState.settings.muted?0:Math.max(0,1-(voiceState.settings.distance/120));
+            let node=gain; voiceState.input.connect(gain);
+            if(voiceState.settings.effect!=='normal'){ const shaper=ctx.createWaveShaper(); shaper.curve=makeDistortionCurve(voiceState.settings.effect==='demon'?240:voiceState.settings.effect==='dragon'?120:35); node.connect(shaper); node=shaper; }
+            if(voiceState.settings.environment==='cave'){ const delay=ctx.createDelay(.6), fb=ctx.createGain(); delay.delayTime.value=.18; fb.gain.value=.32; node.connect(delay); delay.connect(fb); fb.connect(delay); delay.connect(voiceState.processedDestination); }
+            const pan=ctx.createStereoPanner(); pan.pan.value=Number(voiceState.settings.pan)||0; node.connect(pan); pan.connect(voiceState.processedDestination); updateVoiceSenders();
+        }
+        function makeDistortionCurve(amount){ const n=44100, curve=new Float32Array(n); for(let i=0;i<n;i++){ const x=i*2/n-1; curve[i]=(3+amount)*x*20*Math.PI/180/(Math.PI+amount*Math.abs(x)); } return curve; }
+        function connectVoicePeer(peerId){
+            if(voiceState.peers[peerId]) return; const pc=new RTCPeerConnection({iceServers:ICE_SERVERS}); voiceState.peers[peerId]=pc;
+            const stream=voiceState.processedDestination?.stream||voiceState.localStream; stream.getAudioTracks().forEach(t=>pc.addTrack(t,stream)); updateVoiceSenders(peerId);
+            pc.onicecandidate=e=>{ if(e.candidate) safeUpdate(`${voicePairPath(peerId)}/candidates/${voiceLocalKey()}/${Date.now()}_${Math.random().toString(36).slice(2)}`, e.candidate.toJSON()); };
+            pc.ontrack=e=>attachRemoteVoice(peerId,e.streams[0]); pc.onconnectionstatechange=()=>{ if(['failed','disconnected'].includes(pc.connectionState)) voiceStatus('conexão parcial; use reconectar'); renderVoiceParticipants(); };
+            onValue(dbRef(voicePairPath(peerId)), async snap=>handleVoiceSignal(peerId,snap.val()||{}));
+            if(voiceLocalKey()<peerId) pc.createOffer().then(o=>pc.setLocalDescription(o)).then(()=>safeUpdate(voicePairPath(peerId), {offer:{from:voiceLocalKey(),sdp:pc.localDescription.toJSON()}}));
+        }
+        async function handleVoiceSignal(peerId,data){ const pc=voiceState.peers[peerId]; if(!pc) return; try{
+            if(data.offer?.from===peerId && !pc.remoteDescription){ await pc.setRemoteDescription(data.offer.sdp); const ans=await pc.createAnswer(); await pc.setLocalDescription(ans); await safeUpdate(voicePairPath(peerId), {answer:{from:voiceLocalKey(),sdp:pc.localDescription.toJSON()}}); }
+            if(data.answer?.from===peerId && !pc.remoteDescription) await pc.setRemoteDescription(data.answer.sdp);
+            Object.values(data.candidates?.[peerId]||{}).forEach(c=>pc.addIceCandidate(c).catch(()=>{}));
+        }catch(err){ console.warn('Falha de sinalização de voz', peerId, err); } }
+        function updateVoiceSenders(only){ Object.entries(voiceState.peers).forEach(([id,pc])=>{ if(only&&id!==only)return; pc.getSenders().forEach(s=>{ if(s.track?.kind==='audio') s.track.enabled=voiceCanSendTo(id); }); }); }
+        function attachRemoteVoice(peerId,stream){ let audio=voiceState.remotes[peerId]?.audio; if(!audio){ audio=new Audio(); audio.autoplay=true; audio.playsInline=true; voiceState.remotes[peerId]={audio}; } audio.srcObject=stream; updateRemoteAudibility(); renderVoiceParticipants(); }
+        function updateRemoteAudibility(){ Object.entries(voiceState.remotes).forEach(([id,r])=>{ r.audio.muted=!voiceCanHear(id); r.audio.volume=Math.max(0,Math.min(1,voiceState.settings.volume)); }); }
+        async function reconnectVoicePrototype(){ Object.values(voiceState.peers).forEach(pc=>pc.close()); voiceState.peers={}; await safeRemove(`${VOICE_PATH}/signals`); if(voiceState.started) voicePeerIds().forEach(connectVoicePeer); voiceStatus('reconexão solicitada'); }
+        async function normalizeVoiceSession(){ Object.assign(voiceState.settings,{muted:false,deafened:false,volume:1,environment:'normal',effect:'normal',pan:0,distance:0,whisperMaster:false,hear:{},speakTo:{}}); saveVoiceSettings(); if(usuarioAtual?.cargo==='Mestre') await safeUpdate(`${VOICE_PATH}/masterPolicy`, {blockedSpeak:null,blockedHear:null,isolated:null,overrides:null,scene:'normal'}); buildVoiceUi(); applyLocalVoiceGraph(); updateRemoteAudibility(); voiceStatus('sessão normalizada'); }
+        function renderVoiceParticipants(){ const box=document.getElementById('voice-participants'); if(!box||!usuarioAtual)return; box.textContent=''; VOICE_USERS.forEach(id=>{ const card=document.createElement('div'); card.className='voice-card'; const pc=voiceState.peers[id]; card.innerHTML=`<strong>${voiceName(id)}${id===voiceLocalKey()?' (você)':''}</strong><small>${id===voiceLocalKey()?'local':(pc?.connectionState||'aguardando')}</small>`; if(id!==voiceLocalKey()) card.insertAdjacentHTML('beforeend', `<span class="voice-badge">${voiceCanHear(id)?'ouvindo':'não ouvindo'}</span><span class="voice-badge">${voiceCanSendTo(id)?'recebe sua voz':'sem sua voz'}</span>`); box.appendChild(card); }); }
+        function initVoicePrototype(){ loadVoiceSettings(); buildVoiceUi(); onValue(dbRef(`${VOICE_PATH}/masterPolicy`), snap=>{ voiceState.masterPolicy=Object.assign({blockedSpeak:{},blockedHear:{},isolated:{},overrides:{}}, snap.val()||{}); if(voiceState.masterPolicy.overrides) Object.assign(voiceState.settings, voiceState.masterPolicy.overrides); buildVoiceUi(); applyLocalVoiceGraph(); updateVoiceSenders(); updateRemoteAudibility(); }); }

@@ -2529,3 +2529,26 @@ input:focus, textarea:focus {
 @keyframes initiativeStep { from { opacity:.35; transform: translateX(18px); } to { opacity:1; transform: translateX(0); } }
 @media (prefers-reduced-motion: reduce) { .initiative-turn-board.is-advancing .initiative-portrait { animation: none; } }
 @media (max-width: 560px) { .initiative-turn-board { left: 8px; right: 8px; transform: none; justify-content: space-between; } .initiative-row { grid-template-columns: 32px 1fr 62px 32px; } }
+
+/* Comunicação por voz experimental */
+.voice-panel { width: min(1400px, 100%); margin: 0 auto 24px; background: rgba(18,10,6,.96); border: 2px double #8b6d43; box-shadow: 0 10px 30px rgba(0,0,0,.75), inset 0 0 18px rgba(0,0,0,.65); padding: 16px; box-sizing: border-box; }
+.voice-panel__header { display:flex; justify-content:space-between; gap:12px; align-items:center; flex-wrap:wrap; color:#d4af37; }
+#voice-status { margin-left:10px; color:#b89c72; font-size:12px; text-transform:uppercase; }
+.voice-actions { display:flex; gap:8px; flex-wrap:wrap; }
+.voice-panel button { width:auto; padding:7px 10px; }
+.voice-note { color:#b89c72; font-size:12px; line-height:1.45; margin:10px 0 14px; }
+.voice-grid { display:grid; grid-template-columns: repeat(3, minmax(220px, 1fr)); gap:12px; }
+.voice-grid fieldset { border:1px solid #5c3a21; background:rgba(0,0,0,.28); padding:12px; }
+.voice-grid legend { color:#d4af37; font-weight:bold; font-size:12px; padding:0 6px; }
+.voice-grid label { text-align:left; display:flex; align-items:center; justify-content:space-between; gap:8px; margin:8px 0; color:#dcd0ba; }
+.voice-grid input[type="checkbox"] { width:auto; }
+.voice-check-list { display:grid; gap:6px; max-height:180px; overflow:auto; padding-right:4px; }
+.voice-check-list label { justify-content:flex-start; }
+.voice-participants { display:grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap:10px; margin-top:14px; }
+.voice-card { border:1px solid #4a2e1b; background:rgba(0,0,0,.35); padding:10px; border-radius:4px; }
+.voice-card strong { color:#d4af37; display:block; margin-bottom:4px; }
+.voice-card small { color:#9c8464; display:block; margin-bottom:6px; }
+.voice-card label { display:flex; justify-content:space-between; align-items:center; text-align:left; margin:6px 0; }
+.voice-card input[type="checkbox"] { width:auto; }
+.voice-badge { display:inline-block; margin:2px 3px 2px 0; padding:2px 6px; border:1px solid #5c3a21; color:#b89c72; font-size:10px; }
+@media (max-width: 900px) { .voice-grid { grid-template-columns: 1fr; } }
