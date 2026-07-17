@@ -175,8 +175,20 @@
 
         <div id="voice-drawer-content" class="voice-drawer__content" hidden>
             <div class="voice-toolbar">
+                <label class="voice-field" for="voice-character">
+                    <span>Voz do personagem</span>
+                    <select id="voice-character">
+                        <option value="natural">Natural</option>
+                        <option value="feminine">Feminina natural</option>
+                        <option value="masculine">Masculina natural</option>
+                        <option value="deep">Voz grossa</option>
+                        <option value="elder">Ancião / Anciã</option>
+                        <option value="child">Infantil (estilizada)</option>
+                    </select>
+                </label>
+
                 <label class="voice-field" for="voice-environment">
-                    <span>Ambiente da sua voz</span>
+                    <span>Ambiente</span>
                     <select id="voice-environment">
                         <option value="normal">Voz limpa</option>
                         <option value="stone">Câmara de pedra</option>
@@ -202,7 +214,50 @@
                 <button id="voice-reset" class="voice-reset-button" type="button">Restaurar padrão</button>
             </div>
 
-            <p id="voice-environment-hint" class="voice-environment-hint">Som direto, sem alteração de ambiente.</p>
+            <p class="voice-effect-hint">
+                <span id="voice-character-hint">Sua voz sem alteração de personagem.</span>
+                <span aria-hidden="true">•</span>
+                <span id="voice-environment-hint">Som direto, sem alteração de ambiente.</span>
+            </p>
+
+            <section id="voice-lab" class="voice-lab" aria-labelledby="voice-lab-title">
+                <div class="voice-lab__heading">
+                    <div>
+                        <div class="voice-lab__title-row">
+                            <strong id="voice-lab-title">Laboratório privado</strong>
+                            <span class="voice-private-badge">Ninguém ouve</span>
+                        </div>
+                        <small>Teste antes de entrar na chamada. Para ouvir ao vivo, use fones de ouvido.</small>
+                    </div>
+                    <div class="voice-lab__actions">
+                        <button id="voice-calibrate" type="button">Calibrar 3 s</button>
+                        <button id="voice-preview-record" type="button">Gravar 5 s</button>
+                        <button id="voice-preview-live" type="button">Ouvir ao vivo</button>
+                    </div>
+                </div>
+
+                <div class="voice-lab__monitor">
+                    <span id="voice-lab-status" class="voice-lab__status" data-state="idle" aria-live="polite">
+                        <span class="voice-lab__status-dot" aria-hidden="true"></span>
+                        <span id="voice-lab-status-text">Pronto para uma prévia sem transmissão.</span>
+                        <strong id="voice-lab-countdown" aria-hidden="true"></strong>
+                    </span>
+                    <span class="voice-meter" role="meter" aria-label="Nível do microfone" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+                        <span id="voice-input-meter"></span>
+                    </span>
+                </div>
+
+                <div id="voice-preview-results" class="voice-preview-results" hidden>
+                    <label>
+                        <span>Original</span>
+                        <audio id="voice-preview-original" controls preload="metadata"></audio>
+                    </label>
+                    <label>
+                        <span>Com efeitos</span>
+                        <audio id="voice-preview-processed" controls preload="metadata"></audio>
+                    </label>
+                </div>
+            </section>
 
             <section id="voice-master-controls" class="voice-master-controls" aria-label="Controles do Mestre" hidden>
                 <div>
@@ -228,6 +283,10 @@
 
             <p id="voice-network-warning" class="voice-network-warning" hidden>
                 A chamada está parcial. Redes com CGNAT ou firewall restritivo podem exigir um servidor TURN.
+            </p>
+
+            <p class="voice-credits">
+                Acústica real: <a href="https://www.openair.hosted.york.ac.uk/?page_id=494" target="_blank" rel="noopener noreferrer">OpenAIR — Gill Heads Mine</a> (CC BY 4.0) · Processamento de pitch: Signalsmith Stretch (MIT).
             </p>
         </div>
     </section>
