@@ -169,13 +169,13 @@
                         <path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v3M8.5 21h7"></path>
                     </svg>
                 </button>
-                <button id="voice-start" class="voice-connect-button" type="button">Conectar</button>
+                <button id="voice-start" class="voice-connect-button" type="button" title="Entrar na chamada de voz">Conectar</button>
             </div>
         </header>
 
         <div id="voice-drawer-content" class="voice-drawer__content" hidden>
             <div class="voice-toolbar">
-                <label class="voice-field" for="voice-character">
+                <label class="voice-field" for="voice-character" title="Escolha o timbre aplicado à sua voz.">
                     <span>Voz do personagem</span>
                     <select id="voice-character">
                         <option value="natural">Natural</option>
@@ -187,8 +187,8 @@
                     </select>
                 </label>
 
-                <label class="voice-field" for="voice-environment">
-                    <span>Ambiente</span>
+                <label id="voice-environment-field" class="voice-field" for="voice-environment" title="O Mestre escolhe o ambiente e ativa o efeito em cada participante." hidden>
+                    <span>Ambiente do Mestre</span>
                     <select id="voice-environment">
                         <option value="normal">Voz limpa</option>
                         <option value="stone">Câmara de pedra</option>
@@ -196,54 +196,44 @@
                     </select>
                 </label>
 
-                <label class="voice-field" for="voice-projection">
-                    <span>Como a voz chega</span>
+                <label class="voice-field" for="voice-projection" title="Escolha entre fala normal e sussurro; a distância é definida por participante.">
+                    <span>Modo de fala</span>
                     <select id="voice-projection">
                         <option value="normal">Conversa normal</option>
                         <option value="whisper">Sussurro próximo</option>
-                        <option value="distant">Grito ao longe</option>
                     </select>
                 </label>
 
-                <label class="voice-field voice-volume-field" for="voice-master-volume">
+                <label class="voice-field voice-volume-field" for="voice-master-volume" title="Ajusta o volume de toda a chamada somente para você.">
                     <span>Volume recebido</span>
                     <input id="voice-master-volume" type="range" min="0" max="1" step="0.01" value="1">
                 </label>
 
-                <button id="voice-deafen" class="voice-toggle-button is-active" type="button" aria-pressed="false">
+                <button id="voice-deafen" class="voice-toggle-button is-active" type="button" aria-pressed="false" title="Silenciar todo o áudio recebido da chamada.">
                     <span class="voice-toggle-button__icon" aria-hidden="true">◖◗</span>
                     <span id="voice-deafen-label">Ouvindo a chamada</span>
                 </button>
 
-                <button id="voice-whisper-master" class="voice-toggle-button" type="button" aria-pressed="false" hidden>
+                <button id="voice-whisper-master" class="voice-toggle-button" type="button" aria-pressed="false" title="Enviar sua voz somente ao Mestre." hidden>
                     <span class="voice-toggle-button__icon" aria-hidden="true">◌</span>
                     <span>Só o Mestre me escuta</span>
                 </button>
 
-                <button id="voice-reset" class="voice-reset-button" type="button">Restaurar padrão</button>
+                <button id="voice-reset" class="voice-reset-button" type="button" title="Restaurar apenas suas preferências locais de voz.">Restaurar padrão</button>
             </div>
-
-            <p class="voice-effect-hint">
-                <span id="voice-character-hint">Sua voz sem alteração de personagem.</span>
-                <span aria-hidden="true">•</span>
-                <span id="voice-environment-hint">Som direto, sem alteração de ambiente.</span>
-                <span aria-hidden="true">•</span>
-                <span id="voice-projection-hint">Fale normalmente.</span>
-            </p>
 
             <section id="voice-lab" class="voice-lab" aria-labelledby="voice-lab-title">
                 <div class="voice-lab__heading">
                     <div>
                         <div class="voice-lab__title-row">
                             <strong id="voice-lab-title">Laboratório privado</strong>
-                            <span class="voice-private-badge">Ninguém ouve</span>
+                            <span class="voice-private-badge" title="O teste fica neste computador e não é transmitido nem salvo no Firebase.">Ninguém ouve</span>
                         </div>
-                        <small>Teste antes de entrar na chamada. Para ouvir ao vivo, use fones de ouvido.</small>
                     </div>
                     <div class="voice-lab__actions">
-                        <button id="voice-calibrate" type="button">Calibrar 3 s</button>
-                        <button id="voice-preview-record" type="button">Gravar 5 s</button>
-                        <button id="voice-preview-live" type="button">Ouvir ao vivo</button>
+                        <button id="voice-calibrate" type="button" title="Analisa sua voz por 3 segundos para adaptar os efeitos de personagem.">Calibrar 3 s</button>
+                        <button id="voice-preview-record" type="button" title="Grava uma prévia local de 5 segundos, sem transmitir ou salvar no Firebase.">Gravar 5 s</button>
+                        <button id="voice-preview-live" type="button" title="Devolve sua voz com efeitos somente nos seus fones; ninguém mais escuta.">Ouvir ao vivo</button>
                     </div>
                 </div>
 
@@ -262,41 +252,13 @@
                     <div class="voice-preview-card">
                         <span>Original</span>
                         <audio id="voice-preview-original" controls preload="metadata"></audio>
-                        <button id="voice-preview-original-download" class="voice-download-button" type="button" disabled>Baixar MP3</button>
+                        <button id="voice-preview-original-download" class="voice-download-button" type="button" title="Converter e baixar a gravação original localmente em MP3." disabled>Baixar MP3</button>
                     </div>
                     <div class="voice-preview-card">
                         <span>Com efeitos</span>
                         <audio id="voice-preview-processed" controls preload="metadata"></audio>
-                        <button id="voice-preview-processed-download" class="voice-download-button" type="button" disabled>Baixar MP3</button>
+                        <button id="voice-preview-processed-download" class="voice-download-button" type="button" title="Converter e baixar a gravação com efeitos localmente em MP3." disabled>Baixar MP3</button>
                     </div>
-                </div>
-
-                <p class="voice-local-only-note">As prévias e os MP3 existem apenas neste navegador. Nada é enviado ou salvo no Firebase.</p>
-            </section>
-
-            <details class="voice-guide">
-                <summary>Guia rápido dos controles</summary>
-                <div class="voice-guide__grid">
-                    <p><strong>Microfone verde/vermelho</strong><span>Verde: todos os participantes permitidos recebem sua voz. Vermelho: seu microfone não é enviado.</span></p>
-                    <p><strong>Áudio recebido</strong><span>Liga ou desliga, de uma vez, tudo o que você escuta da chamada.</span></p>
-                    <p><strong>Escutando / Silenciado</strong><span>Verde/vermelho. Controla somente se você ouve aquela pessoa; não muda o áudio dela para os demais.</span></p>
-                    <p><strong>Me escuta / Não me escuta</strong><span>Verde/vermelho. Controla somente se aquela pessoa recebe a sua voz; você ainda pode ouvi-la.</span></p>
-                    <p><strong>Só o Mestre me escuta</strong><span>Roteia sua voz apenas ao Mestre; não é o efeito sonoro “Sussurro próximo”.</span></p>
-                    <p><strong>Laboratório privado</strong><span>Desconectado da chamada, permite ouvir ou gravar efeitos sem transmitir a ninguém.</span></p>
-                    <p><strong>Voz, ambiente e chegada</strong><span>“Voz” altera o personagem, “Ambiente” cria o espaço e “Como a voz chega” simula sussurro ou distância.</span></p>
-                    <p><strong>Controle do Mestre</strong><span>“Pode falar / Silenciado na mesa” libera ou bloqueia o microfone de alguém para todos.</span></p>
-                </div>
-            </details>
-
-            <section id="voice-master-controls" class="voice-master-controls" aria-label="Controles do Mestre" hidden>
-                <div>
-                    <strong>Cena sonora da mesa</strong>
-                    <small>O ambiente global prevalece temporariamente sobre a escolha individual.</small>
-                </div>
-                <div class="voice-master-actions">
-                    <button id="voice-scene-cave" type="button" aria-pressed="false">Aplicar caverna a todos</button>
-                    <button id="voice-scene-clear" type="button">Remover cena global</button>
-                    <button id="voice-master-unmute-all" type="button">Liberar todos os microfones</button>
                 </div>
             </section>
 
@@ -305,7 +267,6 @@
                     <strong>Participantes</strong>
                     <span id="voice-participant-count">0 na chamada</span>
                 </div>
-                <span class="voice-participants-help">Use os botões de cada pessoa para decidir quem você ouve e quem recebe sua voz.</span>
             </div>
 
             <div id="voice-participants" class="voice-participants"></div>

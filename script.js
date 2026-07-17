@@ -3850,6 +3850,7 @@ window.toggleSidebarJogador = function(numSlot) {
             audioContext: null,
             input: null,
             processedDestination: null,
+            distantDestination: null,
             graphNodes: [],
             graphRevision: 0,
             meterAnalyser: null,
@@ -3881,18 +3882,16 @@ window.toggleSidebarJogador = function(numSlot) {
                 volume: 1,
                 character: 'natural',
                 calibrationHz: null,
-                environment: 'normal',
                 projection: 'normal',
                 hear: {},
                 speakTo: {},
+                distance: {},
                 whisperMaster: false
             },
             masterPolicy: {
                 blockedSpeak: {},
-                blockedHear: {},
-                isolated: {},
-                scene: 'normal',
-                overrides: {}
+                environment: 'normal',
+                environmentTargets: {}
             }
         };
 
@@ -3939,10 +3938,10 @@ window.toggleSidebarJogador = function(numSlot) {
                 voiceState.settings.volume = clampVoiceNumber(saved.volume, 0, 1, 1);
                 voiceState.settings.character = VOICE_CHARACTERS[saved.character] ? saved.character : 'natural';
                 voiceState.settings.calibrationHz = normalizeVoiceCalibration(saved.calibrationHz);
-                voiceState.settings.environment = VOICE_ENVIRONMENTS[saved.environment] ? saved.environment : 'normal';
-                voiceState.settings.projection = VOICE_PROJECTIONS[saved.projection] ? saved.projection : 'normal';
+                voiceState.settings.projection = ['normal', 'whisper'].includes(saved.projection) ? saved.projection : 'normal';
                 voiceState.settings.hear = saved.hear && typeof saved.hear === 'object' ? saved.hear : {};
                 voiceState.settings.speakTo = saved.speakTo && typeof saved.speakTo === 'object' ? saved.speakTo : {};
+                voiceState.settings.distance = saved.distance && typeof saved.distance === 'object' ? saved.distance : {};
             } catch (error) {
                 console.warn('Não foi possível carregar as preferências de voz.', error);
             }
@@ -3956,10 +3955,10 @@ window.toggleSidebarJogador = function(numSlot) {
                 volume: settings.volume,
                 character: settings.character,
                 calibrationHz: settings.calibrationHz,
-                environment: settings.environment,
                 projection: settings.projection,
                 hear: settings.hear,
                 speakTo: settings.speakTo,
+                distance: settings.distance,
                 whisperMaster: settings.whisperMaster
             }));
         }
@@ -3977,13 +3976,18 @@ window.toggleSidebarJogador = function(numSlot) {
         }
 
         function effectiveVoiceEnvironment() {
-            if (voiceState.masterPolicy.scene === 'cave') return 'cave';
-            if (voiceState.masterPolicy.overrides?.environment === 'cave') return 'cave';
-            return VOICE_ENVIRONMENTS[voiceState.settings.environment] ? voiceState.settings.environment : 'normal';
+            const environment = VOICE_ENVIRONMENTS[voiceState.masterPolicy.environment]
+                ? voiceState.masterPolicy.environment
+                : 'normal';
+            return voiceState.masterPolicy.environmentTargets?.[voiceLocalKey()] ? environment : 'normal';
         }
 
         function effectiveVoiceProjection() {
-            return VOICE_PROJECTIONS[voiceState.settings.projection] ? voiceState.settings.projection : 'normal';
+            return ['normal', 'whisper'].includes(voiceState.settings.projection) ? voiceState.settings.projection : 'normal';
+        }
+
+        function voiceIsFarFrom(peerId) {
+            return voiceState.settings.distance?.[peerId] === 'far';
         }
 
         function voiceWantsToSendTo(peerId) {
@@ -4054,15 +4058,12 @@ window.toggleSidebarJogador = function(numSlot) {
             const deafen = document.getElementById('voice-deafen');
             const whisper = document.getElementById('voice-whisper-master');
             const character = document.getElementById('voice-character');
+            const environmentField = document.getElementById('voice-environment-field');
             const environment = document.getElementById('voice-environment');
             const projection = document.getElementById('voice-projection');
             const volume = document.getElementById('voice-master-volume');
             const reset = document.getElementById('voice-reset');
-            const masterControls = document.getElementById('voice-master-controls');
-            const caveScene = document.getElementById('voice-scene-cave');
-            const characterHint = document.getElementById('voice-character-hint');
-            const environmentHint = document.getElementById('voice-environment-hint');
-            const projectionHint = document.getElementById('voice-projection-hint');
+            const isMaster = usuarioAtual?.cargo === 'Mestre';
             const meBlocked = !!voiceState.masterPolicy.blockedSpeak?.[voiceLocalKey()];
             const micLive = voiceState.started && !voiceState.settings.muted && !meBlocked;
             const previewLocksEffects = ['starting', 'calibrating', 'recording', 'finalizing'].includes(voiceState.preview.phase) || !!voiceState.preview.mp3Busy;
@@ -4076,6 +4077,7 @@ window.toggleSidebarJogador = function(numSlot) {
                     voiceState.started ? 'Desconectar' :
                     voiceState.phase === 'error' ? 'Tentar novamente' : 'Conectar';
                 start.classList.toggle('is-connected', voiceState.started);
+                start.title = voiceState.started ? 'Sair da chamada de voz' : 'Entrar na chamada de voz';
             }
 
             if (mute) {
@@ -4100,53 +4102,48 @@ window.toggleSidebarJogador = function(numSlot) {
             }
 
             if (whisper) {
-                whisper.hidden = usuarioAtual?.cargo === 'Mestre';
+                whisper.hidden = isMaster;
                 whisper.classList.toggle('is-active', voiceState.settings.whisperMaster);
                 whisper.setAttribute('aria-pressed', String(voiceState.settings.whisperMaster));
+                whisper.title = voiceState.settings.whisperMaster
+                    ? 'Sua voz está sendo enviada somente ao Mestre. Clique para voltar a falar com os participantes permitidos.'
+                    : 'Enviar sua voz somente ao Mestre.';
             }
 
             if (character) {
                 character.value = voiceState.settings.character;
                 character.disabled = effectControlsBusy;
-            }
-            if (environment) {
-                environment.value = voiceState.settings.environment;
-                environment.disabled = effectControlsBusy;
-            }
-            if (projection) {
-                projection.value = voiceState.settings.projection;
-                projection.disabled = effectControlsBusy;
-            }
-            if (volume) volume.value = String(voiceState.settings.volume);
-            if (reset) reset.disabled = effectControlsBusy;
-            if (masterControls) masterControls.hidden = usuarioAtual?.cargo !== 'Mestre';
-            if (caveScene) {
-                const active = voiceState.masterPolicy.scene === 'cave';
-                caveScene.classList.toggle('is-active', active);
-                caveScene.setAttribute('aria-pressed', String(active));
-            }
-
-            if (characterHint) {
-                const characterProfile = VOICE_CHARACTERS[effectiveVoiceCharacter()];
+                const profile = VOICE_CHARACTERS[effectiveVoiceCharacter()];
                 const calibration = normalizeVoiceCalibration(voiceState.settings.calibrationHz);
-                characterHint.textContent = characterProfile.hint + (
+                character.title = profile.hint + (
                     effectiveVoiceCharacter() !== 'natural'
                         ? calibration ? ` Calibração ativa: ${Math.round(calibration)} Hz.` : ' Use “Calibrar 3 s” para adaptar ao seu timbre.'
                         : ''
                 ) + (
                     effectiveVoiceCharacter() !== 'natural' && voiceState.effectCapability === 'basic'
-                        ? ' Modo compatível ativo: pitch avançado indisponível neste navegador.'
+                        ? ' O navegador está usando o modo de compatibilidade.'
                         : ''
                 );
             }
-
-            if (environmentHint) {
-                const effective = effectiveVoiceEnvironment();
-                environmentHint.textContent = voiceState.masterPolicy.scene === 'cave'
-                    ? `Cena global do Mestre: ${VOICE_ENVIRONMENTS.cave.hint}`
-                    : VOICE_ENVIRONMENTS[effective].hint;
+            if (environmentField) environmentField.hidden = !isMaster;
+            if (environment) {
+                const environmentName = VOICE_ENVIRONMENTS[voiceState.masterPolicy.environment]
+                    ? voiceState.masterPolicy.environment
+                    : 'normal';
+                environment.value = environmentName;
+                environment.disabled = effectControlsBusy || !isMaster;
+                environment.title = `${VOICE_ENVIRONMENTS[environmentName].hint} Ative ou retire o efeito nos cartões dos participantes.`;
             }
-            if (projectionHint) projectionHint.textContent = VOICE_PROJECTIONS[effectiveVoiceProjection()].hint;
+            if (projection) {
+                projection.value = voiceState.settings.projection;
+                projection.disabled = effectControlsBusy;
+                projection.title = VOICE_PROJECTIONS[effectiveVoiceProjection()].hint;
+            }
+            if (volume) {
+                volume.value = String(voiceState.settings.volume);
+                volume.title = `Volume recebido: ${Math.round(voiceState.settings.volume * 100)}%.`;
+            }
+            if (reset) reset.disabled = effectControlsBusy;
 
             updateVoiceLabUi();
             updateVoiceConnectionSummary();
@@ -4398,6 +4395,7 @@ window.toggleSidebarJogador = function(numSlot) {
             const input = context.createMediaStreamSource(localStream);
             voiceState.input = input;
             if (!voiceState.processedDestination) voiceState.processedDestination = context.createMediaStreamDestination();
+            if (!voiceState.distantDestination) voiceState.distantDestination = context.createMediaStreamDestination();
 
             const environmentName = effectiveVoiceEnvironment();
             const projectionName = effectiveVoiceProjection();
@@ -4589,6 +4587,100 @@ window.toggleSidebarJogador = function(numSlot) {
             mixGain.connect(limiter);
             limiter.connect(voiceState.processedDestination);
 
+            const distantProfile = VOICE_PROJECTIONS.distant;
+            const distantAcoustic = getVoiceAcousticProfile(environmentName, 'distant');
+            const distantHighPass = register(context.createBiquadFilter());
+            const distantLowShelf = register(context.createBiquadFilter());
+            const distantPresence = register(context.createBiquadFilter());
+            const distantHighShelf = register(context.createBiquadFilter());
+            const distantLowPass = register(context.createBiquadFilter());
+            const distantSaturation = register(context.createWaveShaper());
+            const distantCompressor = register(context.createDynamicsCompressor());
+            const distantDryGain = register(context.createGain());
+            const distantMixGain = register(context.createGain());
+            const distantLimiter = register(context.createDynamicsCompressor());
+
+            distantHighPass.type = 'highpass';
+            distantHighPass.frequency.value = distantProfile.highPass;
+            distantHighPass.Q.value = .7;
+            distantLowShelf.type = 'lowshelf';
+            distantLowShelf.frequency.value = 190;
+            distantLowShelf.gain.value = distantProfile.lowShelf;
+            distantPresence.type = 'peaking';
+            distantPresence.frequency.value = distantProfile.presenceHz;
+            distantPresence.Q.value = .72;
+            distantPresence.gain.value = distantProfile.presence;
+            distantHighShelf.type = 'highshelf';
+            distantHighShelf.frequency.value = 5600;
+            distantHighShelf.gain.value = distantProfile.highShelf;
+            distantLowPass.type = 'lowpass';
+            distantLowPass.frequency.value = distantProfile.lowPass;
+            distantLowPass.Q.value = .2;
+            distantSaturation.curve = createVoiceSaturationCurve(distantProfile.saturation);
+            distantSaturation.oversample = '2x';
+            distantCompressor.threshold.value = distantProfile.threshold;
+            distantCompressor.knee.value = 20;
+            distantCompressor.ratio.value = distantProfile.ratio;
+            distantCompressor.attack.value = distantProfile.attack;
+            distantCompressor.release.value = distantProfile.release;
+            distantDryGain.gain.value = distantAcoustic.dry;
+            distantMixGain.gain.value = distantProfile.outputGain;
+            distantLimiter.threshold.value = -5;
+            distantLimiter.knee.value = 2;
+            distantLimiter.ratio.value = 12;
+            distantLimiter.attack.value = .002;
+            distantLimiter.release.value = .16;
+
+            speechCompressor.connect(distantHighPass);
+            distantHighPass.connect(distantLowShelf);
+            distantLowShelf.connect(distantPresence);
+            distantPresence.connect(distantHighShelf);
+            distantHighShelf.connect(distantLowPass);
+            distantLowPass.connect(distantSaturation);
+            distantSaturation.connect(distantCompressor);
+            distantCompressor.connect(distantDryGain);
+            distantDryGain.connect(distantMixGain);
+
+            if (distantAcoustic.wet > 0) {
+                const distantImpulse = await getVoiceImpulse(context, environmentName, 'distant');
+                if (revision !== voiceState.graphRevision || context !== voiceState.audioContext) {
+                    return abortGraphBuild();
+                }
+
+                const distantPredelay = register(context.createDelay(.35));
+                const distantConvolver = register(context.createConvolver());
+                const distantWetHighPass = register(context.createBiquadFilter());
+                const distantWetBody = register(context.createBiquadFilter());
+                const distantDamping = register(context.createBiquadFilter());
+                const distantWetGain = register(context.createGain());
+
+                distantPredelay.delayTime.value = distantAcoustic.predelay;
+                distantConvolver.buffer = distantImpulse;
+                distantConvolver.normalize = true;
+                distantWetHighPass.type = 'highpass';
+                distantWetHighPass.frequency.value = 78;
+                distantWetHighPass.Q.value = .7;
+                distantWetBody.type = 'peaking';
+                distantWetBody.frequency.value = 230;
+                distantWetBody.Q.value = .76;
+                distantWetBody.gain.value = distantAcoustic.wetBody;
+                distantDamping.type = 'lowpass';
+                distantDamping.frequency.value = distantAcoustic.damping;
+                distantDamping.Q.value = .1;
+                distantWetGain.gain.value = distantAcoustic.wet;
+
+                distantCompressor.connect(distantPredelay);
+                distantPredelay.connect(distantConvolver);
+                distantConvolver.connect(distantWetHighPass);
+                distantWetHighPass.connect(distantWetBody);
+                distantWetBody.connect(distantDamping);
+                distantDamping.connect(distantWetGain);
+                distantWetGain.connect(distantMixGain);
+            }
+
+            distantMixGain.connect(distantLimiter);
+            distantLimiter.connect(voiceState.distantDestination);
+
             if (voiceState.preview.active && voiceState.preview.mode === 'live') {
                 const monitorGain = register(context.createGain());
                 monitorGain.gain.value = .82;
@@ -4687,34 +4779,82 @@ window.toggleSidebarJogador = function(numSlot) {
             }
         }
 
+        function voiceOutboundVariant(peerId) {
+            return voiceIsFarFrom(peerId) ? 'far' : 'near';
+        }
+
+        function voiceSourceTrackForPeer(peerId) {
+            const destination = voiceOutboundVariant(peerId) === 'far'
+                ? voiceState.distantDestination
+                : voiceState.processedDestination;
+            return destination?.stream.getAudioTracks()[0] || null;
+        }
+
+        function refreshVoicePeerTrack(peerId, connection) {
+            connection.trackSwap = (connection.trackSwap || Promise.resolve())
+                .then(async () => {
+                    if (voiceState.peers[peerId] !== connection) return;
+                    const desiredVariant = voiceOutboundVariant(peerId);
+                    const enabled = voiceCanSendTo(peerId);
+                    if (connection.outboundVariant === desiredVariant) {
+                        if (connection.outboundTrack) connection.outboundTrack.enabled = enabled;
+                        return;
+                    }
+
+                    const sourceTrack = voiceSourceTrackForPeer(peerId);
+                    if (!sourceTrack || !connection.sender) return;
+                    const replacement = sourceTrack.clone();
+                    replacement.enabled = enabled;
+
+                    try {
+                        await connection.sender.replaceTrack(replacement);
+                        if (voiceState.peers[peerId] !== connection) {
+                            replacement.stop();
+                            return;
+                        }
+                        const previous = connection.outboundTrack;
+                        connection.outboundTrack = replacement;
+                        connection.outboundVariant = desiredVariant;
+                        try { previous?.stop(); } catch {}
+                    } catch (error) {
+                        replacement.stop();
+                        console.warn('Não foi possível alterar a distância da voz.', peerId, error);
+                    }
+                })
+                .catch(error => console.warn('Falha ao atualizar a faixa de voz enviada.', peerId, error));
+        }
+
         async function connectVoicePeer(peerId) {
-            if (!voiceState.started || !voiceState.participants[peerId]?.online || !voiceState.participants[peerId]?.sessionId || !voiceState.processedDestination) return;
+            if (!voiceState.started || !voiceState.participants[peerId]?.online || !voiceState.participants[peerId]?.sessionId) return;
 
             const remoteSession = voiceState.participants[peerId]?.sessionId;
             const existing = voiceState.peers[peerId];
             if (existing?.remoteSession === remoteSession) return;
             if (existing) closeVoicePeer(peerId);
 
-            const sourceTrack = voiceState.processedDestination.stream.getAudioTracks()[0];
+            const sourceTrack = voiceSourceTrackForPeer(peerId);
             if (!sourceTrack) return;
 
             const pc = new RTCPeerConnection({ iceServers: ICE_SERVERS, iceCandidatePoolSize: 8 });
             const outboundTrack = sourceTrack.clone();
             const outboundStream = new MediaStream([outboundTrack]);
+            const outboundVariant = voiceOutboundVariant(peerId);
             const connection = {
                 pc,
                 outboundTrack,
+                outboundVariant,
                 remoteSession,
                 candidateKeys: new Set(),
                 pendingCandidates: [],
                 acceptedOffer: null,
                 acceptedAnswer: null,
                 signalQueue: Promise.resolve(),
+                trackSwap: Promise.resolve(),
                 unsubscribe: null
             };
 
             voiceState.peers[peerId] = connection;
-            pc.addTrack(outboundTrack, outboundStream);
+            connection.sender = pc.addTrack(outboundTrack, outboundStream);
             outboundTrack.enabled = voiceCanSendTo(peerId);
 
             pc.onicecandidate = event => {
@@ -4777,7 +4917,7 @@ window.toggleSidebarJogador = function(numSlot) {
 
         function updateVoiceSenders() {
             Object.entries(voiceState.peers).forEach(([peerId, connection]) => {
-                if (connection.outboundTrack) connection.outboundTrack.enabled = voiceCanSendTo(peerId);
+                refreshVoicePeerTrack(peerId, connection);
             });
             updateVoiceQuickControls();
         }
@@ -4961,7 +5101,7 @@ window.toggleSidebarJogador = function(numSlot) {
         }
 
         async function acquireLocalVoiceMedia() {
-            if (voiceState.localStream && voiceState.audioContext && voiceState.processedDestination) return;
+            if (voiceState.localStream && voiceState.audioContext && voiceState.processedDestination && voiceState.distantDestination) return;
             if (!navigator.mediaDevices?.getUserMedia) throw new Error('Captura de áudio indisponível.');
 
             const stream = await navigator.mediaDevices.getUserMedia({
@@ -4973,10 +5113,13 @@ window.toggleSidebarJogador = function(numSlot) {
                 const context = createVoiceAudioContext();
                 await context.resume();
                 const destination = context.createMediaStreamDestination();
+                const distantDestination = context.createMediaStreamDestination();
                 try { destination.stream.getAudioTracks()[0].contentHint = 'speech'; } catch {}
+                try { distantDestination.stream.getAudioTracks()[0].contentHint = 'speech'; } catch {}
                 voiceState.localStream = stream;
                 voiceState.audioContext = context;
                 voiceState.processedDestination = destination;
+                voiceState.distantDestination = distantDestination;
             } catch (error) {
                 stream.getTracks().forEach(track => track.stop());
                 throw error;
@@ -4987,12 +5130,14 @@ window.toggleSidebarJogador = function(numSlot) {
             stopVoiceMeter();
             clearLocalVoiceGraph();
             try { voiceState.processedDestination?.stream.getTracks().forEach(track => track.stop()); } catch {}
+            try { voiceState.distantDestination?.stream.getTracks().forEach(track => track.stop()); } catch {}
             try { voiceState.localStream?.getTracks().forEach(track => track.stop()); } catch {}
             try { await voiceState.audioContext?.close(); } catch {}
             voiceState.localStream = null;
             voiceState.audioContext = null;
             voiceState.input = null;
             voiceState.processedDestination = null;
+            voiceState.distantDestination = null;
             voiceState.impulseCache = new Map();
         }
 
@@ -5311,7 +5456,7 @@ window.toggleSidebarJogador = function(numSlot) {
                 voiceState.sessionId = voiceSessionId();
                 voiceState.started = true;
                 const graphReady = await buildLocalVoiceGraph();
-                if (!graphReady || !voiceState.processedDestination.stream.getAudioTracks()[0]) {
+                if (!graphReady || !voiceState.processedDestination.stream.getAudioTracks()[0] || !voiceState.distantDestination.stream.getAudioTracks()[0]) {
                     throw new Error('O processamento de áudio não iniciou corretamente.');
                 }
 
@@ -5374,7 +5519,8 @@ window.toggleSidebarJogador = function(numSlot) {
             button.className = 'voice-action-button';
             button.textContent = label;
             button.classList.toggle('is-active', !!active && !options.danger);
-            button.classList.toggle('is-off', !active && !options.danger);
+            button.classList.toggle('is-off', !active && !options.danger && options.tone !== 'distance');
+            button.classList.toggle('is-distance-far', !active && options.tone === 'distance');
             button.classList.toggle('is-danger', !!options.danger);
             button.disabled = !!options.disabled;
             button.setAttribute('aria-pressed', String(!!active));
@@ -5406,10 +5552,35 @@ window.toggleSidebarJogador = function(numSlot) {
             }
         }
 
+        async function setMasterEnvironmentTarget(id, enabled) {
+            if (usuarioAtual?.cargo !== 'Mestre') return;
+            const previous = !!voiceState.masterPolicy.environmentTargets?.[id];
+            voiceState.masterPolicy.environmentTargets ||= {};
+            if (enabled) voiceState.masterPolicy.environmentTargets[id] = true;
+            else delete voiceState.masterPolicy.environmentTargets[id];
+            renderVoiceParticipants();
+            if (id === voiceLocalKey()) applyLocalVoiceGraph();
+
+            try {
+                await safeUpdate(`${VOICE_PATH}/masterPolicy/environmentTargets`, { [id]: enabled ? true : null });
+            } catch (error) {
+                if (previous) voiceState.masterPolicy.environmentTargets[id] = true;
+                else delete voiceState.masterPolicy.environmentTargets[id];
+                renderVoiceParticipants();
+                if (id === voiceLocalKey()) applyLocalVoiceGraph();
+                console.warn('Não foi possível alterar o ambiente deste participante.', error);
+            }
+        }
+
         function renderVoiceParticipants() {
             const box = document.getElementById('voice-participants');
             if (!box || !usuarioAtual) return;
             box.textContent = '';
+            const isMaster = usuarioAtual.cargo === 'Mestre';
+            const masterEnvironment = VOICE_ENVIRONMENTS[voiceState.masterPolicy.environment]
+                ? voiceState.masterPolicy.environment
+                : 'normal';
+            const environmentReady = masterEnvironment !== 'normal';
 
             VOICE_USERS.forEach(id => {
                 const self = id === voiceLocalKey();
@@ -5434,66 +5605,104 @@ window.toggleSidebarJogador = function(numSlot) {
                 identity.append(avatar, text);
                 card.append(identity);
 
-                if (!self) {
+                if (!self || isMaster) {
                     const actions = document.createElement('div');
                     actions.className = 'voice-card__actions';
 
-                    const hears = voiceWantsToHear(id);
-                    const hearDisabled = voiceState.settings.deafened;
-                    actions.append(createVoiceActionButton(
-                        hears ? 'Escutando' : 'Silenciado',
-                        hears,
-                        () => {
-                            voiceState.settings.hear[id] = !voiceWantsToHear(id);
-                            saveVoiceSettings();
-                            updateRemoteAudibility();
-                            renderVoiceParticipants();
-                        },
-                        {
-                            disabled: hearDisabled,
-                            title: hearDisabled
-                                ? 'O áudio recebido está desligado globalmente. Ligue-o para alterar esta pessoa.'
-                                : hears
-                                    ? `Verde: você escuta ${voiceName(id)}. Clique para silenciar somente no seu computador.`
-                                    : `Vermelho: você não escuta ${voiceName(id)}. Clique para voltar a escutar.`
-                        }
-                    ));
-
-                    const sends = voiceWantsToSendTo(id);
-                    const forcedMute = !!voiceState.masterPolicy.blockedSpeak?.[voiceLocalKey()];
-                    const whisperBlocks = voiceState.settings.whisperMaster && id !== 'dick';
-                    const sendRestriction = !voiceState.started
-                        ? ' A preferência será aplicada ao conectar.'
-                        : forcedMute
-                            ? ' Seu microfone está bloqueado pelo Mestre.'
-                            : voiceState.settings.muted
-                                ? ' Seu microfone geral está vermelho.'
-                                : whisperBlocks
-                                    ? ' O modo “Só o Mestre me escuta” está ativo.'
-                                    : '';
-                    actions.append(createVoiceActionButton(
-                        sends ? 'Me escuta' : 'Não me escuta',
-                        sends,
-                        () => {
-                            voiceState.settings.speakTo[id] = !voiceWantsToSendTo(id);
-                            saveVoiceSettings();
-                            updateVoiceSenders();
-                            renderVoiceParticipants();
-                        },
-                        {
-                            title: sends
-                                ? `Verde: ${voiceName(id)} pode receber sua voz. Clique para cortar seu envio apenas para essa pessoa.${sendRestriction}`
-                                : `Vermelho: ${voiceName(id)} não recebe sua voz. Clique para permitir novamente.${sendRestriction}`
-                        }
-                    ));
-
-                    if (usuarioAtual.cargo === 'Mestre') {
-                        const blocked = !!voiceState.masterPolicy.blockedSpeak?.[id];
+                    if (!self) {
+                        const hears = voiceWantsToHear(id);
+                        const hearDisabled = voiceState.settings.deafened;
                         actions.append(createVoiceActionButton(
-                            blocked ? 'Silenciado na mesa' : 'Pode falar',
-                            !blocked,
-                            () => setMasterSpeakBlocked(id, !blocked),
-                            { danger: blocked, title: 'Silenciar ou liberar o microfone desta pessoa para todos.' }
+                            hears ? 'Escutando' : 'Silenciado',
+                            hears,
+                            () => {
+                                voiceState.settings.hear[id] = !voiceWantsToHear(id);
+                                saveVoiceSettings();
+                                updateRemoteAudibility();
+                                renderVoiceParticipants();
+                            },
+                            {
+                                disabled: hearDisabled,
+                                title: hearDisabled
+                                    ? 'O áudio recebido está desligado globalmente. Ligue-o para alterar esta pessoa.'
+                                    : hears
+                                        ? `Verde: você escuta ${voiceName(id)}. Clique para silenciar somente no seu computador.`
+                                        : `Vermelho: você não escuta ${voiceName(id)}. Clique para voltar a escutar.`
+                            }
+                        ));
+
+                        const sends = voiceWantsToSendTo(id);
+                        const forcedMute = !!voiceState.masterPolicy.blockedSpeak?.[voiceLocalKey()];
+                        const whisperBlocks = voiceState.settings.whisperMaster && id !== 'dick';
+                        const sendRestriction = !voiceState.started
+                            ? ' A preferência será aplicada ao conectar.'
+                            : forcedMute
+                                ? ' Seu microfone está bloqueado pelo Mestre.'
+                                : voiceState.settings.muted
+                                    ? ' Seu microfone geral está vermelho.'
+                                    : whisperBlocks
+                                        ? ' O modo “Só o Mestre me escuta” está ativo.'
+                                        : '';
+                        actions.append(createVoiceActionButton(
+                            sends ? 'Me escuta' : 'Não me escuta',
+                            sends,
+                            () => {
+                                voiceState.settings.speakTo[id] = !voiceWantsToSendTo(id);
+                                saveVoiceSettings();
+                                updateVoiceSenders();
+                                renderVoiceParticipants();
+                            },
+                            {
+                                title: sends
+                                    ? `Verde: ${voiceName(id)} pode receber sua voz. Clique para cortar seu envio apenas para essa pessoa.${sendRestriction}`
+                                    : `Vermelho: ${voiceName(id)} não recebe sua voz. Clique para permitir novamente.${sendRestriction}`
+                            }
+                        ));
+
+                        const far = voiceIsFarFrom(id);
+                        actions.append(createVoiceActionButton(
+                            far ? 'Longe' : 'Perto',
+                            !far,
+                            () => {
+                                if (far) delete voiceState.settings.distance[id];
+                                else voiceState.settings.distance[id] = 'far';
+                                saveVoiceSettings();
+                                updateVoiceSenders();
+                                renderVoiceParticipants();
+                            },
+                            {
+                                tone: 'distance',
+                                title: far
+                                    ? `${voiceName(id)} recebe sua voz como um grito distante. Clique para voltar ao som próximo.`
+                                    : `${voiceName(id)} recebe sua voz próxima e nítida. Clique para simular um grito ao longe.`
+                            }
+                        ));
+
+                        if (isMaster) {
+                            const blocked = !!voiceState.masterPolicy.blockedSpeak?.[id];
+                            actions.append(createVoiceActionButton(
+                                blocked ? 'Silenciado na mesa' : 'Pode falar',
+                                !blocked,
+                                () => setMasterSpeakBlocked(id, !blocked),
+                                { danger: blocked, title: 'Silenciar ou liberar o microfone desta pessoa para todos.' }
+                            ));
+                        }
+                    }
+
+                    if (isMaster) {
+                        const environmentEnabled = environmentReady && !!voiceState.masterPolicy.environmentTargets?.[id];
+                        actions.append(createVoiceActionButton(
+                            environmentEnabled ? 'Com ambiente' : 'Sem ambiente',
+                            environmentEnabled,
+                            () => setMasterEnvironmentTarget(id, !environmentEnabled),
+                            {
+                                disabled: !environmentReady,
+                                title: environmentReady
+                                    ? environmentEnabled
+                                        ? `${VOICE_ENVIRONMENTS[masterEnvironment].label} está aplicado à voz de ${voiceName(id)} para todos. Clique para remover.`
+                                        : `Aplicar ${VOICE_ENVIRONMENTS[masterEnvironment].label} à voz de ${voiceName(id)} para todos.`
+                                    : 'Escolha um ambiente no controle do Mestre antes de ativá-lo nos participantes.'
+                            }
                         ));
                     }
 
@@ -5512,10 +5721,10 @@ window.toggleSidebarJogador = function(numSlot) {
                 deafened: false,
                 volume: 1,
                 character: 'natural',
-                environment: 'normal',
                 projection: 'normal',
                 hear: {},
                 speakTo: {},
+                distance: {},
                 whisperMaster: false
             });
             saveVoiceSettings();
@@ -5556,14 +5765,38 @@ window.toggleSidebarJogador = function(numSlot) {
                 applyLocalVoiceGraph();
                 updateVoiceQuickControls();
             };
-            document.getElementById('voice-environment').onchange = event => {
-                voiceState.settings.environment = VOICE_ENVIRONMENTS[event.target.value] ? event.target.value : 'normal';
-                saveVoiceSettings();
-                applyLocalVoiceGraph();
+            document.getElementById('voice-environment').onchange = async event => {
+                if (usuarioAtual.cargo !== 'Mestre') return;
+                const environment = VOICE_ENVIRONMENTS[event.target.value] ? event.target.value : 'normal';
+                const previousEnvironment = voiceState.masterPolicy.environment;
+                const previousTargets = { ...(voiceState.masterPolicy.environmentTargets || {}) };
+                voiceState.masterPolicy.environment = environment;
+                if (environment === 'normal') voiceState.masterPolicy.environmentTargets = {};
                 updateVoiceQuickControls();
+                renderVoiceParticipants();
+                applyLocalVoiceGraph();
+
+                try {
+                    const policyUpdate = {
+                        environment,
+                        scene: null,
+                        overrides: null,
+                        blockedHear: null,
+                        isolated: null
+                    };
+                    if (environment === 'normal') policyUpdate.environmentTargets = null;
+                    await safeUpdate(`${VOICE_PATH}/masterPolicy`, policyUpdate);
+                } catch (error) {
+                    voiceState.masterPolicy.environment = previousEnvironment;
+                    voiceState.masterPolicy.environmentTargets = previousTargets;
+                    updateVoiceQuickControls();
+                    renderVoiceParticipants();
+                    applyLocalVoiceGraph();
+                    console.warn('Não foi possível alterar o ambiente da mesa.', error);
+                }
             };
             document.getElementById('voice-projection').onchange = event => {
-                voiceState.settings.projection = VOICE_PROJECTIONS[event.target.value] ? event.target.value : 'normal';
+                voiceState.settings.projection = ['normal', 'whisper'].includes(event.target.value) ? event.target.value : 'normal';
                 saveVoiceSettings();
                 applyLocalVoiceGraph();
                 updateVoiceQuickControls();
@@ -5579,15 +5812,6 @@ window.toggleSidebarJogador = function(numSlot) {
                 updateRemoteAudibility();
             };
             document.getElementById('voice-reset').onclick = resetPersonalVoiceSettings;
-            document.getElementById('voice-scene-cave').onclick = async () => {
-                await safeUpdate(`${VOICE_PATH}/masterPolicy`, { scene: 'cave', overrides: null });
-            };
-            document.getElementById('voice-scene-clear').onclick = async () => {
-                await safeUpdate(`${VOICE_PATH}/masterPolicy`, { scene: 'normal', overrides: null });
-            };
-            document.getElementById('voice-master-unmute-all').onclick = async () => {
-                await safeUpdate(`${VOICE_PATH}/masterPolicy`, { blockedSpeak: null, blockedHear: null, isolated: null });
-            };
 
             updateVoiceQuickControls();
             renderVoiceParticipants();
@@ -5630,10 +5854,8 @@ window.toggleSidebarJogador = function(numSlot) {
                 const policy = snapshot.val() || {};
                 voiceState.masterPolicy = {
                     blockedSpeak: policy.blockedSpeak || {},
-                    blockedHear: policy.blockedHear || {},
-                    isolated: policy.isolated || {},
-                    scene: policy.scene || 'normal',
-                    overrides: policy.overrides || {}
+                    environment: VOICE_ENVIRONMENTS[policy.environment] ? policy.environment : 'normal',
+                    environmentTargets: policy.environmentTargets || {}
                 };
                 applyLocalVoiceGraph();
                 updateVoiceSenders();
