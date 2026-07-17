@@ -3625,6 +3625,7 @@ window.toggleSidebarJogador = function(numSlot) {
         const VOICE_USERS = Object.keys(usuarios);
         const VOICE_STRETCH_MODULE_URL = new URL('./assets/vendor/signalsmith-stretch/SignalsmithStretch.mjs', import.meta.url).href;
         const VOICE_CAVE_IR_URL = new URL('./assets/audio/ir/gill-heads-mine-site2-2way.wav', import.meta.url).href;
+        const VOICE_MP3_MODULE_URL = new URL('./assets/vendor/vmsg/VoiceMp3Encoder.mjs', import.meta.url).href;
         const VOICE_PREVIEW_SECONDS = 5;
         const VOICE_CAPTURE_CONSTRAINTS = {
             channelCount: 1,
@@ -3651,46 +3652,46 @@ window.toggleSidebarJogador = function(numSlot) {
             },
             feminine: {
                 label: 'Feminina natural',
-                hint: 'Eleva com moderação a altura e os formantes para preservar naturalidade.',
-                fallbackSemitones: 3,
-                formantSemitones: 2.2,
-                targetHz: 190,
+                hint: 'Prioriza formantes e brilho, com mudança pequena de altura para evitar som robótico.',
+                fallbackSemitones: 1.8,
+                formantSemitones: 2.6,
+                targetHz: 175,
                 minShift: 0,
-                maxShift: 6,
-                lowShelf: -1.2,
-                highShelf: 1.5,
-                presence: 1,
+                maxShift: 3.2,
+                lowShelf: -2,
+                highShelf: 1.9,
+                presence: 1.4,
                 saturation: 0,
                 tremoloDepth: 0,
                 tremoloRate: 0
             },
             masculine: {
                 label: 'Masculina natural',
-                hint: 'Reduz suavemente altura e formantes, com um pouco mais de corpo.',
-                fallbackSemitones: -2.5,
-                formantSemitones: -1.8,
-                targetHz: 120,
-                minShift: -6,
+                hint: 'Acrescenta corpo com formantes mais baixos e mudança discreta de altura.',
+                fallbackSemitones: -1.8,
+                formantSemitones: -2.3,
+                targetHz: 130,
+                minShift: -3.5,
                 maxShift: 0,
-                lowShelf: 1.6,
-                highShelf: -.8,
-                presence: .4,
-                saturation: .08,
+                lowShelf: 2,
+                highShelf: -.9,
+                presence: .6,
+                saturation: .06,
                 tremoloDepth: 0,
                 tremoloRate: 0
             },
             deep: {
                 label: 'Voz grossa',
                 hint: 'Voz baixa e encorpada, com saturação controlada para monstros e guerreiros.',
-                fallbackSemitones: -4.5,
-                formantSemitones: -3.2,
-                targetHz: 100,
-                minShift: -6.5,
+                fallbackSemitones: -3.6,
+                formantSemitones: -3.1,
+                targetHz: 105,
+                minShift: -5.2,
                 maxShift: 0,
-                lowShelf: 3.2,
+                lowShelf: 3.8,
                 highShelf: -1.8,
-                presence: -.6,
-                saturation: .2,
+                presence: .2,
+                saturation: .16,
                 tremoloDepth: 0,
                 tremoloRate: 0
             },
@@ -3712,11 +3713,11 @@ window.toggleSidebarJogador = function(numSlot) {
             child: {
                 label: 'Infantil (estilizada)',
                 hint: 'Voz infantil deliberadamente estilizada, limitada para evitar o efeito de desenho animado.',
-                fallbackSemitones: 5.5,
-                formantSemitones: 4.1,
-                targetHz: 260,
-                minShift: 2,
-                maxShift: 8,
+                fallbackSemitones: 3.6,
+                formantSemitones: 3.2,
+                targetHz: 225,
+                minShift: 1.5,
+                maxShift: 5.5,
                 lowShelf: -2.8,
                 highShelf: 2.2,
                 presence: 1.2,
@@ -3741,29 +3742,104 @@ window.toggleSidebarJogador = function(numSlot) {
             stone: {
                 label: 'Câmara de pedra',
                 hint: 'Reflexões curtas de pedra, mantendo a fala próxima e inteligível.',
-                dry: .88,
-                wet: .2,
-                duration: 1.05,
-                predelay: .014,
-                damping: 8800,
+                dry: .86,
+                wet: .26,
+                duration: 1.35,
+                predelay: .018,
+                damping: 7800,
+                wetBody: 1.2,
                 realImpulse: false,
-                reflections: [[.014, .10], [.031, .075], [.052, .055], [.081, .035]]
+                reflections: [[.018, .24], [.039, .17], [.067, .12], [.104, .075]]
             },
             cave: {
                 label: 'Caverna profunda',
-                hint: 'Acústica real da Gill Heads Mine, capturada pela biblioteca OpenAIR.',
-                dry: .78,
-                wet: .32,
-                duration: 1.53,
-                predelay: .018,
-                damping: 6800,
+                hint: 'Reflexões reais da Gill Heads Mine combinadas a uma cauda estéreo profunda de 5,8 s.',
+                dry: .64,
+                wet: .58,
+                duration: 5.8,
+                predelay: .036,
+                damping: 4700,
+                wetBody: 3.8,
                 realImpulse: true,
+                reflections: [[.031, .38], [.073, .29], [.127, .20], [.211, .13], [.347, .08]]
+            }
+        };
+
+        const VOICE_PROJECTIONS = {
+            normal: {
+                label: 'Conversa normal',
+                hint: 'Fale normalmente.',
+                highPass: 0,
+                lowPass: 13800,
+                lowShelf: 0,
+                highShelf: 0,
+                presence: 0,
+                presenceHz: 2850,
+                threshold: -25,
+                ratio: 3,
+                attack: .004,
+                release: .18,
+                saturation: 0,
+                directScale: 1,
+                wetScale: 1,
+                wetAdd: 0,
+                reverbDuration: 0,
+                predelay: 0,
+                damping: 14000,
+                outputGain: .92,
                 reflections: []
+            },
+            whisper: {
+                label: 'Sussurro próximo',
+                hint: 'Sussurre de verdade: o efeito aproxima, clareia o ar da voz e recupera palavras baixas.',
+                highPass: 165,
+                lowPass: 9800,
+                lowShelf: -3.2,
+                highShelf: 2.6,
+                presence: 3,
+                presenceHz: 3850,
+                threshold: -36,
+                ratio: 4.2,
+                attack: .002,
+                release: .12,
+                saturation: 0,
+                directScale: .98,
+                wetScale: .76,
+                wetAdd: 0,
+                reverbDuration: 0,
+                predelay: 0,
+                damping: 9800,
+                outputGain: 1.08,
+                reflections: []
+            },
+            distant: {
+                label: 'Grito ao longe',
+                hint: 'Projete ou grite: o efeito reduz o som direto, limita o ar e espalha reflexões distantes.',
+                highPass: 125,
+                lowPass: 3900,
+                lowShelf: -2.4,
+                highShelf: -3.4,
+                presence: 3.4,
+                presenceHz: 2050,
+                threshold: -32,
+                ratio: 4.4,
+                attack: .0025,
+                release: .22,
+                saturation: .12,
+                directScale: .34,
+                wetScale: 1.2,
+                wetAdd: .32,
+                reverbDuration: 2.8,
+                predelay: .048,
+                damping: 3900,
+                outputGain: .68,
+                reflections: [[.047, .28], [.096, .19], [.158, .12], [.276, .07]]
             }
         };
 
         let voiceStretchModulePromise = null;
         let voiceCaveImpulsePromise = null;
+        let voiceMp3ModulePromise = null;
 
         const voiceState = {
             initialized: false,
@@ -3795,7 +3871,9 @@ window.toggleSidebarJogador = function(numSlot) {
                 countdownTimer: null,
                 recorders: [],
                 playbackUrls: [],
-                monitorGain: null
+                monitorGain: null,
+                recordingBlobs: { original: null, processed: null },
+                mp3Busy: null
             },
             settings: {
                 muted: false,
@@ -3804,6 +3882,7 @@ window.toggleSidebarJogador = function(numSlot) {
                 character: 'natural',
                 calibrationHz: null,
                 environment: 'normal',
+                projection: 'normal',
                 hear: {},
                 speakTo: {},
                 whisperMaster: false
@@ -3861,6 +3940,7 @@ window.toggleSidebarJogador = function(numSlot) {
                 voiceState.settings.character = VOICE_CHARACTERS[saved.character] ? saved.character : 'natural';
                 voiceState.settings.calibrationHz = normalizeVoiceCalibration(saved.calibrationHz);
                 voiceState.settings.environment = VOICE_ENVIRONMENTS[saved.environment] ? saved.environment : 'normal';
+                voiceState.settings.projection = VOICE_PROJECTIONS[saved.projection] ? saved.projection : 'normal';
                 voiceState.settings.hear = saved.hear && typeof saved.hear === 'object' ? saved.hear : {};
                 voiceState.settings.speakTo = saved.speakTo && typeof saved.speakTo === 'object' ? saved.speakTo : {};
             } catch (error) {
@@ -3877,6 +3957,7 @@ window.toggleSidebarJogador = function(numSlot) {
                 character: settings.character,
                 calibrationHz: settings.calibrationHz,
                 environment: settings.environment,
+                projection: settings.projection,
                 hear: settings.hear,
                 speakTo: settings.speakTo,
                 whisperMaster: settings.whisperMaster
@@ -3901,16 +3982,28 @@ window.toggleSidebarJogador = function(numSlot) {
             return VOICE_ENVIRONMENTS[voiceState.settings.environment] ? voiceState.settings.environment : 'normal';
         }
 
+        function effectiveVoiceProjection() {
+            return VOICE_PROJECTIONS[voiceState.settings.projection] ? voiceState.settings.projection : 'normal';
+        }
+
+        function voiceWantsToSendTo(peerId) {
+            return voiceState.settings.speakTo[peerId] !== false;
+        }
+
+        function voiceWantsToHear(peerId) {
+            return voiceState.settings.hear[peerId] !== false;
+        }
+
         function voiceCanSendTo(peerId) {
             const me = voiceLocalKey();
             if (!voiceState.started || voiceState.settings.muted || voiceState.masterPolicy.blockedSpeak?.[me]) return false;
             if (voiceState.settings.whisperMaster && peerId !== 'dick') return false;
-            return voiceState.settings.speakTo[peerId] !== false;
+            return voiceWantsToSendTo(peerId);
         }
 
         function voiceCanHear(peerId) {
             if (!voiceState.started || voiceState.settings.deafened) return false;
-            return voiceState.settings.hear[peerId] !== false;
+            return voiceWantsToHear(peerId);
         }
 
         function setVoiceStatus(state, message) {
@@ -3962,15 +4055,17 @@ window.toggleSidebarJogador = function(numSlot) {
             const whisper = document.getElementById('voice-whisper-master');
             const character = document.getElementById('voice-character');
             const environment = document.getElementById('voice-environment');
+            const projection = document.getElementById('voice-projection');
             const volume = document.getElementById('voice-master-volume');
             const reset = document.getElementById('voice-reset');
             const masterControls = document.getElementById('voice-master-controls');
             const caveScene = document.getElementById('voice-scene-cave');
             const characterHint = document.getElementById('voice-character-hint');
             const environmentHint = document.getElementById('voice-environment-hint');
+            const projectionHint = document.getElementById('voice-projection-hint');
             const meBlocked = !!voiceState.masterPolicy.blockedSpeak?.[voiceLocalKey()];
             const micLive = voiceState.started && !voiceState.settings.muted && !meBlocked;
-            const previewLocksEffects = ['starting', 'calibrating', 'recording', 'finalizing'].includes(voiceState.preview.phase);
+            const previewLocksEffects = ['starting', 'calibrating', 'recording', 'finalizing'].includes(voiceState.preview.phase) || !!voiceState.preview.mp3Busy;
             const effectControlsBusy = ['connecting', 'disconnecting'].includes(voiceState.phase) || previewLocksEffects;
 
             if (start) {
@@ -3997,6 +4092,11 @@ window.toggleSidebarJogador = function(numSlot) {
                 deafen.classList.toggle('is-active', !voiceState.settings.deafened);
                 deafen.classList.toggle('is-off', voiceState.settings.deafened);
                 deafen.setAttribute('aria-pressed', String(voiceState.settings.deafened));
+                const label = document.getElementById('voice-deafen-label');
+                if (label) label.textContent = voiceState.settings.deafened ? 'Chamada silenciada' : 'Ouvindo a chamada';
+                deafen.title = voiceState.settings.deafened
+                    ? 'Clique para voltar a ouvir todos conforme suas preferências individuais.'
+                    : 'Clique para silenciar todo o áudio recebido.';
             }
 
             if (whisper) {
@@ -4012,6 +4112,10 @@ window.toggleSidebarJogador = function(numSlot) {
             if (environment) {
                 environment.value = voiceState.settings.environment;
                 environment.disabled = effectControlsBusy;
+            }
+            if (projection) {
+                projection.value = voiceState.settings.projection;
+                projection.disabled = effectControlsBusy;
             }
             if (volume) volume.value = String(voiceState.settings.volume);
             if (reset) reset.disabled = effectControlsBusy;
@@ -4042,6 +4146,7 @@ window.toggleSidebarJogador = function(numSlot) {
                     ? `Cena global do Mestre: ${VOICE_ENVIRONMENTS.cave.hint}`
                     : VOICE_ENVIRONMENTS[effective].hint;
             }
+            if (projectionHint) projectionHint.textContent = VOICE_PROJECTIONS[effectiveVoiceProjection()].hint;
 
             updateVoiceLabUi();
             updateVoiceConnectionSummary();
@@ -4091,14 +4196,29 @@ window.toggleSidebarJogador = function(numSlot) {
             getVoiceCaveImpulseBytes().catch(error => console.debug('IR real será carregado sob demanda.', error));
         }
 
-        function createProceduralVoiceImpulse(context, environmentName) {
-            const profile = VOICE_ENVIRONMENTS[environmentName];
+        function getVoiceAcousticProfile(environmentName, projectionName) {
+            const environment = VOICE_ENVIRONMENTS[environmentName] || VOICE_ENVIRONMENTS.normal;
+            const projection = VOICE_PROJECTIONS[projectionName] || VOICE_PROJECTIONS.normal;
+            return {
+                dry: environment.dry * projection.directScale,
+                wet: Math.min(.82, environment.wet * projection.wetScale + projection.wetAdd),
+                duration: Math.max(environment.duration, projection.reverbDuration),
+                predelay: Math.max(environment.predelay, projection.predelay),
+                damping: Math.min(environment.damping, projection.damping),
+                wetBody: (environment.wetBody || 0) + (projectionName === 'distant' ? 1.4 : 0),
+                realImpulse: environment.realImpulse,
+                reflections: [...environment.reflections, ...projection.reflections]
+            };
+        }
+
+        function createProceduralVoiceImpulse(context, environmentName, projectionName, profile) {
             const length = Math.max(1, Math.floor(context.sampleRate * profile.duration));
             const impulse = context.createBuffer(2, length, context.sampleRate);
+            const distant = projectionName === 'distant';
 
             for (let channel = 0; channel < impulse.numberOfChannels; channel++) {
                 const data = impulse.getChannelData(channel);
-                let seed = (environmentName === 'cave' ? 911 : 353) + channel * 977;
+                let seed = (distant ? 1301 : 353) + channel * 977;
                 let lowBand = 0;
 
                 const random = () => {
@@ -4110,12 +4230,12 @@ window.toggleSidebarJogador = function(numSlot) {
                     const time = index / context.sampleRate;
                     const progress = index / length;
                     const white = random() * 2 - 1;
-                    lowBand += (white - lowBand) * (environmentName === 'cave' ? .075 : .13);
-                    const diffuse = white * .58 + lowBand * .42;
-                    const onset = Math.min(1, time / .024);
-                    const decay = Math.pow(Math.max(0, 1 - progress), environmentName === 'cave' ? 2.15 : 3.4);
-                    const airLoss = Math.exp(-time * (environmentName === 'cave' ? .22 : .55));
-                    data[index] = diffuse * onset * decay * airLoss;
+                    lowBand += (white - lowBand) * (distant ? .055 : .13);
+                    const diffuse = white * (distant ? .46 : .62) + lowBand * (distant ? .54 : .38);
+                    const onset = Math.min(1, time / (distant ? .055 : .022));
+                    const decay = Math.exp(-time * (distant ? 1.05 : 2.25)) * Math.pow(Math.max(0, 1 - progress), .5);
+                    const modulation = .88 + .12 * Math.sin(time * (channel ? 2.7 : 2.15));
+                    data[index] = diffuse * onset * decay * modulation * .24;
                 }
 
                 profile.reflections.forEach(([time, gain], reflectionIndex) => {
@@ -4128,22 +4248,70 @@ window.toggleSidebarJogador = function(numSlot) {
             return impulse;
         }
 
-        async function getVoiceImpulse(context, environmentName) {
-            const profile = VOICE_ENVIRONMENTS[environmentName];
-            const cacheKey = `${environmentName}:${context.sampleRate}:${profile.realImpulse ? 'real' : 'procedural'}`;
+        function createDeepCaveVoiceImpulse(context, realImpulse, profile) {
+            const length = Math.max(1, Math.floor(context.sampleRate * profile.duration));
+            const impulse = context.createBuffer(2, length, context.sampleRate);
+
+            for (let channel = 0; channel < impulse.numberOfChannels; channel++) {
+                const data = impulse.getChannelData(channel);
+                let seed = 1847 + channel * 3251;
+                let lowBand = 0;
+                let cavernBand = 0;
+                const random = () => {
+                    seed = (seed * 1664525 + 1013904223) >>> 0;
+                    return seed / 4294967296;
+                };
+
+                for (let index = 0; index < length; index++) {
+                    const time = index / context.sampleRate;
+                    const progress = index / length;
+                    const white = random() * 2 - 1;
+                    lowBand += (white - lowBand) * .045;
+                    cavernBand += (lowBand - cavernBand) * .012;
+                    const diffuse = white * .34 + lowBand * .44 + cavernBand * .22;
+                    const onset = Math.min(1, time / .07);
+                    const longDecay = Math.exp(-time * .56) * Math.pow(Math.max(0, 1 - progress), .32);
+                    const movement = .84 + .1 * Math.sin(time * (channel ? 1.77 : 1.41)) + .06 * Math.sin(time * 4.3);
+                    data[index] = diffuse * onset * longDecay * movement * .19;
+                }
+
+                if (realImpulse?.length) {
+                    const source = realImpulse.getChannelData(Math.min(channel, realImpulse.numberOfChannels - 1));
+                    const offset = channel ? Math.round(context.sampleRate * .0085) : 0;
+                    const available = Math.min(source.length, length - offset);
+                    for (let index = 0; index < available; index++) {
+                        data[index + offset] += source[index] * (channel ? .68 : .78);
+                    }
+                }
+
+                profile.reflections.forEach(([time, gain], reflectionIndex) => {
+                    const stereoOffset = channel ? (reflectionIndex % 2 ? .0045 : -.003) : 0;
+                    const sample = Math.max(0, Math.min(length - 1, Math.floor((time + stereoOffset) * context.sampleRate)));
+                    data[sample] += gain * (channel ? .86 : 1);
+                });
+            }
+
+            return impulse;
+        }
+
+        async function getVoiceImpulse(context, environmentName, projectionName) {
+            const profile = getVoiceAcousticProfile(environmentName, projectionName);
+            const cacheKey = `${environmentName}:${projectionName}:${context.sampleRate}:${profile.realImpulse ? 'hybrid' : 'procedural'}`;
             if (voiceState.impulseCache.has(cacheKey)) return voiceState.impulseCache.get(cacheKey);
 
             let impulse = null;
             if (profile.realImpulse) {
                 try {
                     const bytes = await getVoiceCaveImpulseBytes();
-                    impulse = await context.decodeAudioData(bytes.slice(0));
+                    const realImpulse = await context.decodeAudioData(bytes.slice(0));
+                    impulse = createDeepCaveVoiceImpulse(context, realImpulse, profile);
                 } catch (error) {
-                    console.warn('Não foi possível carregar a acústica real; usando reverberação de segurança.', error);
+                    console.warn('Não foi possível carregar a base acústica real; usando a caverna difusa local.', error);
+                    impulse = createDeepCaveVoiceImpulse(context, null, profile);
                 }
             }
 
-            if (!impulse) impulse = createProceduralVoiceImpulse(context, environmentName);
+            if (!impulse) impulse = createProceduralVoiceImpulse(context, environmentName, projectionName, profile);
             voiceState.impulseCache.set(cacheKey, impulse);
             return impulse;
         }
@@ -4232,7 +4400,9 @@ window.toggleSidebarJogador = function(numSlot) {
             if (!voiceState.processedDestination) voiceState.processedDestination = context.createMediaStreamDestination();
 
             const environmentName = effectiveVoiceEnvironment();
-            const environmentProfile = VOICE_ENVIRONMENTS[environmentName];
+            const projectionName = effectiveVoiceProjection();
+            const projectionProfile = VOICE_PROJECTIONS[projectionName];
+            const acousticProfile = getVoiceAcousticProfile(environmentName, projectionName);
             const characterName = effectiveVoiceCharacter();
             const characterProfile = VOICE_CHARACTERS[characterName];
             const nodes = [];
@@ -4261,29 +4431,32 @@ window.toggleSidebarJogador = function(numSlot) {
             analyser.fftSize = 4096;
             analyser.smoothingTimeConstant = .68;
             highPass.type = 'highpass';
-            highPass.frequency.value = characterName === 'deep' ? 56 : characterName === 'child' ? 92 : 72;
+            highPass.frequency.value = Math.max(
+                characterName === 'deep' ? 56 : characterName === 'child' ? 92 : 72,
+                projectionProfile.highPass
+            );
             highPass.Q.value = .7;
             lowShelf.type = 'lowshelf';
             lowShelf.frequency.value = 190;
-            lowShelf.gain.value = characterProfile.lowShelf;
+            lowShelf.gain.value = characterProfile.lowShelf + projectionProfile.lowShelf;
             presence.type = 'peaking';
-            presence.frequency.value = 2850;
+            presence.frequency.value = projectionProfile.presenceHz;
             presence.Q.value = .72;
-            presence.gain.value = characterProfile.presence;
+            presence.gain.value = characterProfile.presence + projectionProfile.presence;
             highShelf.type = 'highshelf';
             highShelf.frequency.value = 5600;
-            highShelf.gain.value = characterProfile.highShelf;
+            highShelf.gain.value = characterProfile.highShelf + projectionProfile.highShelf;
             lowPass.type = 'lowpass';
-            lowPass.frequency.value = environmentName === 'cave' ? 9800 : 13800;
+            lowPass.frequency.value = Math.min(environmentName === 'cave' ? 9400 : 13800, projectionProfile.lowPass);
             lowPass.Q.value = .2;
-            speechCompressor.threshold.value = -25;
+            speechCompressor.threshold.value = projectionProfile.threshold;
             speechCompressor.knee.value = 20;
-            speechCompressor.ratio.value = 3;
-            speechCompressor.attack.value = .004;
-            speechCompressor.release.value = .18;
+            speechCompressor.ratio.value = projectionProfile.ratio;
+            speechCompressor.attack.value = projectionProfile.attack;
+            speechCompressor.release.value = projectionProfile.release;
             characterGain.gain.value = 1;
-            dryGain.gain.value = environmentProfile.dry;
-            mixGain.gain.value = .92;
+            dryGain.gain.value = acousticProfile.dry;
+            mixGain.gain.value = projectionProfile.outputGain;
             limiter.threshold.value = -4;
             limiter.knee.value = 2;
             limiter.ratio.value = 12;
@@ -4309,12 +4482,17 @@ window.toggleSidebarJogador = function(numSlot) {
                         channelCountMode: 'explicit'
                     });
                     register(stretchNode);
-                    const stretchPreset = navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4 ? 'cheaper' : 'default';
-                    await stretchNode.configure({ preset: stretchPreset });
+                    const coreCount = navigator.hardwareConcurrency || 4;
+                    const stretchConfig = coreCount <= 4
+                        ? { preset: 'cheaper' }
+                        : coreCount >= 8
+                            ? { blockMs: 96, intervalMs: 24, splitComputation: true }
+                            : { preset: 'default' };
+                    await stretchNode.configure(stretchConfig);
                     await stretchNode.schedule({
                         active: true,
                         semitones: voiceCharacterPitchShift(characterName),
-                        tonalityHz: 7200,
+                        tonalityHz: 5600,
                         formantSemitones: characterProfile.formantSemitones,
                         formantCompensation: true,
                         formantBaseHz: normalizeVoiceCalibration(voiceState.settings.calibrationHz) || 0
@@ -4345,9 +4523,10 @@ window.toggleSidebarJogador = function(numSlot) {
             presence.connect(highShelf);
 
             let toneSource = highShelf;
-            if (characterProfile.saturation > 0) {
+            const saturationAmount = Math.min(1, characterProfile.saturation + projectionProfile.saturation);
+            if (saturationAmount > 0) {
                 const saturation = register(context.createWaveShaper());
-                saturation.curve = createVoiceSaturationCurve(characterProfile.saturation);
+                saturation.curve = createVoiceSaturationCurve(saturationAmount);
                 saturation.oversample = '2x';
                 highShelf.connect(saturation);
                 toneSource = saturation;
@@ -4370,40 +4549,41 @@ window.toggleSidebarJogador = function(numSlot) {
             speechCompressor.connect(dryGain);
             dryGain.connect(mixGain);
 
-            if (environmentProfile.wet > 0) {
-                const impulse = await getVoiceImpulse(context, environmentName);
+            if (acousticProfile.wet > 0) {
+                const impulse = await getVoiceImpulse(context, environmentName, projectionName);
                 if (revision !== voiceState.graphRevision || context !== voiceState.audioContext) {
                     return abortGraphBuild();
                 }
 
                 const predelay = register(context.createDelay(.3));
                 const convolver = register(context.createConvolver());
+                const wetHighPass = register(context.createBiquadFilter());
+                const wetBody = register(context.createBiquadFilter());
                 const damping = register(context.createBiquadFilter());
                 const wetGain = register(context.createGain());
 
-                predelay.delayTime.value = environmentProfile.predelay;
+                predelay.delayTime.value = acousticProfile.predelay;
                 convolver.buffer = impulse;
                 convolver.normalize = true;
+                wetHighPass.type = 'highpass';
+                wetHighPass.frequency.value = 58;
+                wetHighPass.Q.value = .7;
+                wetBody.type = 'peaking';
+                wetBody.frequency.value = 185;
+                wetBody.Q.value = .72;
+                wetBody.gain.value = acousticProfile.wetBody;
                 damping.type = 'lowpass';
-                damping.frequency.value = environmentProfile.damping;
+                damping.frequency.value = acousticProfile.damping;
                 damping.Q.value = .1;
-                wetGain.gain.value = environmentProfile.wet;
+                wetGain.gain.value = acousticProfile.wet;
 
                 speechCompressor.connect(predelay);
                 predelay.connect(convolver);
-                convolver.connect(damping);
+                convolver.connect(wetHighPass);
+                wetHighPass.connect(wetBody);
+                wetBody.connect(damping);
                 damping.connect(wetGain);
                 wetGain.connect(mixGain);
-
-                environmentProfile.reflections.forEach(([time, gain]) => {
-                    const delay = register(context.createDelay(.3));
-                    const reflectionGain = register(context.createGain());
-                    delay.delayTime.value = time;
-                    reflectionGain.gain.value = gain * .48;
-                    speechCompressor.connect(delay);
-                    delay.connect(reflectionGain);
-                    reflectionGain.connect(mixGain);
-                });
             }
 
             mixGain.connect(limiter);
@@ -4587,9 +4767,11 @@ window.toggleSidebarJogador = function(numSlot) {
             }
             audio.srcObject = stream;
             updateRemoteAudibility();
-            audio.play().catch(() => {
-                setVoiceStatus('warning', 'Clique no painel para liberar áudio');
-            });
+            if (voiceCanHear(peerId)) {
+                audio.play().catch(() => {
+                    setVoiceStatus('warning', 'Clique no painel para liberar áudio');
+                });
+            }
             renderVoiceParticipants();
         }
 
@@ -4602,8 +4784,16 @@ window.toggleSidebarJogador = function(numSlot) {
 
         function updateRemoteAudibility() {
             Object.entries(voiceState.remotes).forEach(([peerId, remote]) => {
-                remote.audio.muted = !voiceCanHear(peerId);
-                remote.audio.volume = clampVoiceNumber(voiceState.settings.volume, 0, 1, 1);
+                const audible = voiceCanHear(peerId);
+                const volume = clampVoiceNumber(voiceState.settings.volume, 0, 1, 1);
+                remote.audio.muted = !audible;
+                remote.audio.volume = audible ? volume : 0;
+                remote.audio.srcObject?.getAudioTracks?.().forEach(track => { track.enabled = audible; });
+                if (audible) {
+                    remote.audio.play().catch(() => setVoiceStatus('warning', 'Clique no painel para liberar áudio'));
+                } else {
+                    try { remote.audio.pause(); } catch {}
+                }
             });
             updateVoiceQuickControls();
         }
@@ -4630,15 +4820,23 @@ window.toggleSidebarJogador = function(numSlot) {
             const recording = phase === 'recording';
             const calibrating = phase === 'calibrating';
             const liveActive = voiceState.preview.active && voiceState.preview.mode === 'live';
+            const mp3Busy = !!voiceState.preview.mp3Busy;
 
             lab.classList.toggle('is-disabled', callBusy);
-            calibrate.disabled = callBusy || transitionBusy || recording || calibrating || liveActive;
-            record.disabled = callBusy || transitionBusy || calibrating || liveActive;
-            live.disabled = callBusy || transitionBusy || recording || calibrating;
+            calibrate.disabled = callBusy || transitionBusy || recording || calibrating || liveActive || mp3Busy;
+            record.disabled = callBusy || transitionBusy || calibrating || liveActive || mp3Busy;
+            live.disabled = callBusy || transitionBusy || recording || calibrating || mp3Busy;
             record.classList.toggle('is-recording', recording);
             live.classList.toggle('is-active', liveActive);
             record.textContent = recording ? 'Parar agora' : 'Gravar 5 s';
             live.textContent = liveActive ? 'Encerrar teste' : 'Ouvir ao vivo';
+
+            ['original', 'processed'].forEach(kind => {
+                const download = document.getElementById(`voice-preview-${kind}-download`);
+                if (!download) return;
+                download.disabled = !voiceState.preview.recordingBlobs[kind]?.size || mp3Busy;
+                if (voiceState.preview.mp3Busy !== kind) download.textContent = 'Baixar MP3';
+            });
 
             if (voiceState.started && !voiceState.preview.active) {
                 setVoiceLabStatus('idle', 'Desconecte da chamada para abrir uma prévia privada.');
@@ -4663,6 +4861,7 @@ window.toggleSidebarJogador = function(numSlot) {
             pauseVoicePreviewPlayback();
             voiceState.preview.playbackUrls.forEach(url => URL.revokeObjectURL(url));
             voiceState.preview.playbackUrls = [];
+            voiceState.preview.recordingBlobs = { original: null, processed: null };
             ['voice-preview-original', 'voice-preview-processed'].forEach(id => {
                 const audio = document.getElementById(id);
                 if (!audio) return;
@@ -4671,6 +4870,12 @@ window.toggleSidebarJogador = function(numSlot) {
             });
             const results = document.getElementById('voice-preview-results');
             if (results) results.hidden = true;
+            ['voice-preview-original-download', 'voice-preview-processed-download'].forEach(id => {
+                const button = document.getElementById(id);
+                if (!button) return;
+                button.disabled = true;
+                button.textContent = 'Baixar MP3';
+            });
         }
 
         function showVoicePreviewResults(originalBlob, processedBlob) {
@@ -4683,9 +4888,59 @@ window.toggleSidebarJogador = function(numSlot) {
             const originalUrl = URL.createObjectURL(originalBlob);
             const processedUrl = URL.createObjectURL(processedBlob);
             voiceState.preview.playbackUrls = [originalUrl, processedUrl];
+            voiceState.preview.recordingBlobs = { original: originalBlob, processed: processedBlob };
             original.src = originalUrl;
             processed.src = processedUrl;
             results.hidden = false;
+            updateVoiceLabUi();
+        }
+
+        function getVoiceMp3Module() {
+            if (!voiceMp3ModulePromise) {
+                voiceMp3ModulePromise = import(VOICE_MP3_MODULE_URL).catch(error => {
+                    voiceMp3ModulePromise = null;
+                    throw error;
+                });
+            }
+            return voiceMp3ModulePromise;
+        }
+
+        function voiceMp3Filename(kind) {
+            const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+            return `rpg-voz-${kind === 'processed' ? 'com-efeitos' : 'original'}-${timestamp}.mp3`;
+        }
+
+        async function downloadVoicePreviewMp3(kind) {
+            const blob = voiceState.preview.recordingBlobs[kind];
+            const button = document.getElementById(`voice-preview-${kind}-download`);
+            if (!blob?.size || !button || voiceState.preview.mp3Busy) return;
+
+            voiceState.preview.mp3Busy = kind;
+            button.textContent = 'Convertendo…';
+            setVoiceLabStatus('starting', 'Convertendo para MP3 somente neste computador…');
+            updateVoiceQuickControls();
+
+            try {
+                const { encodeAudioBlobToMp3 } = await getVoiceMp3Module();
+                const mp3 = await encodeAudioBlobToMp3(blob);
+                const url = URL.createObjectURL(mp3);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = voiceMp3Filename(kind);
+                link.hidden = true;
+                document.body.append(link);
+                link.click();
+                link.remove();
+                setTimeout(() => URL.revokeObjectURL(url), 1500);
+                setVoiceLabStatus('ready', 'MP3 baixado. O arquivo não foi enviado ao Firebase.');
+            } catch (error) {
+                console.error('Falha na conversão MP3 local.', error);
+                setVoiceLabStatus('error', error?.message || 'Não foi possível gerar o MP3 neste navegador.');
+            } finally {
+                voiceState.preview.mp3Busy = null;
+                button.textContent = 'Baixar MP3';
+                updateVoiceQuickControls();
+            }
         }
 
         function clearVoicePreviewTimers() {
@@ -4718,10 +4973,7 @@ window.toggleSidebarJogador = function(numSlot) {
                 const context = createVoiceAudioContext();
                 await context.resume();
                 const destination = context.createMediaStreamDestination();
-                try {
-                    destination.channelCount = 1;
-                    destination.channelCountMode = 'explicit';
-                } catch {}
+                try { destination.stream.getAudioTracks()[0].contentHint = 'speech'; } catch {}
                 voiceState.localStream = stream;
                 voiceState.audioContext = context;
                 voiceState.processedDestination = destination;
@@ -5186,34 +5438,53 @@ window.toggleSidebarJogador = function(numSlot) {
                     const actions = document.createElement('div');
                     actions.className = 'voice-card__actions';
 
-                    const hears = voiceCanHear(id);
+                    const hears = voiceWantsToHear(id);
                     const hearDisabled = voiceState.settings.deafened;
                     actions.append(createVoiceActionButton(
-                        hears ? 'Ouvindo' : 'Não ouvir',
+                        hears ? 'Escutando' : 'Silenciado',
                         hears,
                         () => {
-                            voiceState.settings.hear[id] = voiceState.settings.hear[id] === false;
+                            voiceState.settings.hear[id] = !voiceWantsToHear(id);
                             saveVoiceSettings();
                             updateRemoteAudibility();
                             renderVoiceParticipants();
                         },
-                        { disabled: hearDisabled, title: hearDisabled ? 'O áudio recebido está desligado globalmente.' : 'Alternar o áudio desta pessoa.' }
+                        {
+                            disabled: hearDisabled,
+                            title: hearDisabled
+                                ? 'O áudio recebido está desligado globalmente. Ligue-o para alterar esta pessoa.'
+                                : hears
+                                    ? `Verde: você escuta ${voiceName(id)}. Clique para silenciar somente no seu computador.`
+                                    : `Vermelho: você não escuta ${voiceName(id)}. Clique para voltar a escutar.`
+                        }
                     ));
 
-                    const sends = voiceCanSendTo(id);
+                    const sends = voiceWantsToSendTo(id);
                     const forcedMute = !!voiceState.masterPolicy.blockedSpeak?.[voiceLocalKey()];
                     const whisperBlocks = voiceState.settings.whisperMaster && id !== 'dick';
-                    const sendDisabled = voiceState.settings.muted || forcedMute || whisperBlocks || !voiceState.started;
+                    const sendRestriction = !voiceState.started
+                        ? ' A preferência será aplicada ao conectar.'
+                        : forcedMute
+                            ? ' Seu microfone está bloqueado pelo Mestre.'
+                            : voiceState.settings.muted
+                                ? ' Seu microfone geral está vermelho.'
+                                : whisperBlocks
+                                    ? ' O modo “Só o Mestre me escuta” está ativo.'
+                                    : '';
                     actions.append(createVoiceActionButton(
-                        sends ? 'Recebe minha voz' : 'Sem minha voz',
+                        sends ? 'Me escuta' : 'Não me escuta',
                         sends,
                         () => {
-                            voiceState.settings.speakTo[id] = voiceState.settings.speakTo[id] === false;
+                            voiceState.settings.speakTo[id] = !voiceWantsToSendTo(id);
                             saveVoiceSettings();
                             updateVoiceSenders();
                             renderVoiceParticipants();
                         },
-                        { disabled: sendDisabled, title: whisperBlocks ? 'O sussurro ao Mestre está ativo.' : 'Alternar o envio da sua voz para esta pessoa.' }
+                        {
+                            title: sends
+                                ? `Verde: ${voiceName(id)} pode receber sua voz. Clique para cortar seu envio apenas para essa pessoa.${sendRestriction}`
+                                : `Vermelho: ${voiceName(id)} não recebe sua voz. Clique para permitir novamente.${sendRestriction}`
+                        }
                     ));
 
                     if (usuarioAtual.cargo === 'Mestre') {
@@ -5242,6 +5513,7 @@ window.toggleSidebarJogador = function(numSlot) {
                 volume: 1,
                 character: 'natural',
                 environment: 'normal',
+                projection: 'normal',
                 hear: {},
                 speakTo: {},
                 whisperMaster: false
@@ -5290,9 +5562,17 @@ window.toggleSidebarJogador = function(numSlot) {
                 applyLocalVoiceGraph();
                 updateVoiceQuickControls();
             };
+            document.getElementById('voice-projection').onchange = event => {
+                voiceState.settings.projection = VOICE_PROJECTIONS[event.target.value] ? event.target.value : 'normal';
+                saveVoiceSettings();
+                applyLocalVoiceGraph();
+                updateVoiceQuickControls();
+            };
             document.getElementById('voice-calibrate').onclick = calibrateVoiceCharacter;
             document.getElementById('voice-preview-record').onclick = startVoiceRecording;
             document.getElementById('voice-preview-live').onclick = toggleLiveVoicePreview;
+            document.getElementById('voice-preview-original-download').onclick = () => downloadVoicePreviewMp3('original');
+            document.getElementById('voice-preview-processed-download').onclick = () => downloadVoicePreviewMp3('processed');
             document.getElementById('voice-master-volume').oninput = event => {
                 voiceState.settings.volume = clampVoiceNumber(event.target.value, 0, 1, 1);
                 saveVoiceSettings();
