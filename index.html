@@ -151,51 +151,85 @@
 
 
 
-    <section id="voice-panel" class="voice-panel" aria-label="Comunicação por voz experimental" hidden>
-        <header class="voice-panel__header">
-            <div>
-                <strong>🎙️ Voz da Mesa</strong>
-                <span id="voice-status">desconectado</span>
-            </div>
-            <div class="voice-actions">
-                <button id="voice-start" type="button">Entrar na voz</button>
-                <button id="voice-reconnect" type="button">Reconectar</button>
-                <button id="voice-normalize" type="button">Normalizar</button>
+    <section id="voice-panel" class="voice-drawer" aria-label="Voz da Mesa" data-open="false" hidden>
+        <header class="voice-drawer__bar">
+            <button id="voice-panel-toggle" class="voice-drawer__toggle" type="button" aria-expanded="false" aria-controls="voice-drawer-content" title="Abrir Voz da Mesa">
+                <svg class="voice-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m6.5 14.5 5.5-5 5.5 5"/></svg>
+                <span class="voice-drawer__title">Voz da Mesa</span>
+                <span id="voice-status" class="voice-status" data-state="offline" aria-live="polite">
+                    <span class="voice-status__dot" aria-hidden="true"></span>
+                    <span class="voice-status__text">Desconectado</span>
+                </span>
+            </button>
+
+            <div class="voice-quick-actions">
+                <button id="voice-mute" class="voice-mic-button is-off" type="button" aria-label="Ativar microfone" aria-pressed="false" title="Ativar microfone" disabled>
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <rect x="8.5" y="3" width="7" height="11" rx="3.5"></rect>
+                        <path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v3M8.5 21h7"></path>
+                    </svg>
+                </button>
+                <button id="voice-start" class="voice-connect-button" type="button">Conectar</button>
             </div>
         </header>
-        <p class="voice-note">Protótipo gratuito: WebRTC + Web Audio + Firebase Realtime Database. Sem TURN; NAT restritivo, firewall ou CGNAT podem causar conexão parcial. STUN fica centralizado em <code>ICE_SERVERS</code> e pode ser vazio.</p>
-        <div class="voice-grid">
-            <fieldset>
-                <legend>Controles pessoais</legend>
-                <label><input id="voice-mute" type="checkbox"> Mute pessoal</label>
-                <label><input id="voice-deafen" type="checkbox"> Headphone / não ouvir ninguém</label>
-                <label>Volume privado <input id="voice-master-volume" type="range" min="0" max="2" step="0.01" value="1"></label>
-                <label>Ambiente
-                    <select id="voice-environment"><option value="normal">Normal</option><option value="cave">Caverna</option></select>
+
+        <div id="voice-drawer-content" class="voice-drawer__content" hidden>
+            <div class="voice-toolbar">
+                <label class="voice-field" for="voice-environment">
+                    <span>Ambiente da sua voz</span>
+                    <select id="voice-environment">
+                        <option value="normal">Voz limpa</option>
+                        <option value="stone">Câmara de pedra</option>
+                        <option value="cave">Caverna profunda</option>
+                    </select>
                 </label>
-                <label>Voz
-                    <select id="voice-effect"><option value="normal">Normal</option><option value="demon">Demoníaca</option><option value="dragon">Dracônica</option><option value="spectral">Espectral</option></select>
+
+                <label class="voice-field voice-volume-field" for="voice-master-volume">
+                    <span>Volume recebido</span>
+                    <input id="voice-master-volume" type="range" min="0" max="1" step="0.01" value="1">
                 </label>
-                <label>Posição
-                    <select id="voice-pan"><option value="0">Centro</option><option value="-0.8">Esquerda</option><option value="0.8">Direita</option></select>
-                </label>
-                <label>Distância <input id="voice-distance" type="range" min="0" max="100" value="0"></label>
-            </fieldset>
-            <fieldset>
-                <legend>Sussurro e privacidade</legend>
-                <label><input id="voice-whisper-master" type="checkbox"> Conversa somente com o Mestre</label>
-                <div id="voice-private-targets" class="voice-check-list"></div>
-                <button id="voice-favorite-private" type="button">Favoritar seleção privada</button>
-            </fieldset>
-            <fieldset id="voice-master-controls" hidden>
-                <legend>Controle narrativo do Mestre</legend>
-                <div id="voice-master-targets" class="voice-check-list"></div>
-                <button id="voice-scene-cave" type="button">Cena: Caverna</button>
-                <button id="voice-scene-whisper" type="button">Cena: Sussurro Mestre</button>
-                <button id="voice-restore-effects" type="button">Restaurar efeitos individuais</button>
-            </fieldset>
+
+                <button id="voice-deafen" class="voice-toggle-button is-active" type="button" aria-pressed="false">
+                    <span class="voice-toggle-button__icon" aria-hidden="true">◖◗</span>
+                    <span>Áudio recebido</span>
+                </button>
+
+                <button id="voice-whisper-master" class="voice-toggle-button" type="button" aria-pressed="false" hidden>
+                    <span class="voice-toggle-button__icon" aria-hidden="true">◌</span>
+                    <span>Sussurrar ao Mestre</span>
+                </button>
+
+                <button id="voice-reset" class="voice-reset-button" type="button">Restaurar padrão</button>
+            </div>
+
+            <p id="voice-environment-hint" class="voice-environment-hint">Som direto, sem alteração de ambiente.</p>
+
+            <section id="voice-master-controls" class="voice-master-controls" aria-label="Controles do Mestre" hidden>
+                <div>
+                    <strong>Cena sonora da mesa</strong>
+                    <small>O ambiente global prevalece temporariamente sobre a escolha individual.</small>
+                </div>
+                <div class="voice-master-actions">
+                    <button id="voice-scene-cave" type="button" aria-pressed="false">Aplicar caverna a todos</button>
+                    <button id="voice-scene-clear" type="button">Remover cena global</button>
+                    <button id="voice-master-unmute-all" type="button">Liberar todos os microfones</button>
+                </div>
+            </section>
+
+            <div class="voice-participants-heading">
+                <div>
+                    <strong>Participantes</strong>
+                    <span id="voice-participant-count">0 na chamada</span>
+                </div>
+                <span class="voice-participants-help">Use os botões de cada pessoa para decidir quem você ouve e quem recebe sua voz.</span>
+            </div>
+
+            <div id="voice-participants" class="voice-participants"></div>
+
+            <p id="voice-network-warning" class="voice-network-warning" hidden>
+                A chamada está parcial. Redes com CGNAT ou firewall restritivo podem exigir um servidor TURN.
+            </p>
         </div>
-        <div id="voice-participants" class="voice-participants"></div>
     </section>
 
     <div id="initiative-player-modal" class="initiative-modal" role="dialog" aria-modal="true" aria-labelledby="initiative-player-title" aria-hidden="true">

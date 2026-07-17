@@ -1,8 +1,10 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-        import { getDatabase, ref, onValue, update, get, remove, runTransaction } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
+        import { getDatabase, ref, onValue, update, get, remove, runTransaction, onDisconnect } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
 
         const DB_PREFIX = "";
-        export const ICE_SERVERS = []; // STUN/TURN centralizados. Protótipo sem TURN; pode usar STUN substituível ou lista vazia.
+        export const ICE_SERVERS = [
+            { urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'] }
+        ]; // STUN melhora a conexão P2P; TURN ainda é necessário em redes restritivas.
 
         const firebaseConfig = {
             apiKey: "AIzaSyBOJ4nPQX6dUjrpODKQfCB6uTfWSQCS9uA",
@@ -3617,98 +3619,913 @@ window.toggleSidebarJogador = function(numSlot) {
 
 
 
-        // ========================= VOZ EXPERIMENTAL WEBRTC =========================
+        // ========================= VOZ DA MESA — WEBRTC =========================
         const VOICE_ROOM_ID = 'mesa-principal';
         const VOICE_PATH = `voz/${VOICE_ROOM_ID}`;
         const VOICE_USERS = Object.keys(usuarios);
-        const voiceState = {
-            started:false, localStream:null, audioContext:null, input:null, processedDestination:null,
-            peers:{}, remotes:{}, settings:{ muted:false, deafened:false, volume:1, environment:'normal', effect:'normal', pan:0, distance:0, hear:{}, speakTo:{}, whisperMaster:false },
-            masterPolicy:{ blockedSpeak:{}, blockedHear:{}, isolated:{}, scene:'normal', overrides:{} }, unsubscribers:[]
+        const VOICE_ENVIRONMENTS = {
+            normal: {
+                label: 'Voz limpa',
+                hint: 'Som direto, com limpeza de ruído e compressão suave.',
+                dry: 1,
+                wet: 0,
+                duration: 0,
+                predelay: 0,
+                damping: 12000,
+                reflections: []
+            },
+            stone: {
+                label: 'Câmara de pedra',
+                hint: 'Reflexões curtas de pedra, mantendo a fala próxima e inteligível.',
+                dry: .86,
+                wet: .24,
+                duration: 1.35,
+                predelay: .018,
+                damping: 8800,
+                reflections: [[.014, .10], [.031, .075], [.052, .055], [.081, .035]]
+            },
+            cave: {
+                label: 'Caverna profunda',
+                hint: 'Reverberação espacial por convolução, com reflexos irregulares e cauda escurecida.',
+                dry: .72,
+                wet: .39,
+                duration: 3.25,
+                predelay: .032,
+                damping: 6100,
+                reflections: [[.021, .13], [.047, .10], [.083, .075], [.129, .052], [.187, .032]]
+            }
         };
 
-        function voiceLocalKey(){ return usuarioAtual?.idFicha || 'dick'; }
-        function voiceName(id){ return usuarios[id]?.nome || id; }
-        function voicePeerIds(){ return VOICE_USERS.filter(id => id !== voiceLocalKey()); }
-        function voicePairId(a,b){ return [a,b].sort().join('__'); }
-        function voicePairPath(peerId){ return `${VOICE_PATH}/signals/${voicePairId(voiceLocalKey(), peerId)}`; }
-        function voiceCanSendTo(peerId){
-            const me=voiceLocalKey();
-            if(voiceState.settings.muted || voiceState.masterPolicy.blockedSpeak?.[me]) return false;
-            if(voiceState.masterPolicy.isolated?.[me] || voiceState.masterPolicy.isolated?.[peerId]) return false;
-            if(voiceState.settings.whisperMaster && peerId !== 'dick') return false;
-            if(voiceState.settings.speakTo[peerId] === false) return false;
-            return true;
-        }
-        function voiceCanHear(peerId){
-            const me=voiceLocalKey();
-            if(voiceState.settings.deafened || voiceState.masterPolicy.blockedHear?.[me]) return false;
-            if(voiceState.masterPolicy.isolated?.[me] || voiceState.masterPolicy.isolated?.[peerId]) return false;
-            if(voiceState.settings.hear[peerId] === false) return false;
-            return true;
-        }
-        function voiceStatus(txt){ const el=document.getElementById('voice-status'); if(el) el.textContent=txt; }
-        function saveVoiceSettings(){ localStorage.setItem(`rpgVoice:${voiceLocalKey()}`, JSON.stringify(voiceState.settings)); }
-        function loadVoiceSettings(){ try{ Object.assign(voiceState.settings, JSON.parse(localStorage.getItem(`rpgVoice:${voiceLocalKey()}`)||'{}')); }catch{} }
+        const voiceState = {
+            initialized: false,
+            started: false,
+            phase: 'offline',
+            sessionId: null,
+            localStream: null,
+            audioContext: null,
+            input: null,
+            processedDestination: null,
+            graphNodes: [],
+            impulseCache: new Map(),
+            peers: {},
+            remotes: {},
+            participants: {},
+            presenceDisconnect: null,
+            roomUnsubscribers: [],
+            settings: {
+                muted: false,
+                deafened: false,
+                volume: 1,
+                environment: 'normal',
+                hear: {},
+                speakTo: {},
+                whisperMaster: false
+            },
+            masterPolicy: {
+                blockedSpeak: {},
+                blockedHear: {},
+                isolated: {},
+                scene: 'normal',
+                overrides: {}
+            }
+        };
 
-        function buildVoiceUi(){
-            const panel=document.getElementById('voice-panel'); if(!panel||!usuarioAtual) return; panel.hidden=false;
-            document.getElementById('voice-master-controls').hidden = usuarioAtual.cargo !== 'Mestre';
-            const privateBox=document.getElementById('voice-private-targets'), masterBox=document.getElementById('voice-master-targets'); privateBox.textContent=''; masterBox.textContent='';
-            voicePeerIds().forEach(id=>{
-                const mk=(text, checked, cb)=>{ const l=document.createElement('label'); const i=document.createElement('input'); i.type='checkbox'; i.checked=checked; i.onchange=()=>cb(i.checked); l.append(i, document.createTextNode(text)); return l; };
-                privateBox.append(mk(`Enviar voz para ${voiceName(id)}`, voiceState.settings.speakTo[id]!==false, v=>{voiceState.settings.speakTo[id]=v; saveVoiceSettings(); updateVoiceSenders(); renderVoiceParticipants();}));
-                privateBox.append(mk(`Ouvir ${voiceName(id)}`, voiceState.settings.hear[id]!==false, v=>{voiceState.settings.hear[id]=v; saveVoiceSettings(); updateRemoteAudibility(); renderVoiceParticipants();}));
-                if(usuarioAtual.cargo==='Mestre') masterBox.append(mk(`Isolar ${voiceName(id)}`, !!voiceState.masterPolicy.isolated[id], v=>safeUpdate(`${VOICE_PATH}/masterPolicy/isolated`, {[id]:v||null})));
+        function voiceLocalKey() {
+            return usuarioAtual?.idFicha || 'dick';
+        }
+
+        function voiceName(id) {
+            return usuarios[id]?.nome || id;
+        }
+
+        function voicePeerIds() {
+            return VOICE_USERS.filter(id => id !== voiceLocalKey());
+        }
+
+        function voicePairId(a, b) {
+            return [a, b].sort().join('__');
+        }
+
+        function voicePairPath(peerId) {
+            return `${VOICE_PATH}/signals/${voicePairId(voiceLocalKey(), peerId)}`;
+        }
+
+        function voiceSessionId() {
+            return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+        }
+
+        function clampVoiceNumber(value, min, max, fallback) {
+            const parsed = Number(value);
+            return Number.isFinite(parsed) ? Math.min(max, Math.max(min, parsed)) : fallback;
+        }
+
+        function loadVoiceSettings() {
+            try {
+                const saved = JSON.parse(localStorage.getItem(`rpgVoice:${voiceLocalKey()}`) || '{}');
+                voiceState.settings.muted = !!saved.muted;
+                voiceState.settings.deafened = !!saved.deafened;
+                voiceState.settings.whisperMaster = !!saved.whisperMaster;
+                voiceState.settings.volume = clampVoiceNumber(saved.volume, 0, 1, 1);
+                voiceState.settings.environment = VOICE_ENVIRONMENTS[saved.environment] ? saved.environment : 'normal';
+                voiceState.settings.hear = saved.hear && typeof saved.hear === 'object' ? saved.hear : {};
+                voiceState.settings.speakTo = saved.speakTo && typeof saved.speakTo === 'object' ? saved.speakTo : {};
+            } catch (error) {
+                console.warn('Não foi possível carregar as preferências de voz.', error);
+            }
+        }
+
+        function saveVoiceSettings() {
+            const settings = voiceState.settings;
+            localStorage.setItem(`rpgVoice:${voiceLocalKey()}`, JSON.stringify({
+                muted: settings.muted,
+                deafened: settings.deafened,
+                volume: settings.volume,
+                environment: settings.environment,
+                hear: settings.hear,
+                speakTo: settings.speakTo,
+                whisperMaster: settings.whisperMaster
+            }));
+        }
+
+        function effectiveVoiceEnvironment() {
+            if (voiceState.masterPolicy.scene === 'cave') return 'cave';
+            if (voiceState.masterPolicy.overrides?.environment === 'cave') return 'cave';
+            return VOICE_ENVIRONMENTS[voiceState.settings.environment] ? voiceState.settings.environment : 'normal';
+        }
+
+        function voiceCanSendTo(peerId) {
+            const me = voiceLocalKey();
+            if (!voiceState.started || voiceState.settings.muted || voiceState.masterPolicy.blockedSpeak?.[me]) return false;
+            if (voiceState.settings.whisperMaster && peerId !== 'dick') return false;
+            return voiceState.settings.speakTo[peerId] !== false;
+        }
+
+        function voiceCanHear(peerId) {
+            if (!voiceState.started || voiceState.settings.deafened) return false;
+            return voiceState.settings.hear[peerId] !== false;
+        }
+
+        function setVoiceStatus(state, message) {
+            const status = document.getElementById('voice-status');
+            if (!status) return;
+            status.dataset.state = state;
+            const text = status.querySelector('.voice-status__text');
+            if (text) text.textContent = message;
+        }
+
+        function onlineVoicePeerIds() {
+            return voicePeerIds().filter(id => voiceState.participants[id]?.online && voiceState.participants[id]?.sessionId);
+        }
+
+        function updateVoiceConnectionSummary() {
+            const count = document.getElementById('voice-participant-count');
+            const warning = document.getElementById('voice-network-warning');
+            const remoteOnline = onlineVoicePeerIds();
+            const connected = remoteOnline.filter(id => voiceState.peers[id]?.pc.connectionState === 'connected').length;
+            const failed = remoteOnline.some(id => ['failed', 'disconnected'].includes(voiceState.peers[id]?.pc.connectionState));
+            const totalOnline = remoteOnline.length + (voiceState.started ? 1 : 0);
+
+            if (count) count.textContent = `${totalOnline} ${totalOnline === 1 ? 'na chamada' : 'na chamada'}`;
+            if (warning) warning.hidden = !(voiceState.started && failed);
+
+            if (voiceState.phase === 'connecting') {
+                setVoiceStatus('connecting', 'Conectando…');
+            } else if (voiceState.phase === 'disconnecting') {
+                setVoiceStatus('connecting', 'Desconectando…');
+            } else if (voiceState.phase === 'error') {
+                setVoiceStatus('error', 'Microfone indisponível');
+            } else if (!voiceState.started) {
+                setVoiceStatus('offline', 'Desconectado');
+            } else if (failed) {
+                setVoiceStatus('warning', 'Chamada parcial');
+            } else if (!remoteOnline.length) {
+                setVoiceStatus('online', 'Conectado · aguardando');
+            } else if (connected < remoteOnline.length) {
+                setVoiceStatus('connecting', `${connected + 1}/${remoteOnline.length + 1} conectados`);
+            } else {
+                setVoiceStatus('online', `${connected + 1}/${remoteOnline.length + 1} conectados`);
+            }
+        }
+
+        function updateVoiceQuickControls() {
+            const start = document.getElementById('voice-start');
+            const mute = document.getElementById('voice-mute');
+            const deafen = document.getElementById('voice-deafen');
+            const whisper = document.getElementById('voice-whisper-master');
+            const environment = document.getElementById('voice-environment');
+            const volume = document.getElementById('voice-master-volume');
+            const masterControls = document.getElementById('voice-master-controls');
+            const caveScene = document.getElementById('voice-scene-cave');
+            const hint = document.getElementById('voice-environment-hint');
+            const meBlocked = !!voiceState.masterPolicy.blockedSpeak?.[voiceLocalKey()];
+            const micLive = voiceState.started && !voiceState.settings.muted && !meBlocked;
+
+            if (start) {
+                const busy = ['connecting', 'disconnecting'].includes(voiceState.phase);
+                start.disabled = busy;
+                start.textContent = voiceState.phase === 'connecting' ? 'Conectando…' :
+                    voiceState.phase === 'disconnecting' ? 'Saindo…' :
+                    voiceState.started ? 'Desconectar' :
+                    voiceState.phase === 'error' ? 'Tentar novamente' : 'Conectar';
+                start.classList.toggle('is-connected', voiceState.started);
+            }
+
+            if (mute) {
+                mute.disabled = !voiceState.started || meBlocked;
+                mute.classList.toggle('is-on', micLive);
+                mute.classList.toggle('is-off', !micLive);
+                mute.setAttribute('aria-pressed', String(micLive));
+                const label = meBlocked ? 'Microfone silenciado pelo Mestre' : micLive ? 'Desativar microfone' : 'Ativar microfone';
+                mute.setAttribute('aria-label', label);
+                mute.title = label;
+            }
+
+            if (deafen) {
+                deafen.classList.toggle('is-active', !voiceState.settings.deafened);
+                deafen.classList.toggle('is-off', voiceState.settings.deafened);
+                deafen.setAttribute('aria-pressed', String(voiceState.settings.deafened));
+            }
+
+            if (whisper) {
+                whisper.hidden = usuarioAtual?.cargo === 'Mestre';
+                whisper.classList.toggle('is-active', voiceState.settings.whisperMaster);
+                whisper.setAttribute('aria-pressed', String(voiceState.settings.whisperMaster));
+            }
+
+            if (environment) environment.value = voiceState.settings.environment;
+            if (volume) volume.value = String(voiceState.settings.volume);
+            if (masterControls) masterControls.hidden = usuarioAtual?.cargo !== 'Mestre';
+            if (caveScene) {
+                const active = voiceState.masterPolicy.scene === 'cave';
+                caveScene.classList.toggle('is-active', active);
+                caveScene.setAttribute('aria-pressed', String(active));
+            }
+
+            if (hint) {
+                const effective = effectiveVoiceEnvironment();
+                hint.textContent = voiceState.masterPolicy.scene === 'cave'
+                    ? `Cena global do Mestre: ${VOICE_ENVIRONMENTS.cave.hint}`
+                    : VOICE_ENVIRONMENTS[effective].hint;
+            }
+
+            updateVoiceConnectionSummary();
+        }
+
+        function toggleVoiceDrawer(forceOpen) {
+            const panel = document.getElementById('voice-panel');
+            const content = document.getElementById('voice-drawer-content');
+            const toggle = document.getElementById('voice-panel-toggle');
+            if (!panel || !content || !toggle) return;
+            const open = typeof forceOpen === 'boolean' ? forceOpen : panel.dataset.open !== 'true';
+            panel.dataset.open = String(open);
+            content.hidden = !open;
+            toggle.setAttribute('aria-expanded', String(open));
+            toggle.title = open ? 'Fechar Voz da Mesa' : 'Abrir Voz da Mesa';
+        }
+
+        function createVoiceImpulse(context, environmentName) {
+            const profile = VOICE_ENVIRONMENTS[environmentName];
+            const cacheKey = `${environmentName}:${context.sampleRate}`;
+            if (voiceState.impulseCache.has(cacheKey)) return voiceState.impulseCache.get(cacheKey);
+
+            const length = Math.max(1, Math.floor(context.sampleRate * profile.duration));
+            const impulse = context.createBuffer(2, length, context.sampleRate);
+
+            for (let channel = 0; channel < impulse.numberOfChannels; channel++) {
+                const data = impulse.getChannelData(channel);
+                let seed = (environmentName === 'cave' ? 911 : 353) + channel * 977;
+                let lowBand = 0;
+
+                const random = () => {
+                    seed = (seed * 1664525 + 1013904223) >>> 0;
+                    return seed / 4294967296;
+                };
+
+                for (let index = 0; index < length; index++) {
+                    const time = index / context.sampleRate;
+                    const progress = index / length;
+                    const white = random() * 2 - 1;
+                    lowBand += (white - lowBand) * (environmentName === 'cave' ? .075 : .13);
+                    const diffuse = white * .58 + lowBand * .42;
+                    const onset = Math.min(1, time / .024);
+                    const decay = Math.pow(Math.max(0, 1 - progress), environmentName === 'cave' ? 2.15 : 3.4);
+                    const airLoss = Math.exp(-time * (environmentName === 'cave' ? .22 : .55));
+                    data[index] = diffuse * onset * decay * airLoss;
+                }
+
+                profile.reflections.forEach(([time, gain], reflectionIndex) => {
+                    const offset = channel ? .0015 * (reflectionIndex % 2 ? 1 : -1) : 0;
+                    const sample = Math.max(0, Math.min(length - 1, Math.floor((time + offset) * context.sampleRate)));
+                    data[sample] += gain * (channel ? .88 : 1);
+                });
+            }
+
+            voiceState.impulseCache.set(cacheKey, impulse);
+            return impulse;
+        }
+
+        function clearLocalVoiceGraph() {
+            try { voiceState.input?.disconnect(); } catch {}
+            voiceState.graphNodes.forEach(node => {
+                try { node.disconnect(); } catch {}
             });
-            const bind=(id, prop, map=v=>v)=>{ const el=document.getElementById(id); if(!el)return; if(el.type==='checkbox')el.checked=!!voiceState.settings[prop]; else el.value=voiceState.settings[prop]; el.oninput=el.onchange=()=>{ voiceState.settings[prop]=map(el.type==='checkbox'?el.checked:el.value); saveVoiceSettings(); applyLocalVoiceGraph(); updateRemoteAudibility(); renderVoiceParticipants(); }; };
-            bind('voice-mute','muted',Boolean); bind('voice-deafen','deafened',Boolean); bind('voice-master-volume','volume',Number); bind('voice-environment','environment'); bind('voice-effect','effect'); bind('voice-pan','pan',Number); bind('voice-distance','distance',Number); bind('voice-whisper-master','whisperMaster',Boolean);
-            document.getElementById('voice-start').onclick=startVoicePrototype; document.getElementById('voice-reconnect').onclick=reconnectVoicePrototype; document.getElementById('voice-normalize').onclick=normalizeVoiceSession;
-            document.getElementById('voice-favorite-private').onclick=()=>{ localStorage.setItem(`rpgVoiceFavorite:privado:${voiceLocalKey()}`, JSON.stringify({hear:voiceState.settings.hear,speakTo:voiceState.settings.speakTo,whisperMaster:voiceState.settings.whisperMaster})); voiceStatus('favorito privado salvo'); };
-            document.getElementById('voice-scene-cave').onclick=()=>safeUpdate(`${VOICE_PATH}/masterPolicy`, {scene:'cave', overrides:{environment:'cave', distance:45}});
-            document.getElementById('voice-scene-whisper').onclick=()=>safeUpdate(`${VOICE_PATH}/masterPolicy`, {scene:'whisperMaster'});
-            document.getElementById('voice-restore-effects').onclick=()=>safeUpdate(`${VOICE_PATH}/masterPolicy`, {overrides:null, scene:'normal'});
+            voiceState.graphNodes = [];
+        }
+
+        function buildLocalVoiceGraph() {
+            const context = voiceState.audioContext;
+            if (!context || !voiceState.localStream) return;
+
+            clearLocalVoiceGraph();
+            voiceState.input = context.createMediaStreamSource(voiceState.localStream);
+            if (!voiceState.processedDestination) voiceState.processedDestination = context.createMediaStreamDestination();
+
+            const environmentName = effectiveVoiceEnvironment();
+            const profile = VOICE_ENVIRONMENTS[environmentName];
+            const highPass = context.createBiquadFilter();
+            const lowPass = context.createBiquadFilter();
+            const speechCompressor = context.createDynamicsCompressor();
+            const dryGain = context.createGain();
+            const mixGain = context.createGain();
+            const limiter = context.createDynamicsCompressor();
+
+            highPass.type = 'highpass';
+            highPass.frequency.value = 82;
+            highPass.Q.value = .7;
+            lowPass.type = 'lowpass';
+            lowPass.frequency.value = environmentName === 'cave' ? 9200 : 12500;
+            lowPass.Q.value = .2;
+            speechCompressor.threshold.value = -24;
+            speechCompressor.knee.value = 18;
+            speechCompressor.ratio.value = 3.2;
+            speechCompressor.attack.value = .004;
+            speechCompressor.release.value = .17;
+            dryGain.gain.value = profile.dry;
+            mixGain.gain.value = .9;
+            limiter.threshold.value = -4;
+            limiter.knee.value = 2;
+            limiter.ratio.value = 12;
+            limiter.attack.value = .002;
+            limiter.release.value = .12;
+
+            voiceState.input.connect(highPass);
+            highPass.connect(lowPass);
+            lowPass.connect(speechCompressor);
+            speechCompressor.connect(dryGain);
+            dryGain.connect(mixGain);
+
+            const nodes = [highPass, lowPass, speechCompressor, dryGain, mixGain, limiter];
+
+            if (profile.wet > 0) {
+                const predelay = context.createDelay(.3);
+                const convolver = context.createConvolver();
+                const damping = context.createBiquadFilter();
+                const wetGain = context.createGain();
+
+                predelay.delayTime.value = profile.predelay;
+                convolver.buffer = createVoiceImpulse(context, environmentName);
+                convolver.normalize = true;
+                damping.type = 'lowpass';
+                damping.frequency.value = profile.damping;
+                damping.Q.value = .1;
+                wetGain.gain.value = profile.wet;
+
+                speechCompressor.connect(predelay);
+                predelay.connect(convolver);
+                convolver.connect(damping);
+                damping.connect(wetGain);
+                wetGain.connect(mixGain);
+                nodes.push(predelay, convolver, damping, wetGain);
+
+                profile.reflections.forEach(([time, gain]) => {
+                    const delay = context.createDelay(.3);
+                    const reflectionGain = context.createGain();
+                    delay.delayTime.value = time;
+                    reflectionGain.gain.value = gain * .48;
+                    speechCompressor.connect(delay);
+                    delay.connect(reflectionGain);
+                    reflectionGain.connect(mixGain);
+                    nodes.push(delay, reflectionGain);
+                });
+            }
+
+            mixGain.connect(limiter);
+            limiter.connect(voiceState.processedDestination);
+            voiceState.graphNodes = nodes;
+        }
+
+        function applyLocalVoiceGraph() {
+            if (!voiceState.started || !voiceState.audioContext || !voiceState.localStream) return;
+            try {
+                buildLocalVoiceGraph();
+                updateVoiceSenders();
+            } catch (error) {
+                console.error('Falha ao aplicar o ambiente de voz.', error);
+                setVoiceStatus('warning', 'Efeito indisponível');
+            }
+        }
+
+        function closeVoicePeer(peerId) {
+            const connection = voiceState.peers[peerId];
+            if (connection) {
+                try { connection.unsubscribe?.(); } catch {}
+                try { connection.outboundTrack?.stop(); } catch {}
+                try { connection.pc.ontrack = null; connection.pc.onicecandidate = null; connection.pc.onconnectionstatechange = null; } catch {}
+                try { connection.pc.close(); } catch {}
+                delete voiceState.peers[peerId];
+            }
+
+            const remote = voiceState.remotes[peerId];
+            if (remote?.audio) {
+                try { remote.audio.pause(); remote.audio.srcObject = null; } catch {}
+            }
+            delete voiceState.remotes[peerId];
+        }
+
+        async function flushVoiceCandidates(peerId, connection) {
+            if (!connection.pc.remoteDescription) return;
+            const queued = connection.pendingCandidates.splice(0);
+            for (const candidate of queued) {
+                try { await connection.pc.addIceCandidate(candidate); } catch (error) { console.debug('Candidato ICE ignorado.', error); }
+            }
+        }
+
+        async function handleVoiceSignal(peerId, data, connection) {
+            if (voiceState.peers[peerId] !== connection || connection.pc.signalingState === 'closed') return;
+
+            const me = voiceLocalKey();
+            const remoteSession = connection.remoteSession;
+            const offer = data.offer;
+            const answer = data.answer;
+
+            const offerKey = offer ? `${offer.session}:${offer.forSession}` : null;
+            if (offer?.from === peerId && offer.session === remoteSession && offer.forSession === voiceState.sessionId && offer.description && connection.acceptedOffer !== offerKey) {
+                connection.acceptedOffer = offerKey;
+                await connection.pc.setRemoteDescription(offer.description);
+                await flushVoiceCandidates(peerId, connection);
+                const localAnswer = await connection.pc.createAnswer();
+                await connection.pc.setLocalDescription(localAnswer);
+                await safeUpdate(voicePairPath(peerId), {
+                    answer: {
+                        from: me,
+                        session: voiceState.sessionId,
+                        answerTo: offer.session,
+                        description: connection.pc.localDescription.toJSON()
+                    }
+                });
+            }
+
+            if (answer?.from === peerId && answer.session === remoteSession && answer.answerTo === voiceState.sessionId && answer.description && !connection.acceptedAnswer) {
+                connection.acceptedAnswer = answer.session;
+                await connection.pc.setRemoteDescription(answer.description);
+                await flushVoiceCandidates(peerId, connection);
+            }
+
+            const remoteCandidates = data.candidates?.[peerId]?.[remoteSession] || {};
+            for (const [key, candidate] of Object.entries(remoteCandidates)) {
+                if (connection.candidateKeys.has(key)) continue;
+                connection.candidateKeys.add(key);
+                if (connection.pc.remoteDescription) {
+                    try { await connection.pc.addIceCandidate(candidate); } catch (error) { console.debug('Candidato ICE ignorado.', error); }
+                } else {
+                    connection.pendingCandidates.push(candidate);
+                }
+            }
+        }
+
+        async function connectVoicePeer(peerId) {
+            if (!voiceState.started || !voiceState.participants[peerId]?.online || !voiceState.participants[peerId]?.sessionId || !voiceState.processedDestination) return;
+
+            const remoteSession = voiceState.participants[peerId]?.sessionId;
+            const existing = voiceState.peers[peerId];
+            if (existing?.remoteSession === remoteSession) return;
+            if (existing) closeVoicePeer(peerId);
+
+            const sourceTrack = voiceState.processedDestination.stream.getAudioTracks()[0];
+            if (!sourceTrack) return;
+
+            const pc = new RTCPeerConnection({ iceServers: ICE_SERVERS, iceCandidatePoolSize: 8 });
+            const outboundTrack = sourceTrack.clone();
+            const outboundStream = new MediaStream([outboundTrack]);
+            const connection = {
+                pc,
+                outboundTrack,
+                remoteSession,
+                candidateKeys: new Set(),
+                pendingCandidates: [],
+                acceptedOffer: null,
+                acceptedAnswer: null,
+                signalQueue: Promise.resolve(),
+                unsubscribe: null
+            };
+
+            voiceState.peers[peerId] = connection;
+            pc.addTrack(outboundTrack, outboundStream);
+            outboundTrack.enabled = voiceCanSendTo(peerId);
+
+            pc.onicecandidate = event => {
+                if (!event.candidate || voiceState.peers[peerId] !== connection) return;
+                const key = `${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 9)}`;
+                safeUpdate(`${voicePairPath(peerId)}/candidates/${voiceLocalKey()}/${voiceState.sessionId}`, {
+                    [key]: event.candidate.toJSON()
+                }).catch(error => console.warn('Falha ao enviar candidato ICE.', error));
+            };
+
+            pc.ontrack = event => attachRemoteVoice(peerId, event.streams[0]);
+            pc.onconnectionstatechange = () => {
+                updateVoiceConnectionSummary();
+                renderVoiceParticipants();
+            };
+
+            connection.unsubscribe = onValue(dbRef(voicePairPath(peerId)), snapshot => {
+                connection.signalQueue = connection.signalQueue
+                    .then(() => handleVoiceSignal(peerId, snapshot.val() || {}, connection))
+                    .catch(error => console.warn('Falha de sinalização de voz.', peerId, error));
+            });
+
+            if (voiceLocalKey() < peerId) {
+                try {
+                    await safeRemove(voicePairPath(peerId));
+                    if (voiceState.peers[peerId] !== connection) return;
+                    const offer = await pc.createOffer();
+                    await pc.setLocalDescription(offer);
+                    await safeUpdate(voicePairPath(peerId), {
+                        offer: {
+                            from: voiceLocalKey(),
+                            session: voiceState.sessionId,
+                            forSession: remoteSession,
+                            description: pc.localDescription.toJSON()
+                        }
+                    });
+                } catch (error) {
+                    console.warn('Falha ao criar conexão de voz.', peerId, error);
+                }
+            }
+        }
+
+        function attachRemoteVoice(peerId, stream) {
+            let audio = voiceState.remotes[peerId]?.audio;
+            if (!audio) {
+                audio = new Audio();
+                audio.autoplay = true;
+                audio.playsInline = true;
+                voiceState.remotes[peerId] = { audio };
+            }
+            audio.srcObject = stream;
+            updateRemoteAudibility();
+            audio.play().catch(() => {
+                setVoiceStatus('warning', 'Clique no painel para liberar áudio');
+            });
             renderVoiceParticipants();
         }
 
-        async function startVoicePrototype(){
-            if(voiceState.started) return; if(!navigator.mediaDevices?.getUserMedia){ voiceStatus('navegador sem getUserMedia'); return; }
-            try{
-                voiceState.localStream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true, noiseSuppression:true, autoGainControl:true}, video:false});
-                voiceState.audioContext=new (window.AudioContext||window.webkitAudioContext)(); buildLocalVoiceGraph(); voiceState.started=true; voiceStatus('conectando malha P2P');
-                await safeUpdate(`${VOICE_PATH}/participants/${voiceLocalKey()}`, {nome:usuarioAtual.nome,cargo:usuarioAtual.cargo,online:true,updatedAt:Date.now()});
-                voicePeerIds().forEach(connectVoicePeer); renderVoiceParticipants();
-            }catch(err){ console.error(err); voiceStatus('microfone negado/indisponível'); }
+        function updateVoiceSenders() {
+            Object.entries(voiceState.peers).forEach(([peerId, connection]) => {
+                if (connection.outboundTrack) connection.outboundTrack.enabled = voiceCanSendTo(peerId);
+            });
+            updateVoiceQuickControls();
         }
-        function buildLocalVoiceGraph(){
-            const ctx=voiceState.audioContext; voiceState.input=ctx.createMediaStreamSource(voiceState.localStream); voiceState.processedDestination=ctx.createMediaStreamDestination(); applyLocalVoiceGraph();
+
+        function updateRemoteAudibility() {
+            Object.entries(voiceState.remotes).forEach(([peerId, remote]) => {
+                remote.audio.muted = !voiceCanHear(peerId);
+                remote.audio.volume = clampVoiceNumber(voiceState.settings.volume, 0, 1, 1);
+            });
+            updateVoiceQuickControls();
         }
-        function applyLocalVoiceGraph(){
-            if(!voiceState.input||!voiceState.processedDestination) return; const ctx=voiceState.audioContext;
-            voiceState.input.disconnect(); const gain=ctx.createGain(); gain.gain.value=voiceState.settings.muted?0:Math.max(0,1-(voiceState.settings.distance/120));
-            let node=gain; voiceState.input.connect(gain);
-            if(voiceState.settings.effect!=='normal'){ const shaper=ctx.createWaveShaper(); shaper.curve=makeDistortionCurve(voiceState.settings.effect==='demon'?240:voiceState.settings.effect==='dragon'?120:35); node.connect(shaper); node=shaper; }
-            if(voiceState.settings.environment==='cave'){ const delay=ctx.createDelay(.6), fb=ctx.createGain(); delay.delayTime.value=.18; fb.gain.value=.32; node.connect(delay); delay.connect(fb); fb.connect(delay); delay.connect(voiceState.processedDestination); }
-            const pan=ctx.createStereoPanner(); pan.pan.value=Number(voiceState.settings.pan)||0; node.connect(pan); pan.connect(voiceState.processedDestination); updateVoiceSenders();
+
+        async function releaseLocalVoiceMedia() {
+            clearLocalVoiceGraph();
+            try { voiceState.processedDestination?.stream.getTracks().forEach(track => track.stop()); } catch {}
+            try { voiceState.localStream?.getTracks().forEach(track => track.stop()); } catch {}
+            try { await voiceState.audioContext?.close(); } catch {}
+            voiceState.localStream = null;
+            voiceState.audioContext = null;
+            voiceState.input = null;
+            voiceState.processedDestination = null;
+            voiceState.impulseCache = new Map();
         }
-        function makeDistortionCurve(amount){ const n=44100, curve=new Float32Array(n); for(let i=0;i<n;i++){ const x=i*2/n-1; curve[i]=(3+amount)*x*20*Math.PI/180/(Math.PI+amount*Math.abs(x)); } return curve; }
-        function connectVoicePeer(peerId){
-            if(voiceState.peers[peerId]) return; const pc=new RTCPeerConnection({iceServers:ICE_SERVERS}); voiceState.peers[peerId]=pc;
-            const stream=voiceState.processedDestination?.stream||voiceState.localStream; stream.getAudioTracks().forEach(t=>pc.addTrack(t,stream)); updateVoiceSenders(peerId);
-            pc.onicecandidate=e=>{ if(e.candidate) safeUpdate(`${voicePairPath(peerId)}/candidates/${voiceLocalKey()}/${Date.now()}_${Math.random().toString(36).slice(2)}`, e.candidate.toJSON()); };
-            pc.ontrack=e=>attachRemoteVoice(peerId,e.streams[0]); pc.onconnectionstatechange=()=>{ if(['failed','disconnected'].includes(pc.connectionState)) voiceStatus('conexão parcial; use reconectar'); renderVoiceParticipants(); };
-            onValue(dbRef(voicePairPath(peerId)), async snap=>handleVoiceSignal(peerId,snap.val()||{}));
-            if(voiceLocalKey()<peerId) pc.createOffer().then(o=>pc.setLocalDescription(o)).then(()=>safeUpdate(voicePairPath(peerId), {offer:{from:voiceLocalKey(),sdp:pc.localDescription.toJSON()}}));
+
+        async function startVoicePrototype() {
+            if (voiceState.started || voiceState.phase === 'connecting') return;
+            if (!navigator.mediaDevices?.getUserMedia || !window.RTCPeerConnection) {
+                voiceState.phase = 'error';
+                updateVoiceQuickControls();
+                return;
+            }
+
+            voiceState.phase = 'connecting';
+            updateVoiceQuickControls();
+
+            try {
+                voiceState.localStream = await navigator.mediaDevices.getUserMedia({
+                    audio: {
+                        channelCount: 1,
+                        echoCancellation: true,
+                        noiseSuppression: true,
+                        autoGainControl: true
+                    },
+                    video: false
+                });
+
+                const VoiceAudioContext = window.AudioContext || window.webkitAudioContext;
+                try {
+                    voiceState.audioContext = new VoiceAudioContext({ latencyHint: 'interactive' });
+                } catch {
+                    voiceState.audioContext = new VoiceAudioContext();
+                }
+                await voiceState.audioContext.resume();
+                voiceState.processedDestination = voiceState.audioContext.createMediaStreamDestination();
+                voiceState.sessionId = voiceSessionId();
+                voiceState.started = true;
+                buildLocalVoiceGraph();
+
+                const participantPath = `${VOICE_PATH}/participants/${voiceLocalKey()}`;
+                voiceState.presenceDisconnect = onDisconnect(dbRef(participantPath));
+                await voiceState.presenceDisconnect.remove();
+                await safeUpdate(participantPath, {
+                    nome: usuarioAtual.nome,
+                    cargo: usuarioAtual.cargo,
+                    online: true,
+                    sessionId: voiceState.sessionId,
+                    updatedAt: Date.now()
+                });
+
+                voiceState.phase = 'online';
+                onlineVoicePeerIds().forEach(id => connectVoicePeer(id));
+                updateVoiceSenders();
+                updateRemoteAudibility();
+                renderVoiceParticipants();
+            } catch (error) {
+                console.error('Não foi possível iniciar a voz.', error);
+                voiceState.started = false;
+                voiceState.phase = 'error';
+                try { await voiceState.presenceDisconnect?.cancel(); } catch {}
+                voiceState.presenceDisconnect = null;
+                try { await safeRemove(`${VOICE_PATH}/participants/${voiceLocalKey()}`); } catch {}
+                await releaseLocalVoiceMedia();
+                updateVoiceQuickControls();
+                renderVoiceParticipants();
+            }
         }
-        async function handleVoiceSignal(peerId,data){ const pc=voiceState.peers[peerId]; if(!pc) return; try{
-            if(data.offer?.from===peerId && !pc.remoteDescription){ await pc.setRemoteDescription(data.offer.sdp); const ans=await pc.createAnswer(); await pc.setLocalDescription(ans); await safeUpdate(voicePairPath(peerId), {answer:{from:voiceLocalKey(),sdp:pc.localDescription.toJSON()}}); }
-            if(data.answer?.from===peerId && !pc.remoteDescription) await pc.setRemoteDescription(data.answer.sdp);
-            Object.values(data.candidates?.[peerId]||{}).forEach(c=>pc.addIceCandidate(c).catch(()=>{}));
-        }catch(err){ console.warn('Falha de sinalização de voz', peerId, err); } }
-        function updateVoiceSenders(only){ Object.entries(voiceState.peers).forEach(([id,pc])=>{ if(only&&id!==only)return; pc.getSenders().forEach(s=>{ if(s.track?.kind==='audio') s.track.enabled=voiceCanSendTo(id); }); }); }
-        function attachRemoteVoice(peerId,stream){ let audio=voiceState.remotes[peerId]?.audio; if(!audio){ audio=new Audio(); audio.autoplay=true; audio.playsInline=true; voiceState.remotes[peerId]={audio}; } audio.srcObject=stream; updateRemoteAudibility(); renderVoiceParticipants(); }
-        function updateRemoteAudibility(){ Object.entries(voiceState.remotes).forEach(([id,r])=>{ r.audio.muted=!voiceCanHear(id); r.audio.volume=Math.max(0,Math.min(1,voiceState.settings.volume)); }); }
-        async function reconnectVoicePrototype(){ Object.values(voiceState.peers).forEach(pc=>pc.close()); voiceState.peers={}; await safeRemove(`${VOICE_PATH}/signals`); if(voiceState.started) voicePeerIds().forEach(connectVoicePeer); voiceStatus('reconexão solicitada'); }
-        async function normalizeVoiceSession(){ Object.assign(voiceState.settings,{muted:false,deafened:false,volume:1,environment:'normal',effect:'normal',pan:0,distance:0,whisperMaster:false,hear:{},speakTo:{}}); saveVoiceSettings(); if(usuarioAtual?.cargo==='Mestre') await safeUpdate(`${VOICE_PATH}/masterPolicy`, {blockedSpeak:null,blockedHear:null,isolated:null,overrides:null,scene:'normal'}); buildVoiceUi(); applyLocalVoiceGraph(); updateRemoteAudibility(); voiceStatus('sessão normalizada'); }
-        function renderVoiceParticipants(){ const box=document.getElementById('voice-participants'); if(!box||!usuarioAtual)return; box.textContent=''; VOICE_USERS.forEach(id=>{ const card=document.createElement('div'); card.className='voice-card'; const pc=voiceState.peers[id]; card.innerHTML=`<strong>${voiceName(id)}${id===voiceLocalKey()?' (você)':''}</strong><small>${id===voiceLocalKey()?'local':(pc?.connectionState||'aguardando')}</small>`; if(id!==voiceLocalKey()) card.insertAdjacentHTML('beforeend', `<span class="voice-badge">${voiceCanHear(id)?'ouvindo':'não ouvindo'}</span><span class="voice-badge">${voiceCanSendTo(id)?'recebe sua voz':'sem sua voz'}</span>`); box.appendChild(card); }); }
-        function initVoicePrototype(){ loadVoiceSettings(); buildVoiceUi(); onValue(dbRef(`${VOICE_PATH}/masterPolicy`), snap=>{ voiceState.masterPolicy=Object.assign({blockedSpeak:{},blockedHear:{},isolated:{},overrides:{}}, snap.val()||{}); if(voiceState.masterPolicy.overrides) Object.assign(voiceState.settings, voiceState.masterPolicy.overrides); buildVoiceUi(); applyLocalVoiceGraph(); updateVoiceSenders(); updateRemoteAudibility(); }); }
+
+        async function disconnectVoicePrototype() {
+            if (voiceState.phase === 'disconnecting') return;
+            voiceState.phase = 'disconnecting';
+            voiceState.started = false;
+            updateVoiceQuickControls();
+
+            try { await voiceState.presenceDisconnect?.cancel(); } catch {}
+            voiceState.presenceDisconnect = null;
+
+            const cleanup = [safeRemove(`${VOICE_PATH}/participants/${voiceLocalKey()}`)];
+            voicePeerIds().forEach(peerId => cleanup.push(safeRemove(voicePairPath(peerId))));
+            Object.keys(voiceState.peers).forEach(closeVoicePeer);
+
+            await Promise.allSettled(cleanup);
+            await releaseLocalVoiceMedia();
+            voiceState.sessionId = null;
+            voiceState.phase = 'offline';
+            updateVoiceQuickControls();
+            renderVoiceParticipants();
+        }
+
+        function createVoiceActionButton(label, active, onClick, options = {}) {
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'voice-action-button';
+            button.textContent = label;
+            button.classList.toggle('is-active', !!active && !options.danger);
+            button.classList.toggle('is-off', !active && !options.danger);
+            button.classList.toggle('is-danger', !!options.danger);
+            button.disabled = !!options.disabled;
+            button.setAttribute('aria-pressed', String(!!active));
+            if (options.title) button.title = options.title;
+            button.onclick = onClick;
+            return button;
+        }
+
+        function voiceParticipantStatus(id) {
+            if (id === voiceLocalKey()) return voiceState.started ? 'Microfone conectado' : 'Fora da chamada';
+            if (!voiceState.participants[id]?.online || !voiceState.participants[id]?.sessionId) return 'Fora da chamada';
+            const state = voiceState.peers[id]?.pc.connectionState;
+            if (state === 'connected') return 'Na chamada';
+            if (state === 'failed' || state === 'disconnected') return 'Falha de conexão';
+            return 'Conectando…';
+        }
+
+        async function setMasterSpeakBlocked(id, blocked) {
+            const previous = !!voiceState.masterPolicy.blockedSpeak?.[id];
+            voiceState.masterPolicy.blockedSpeak ||= {};
+            voiceState.masterPolicy.blockedSpeak[id] = blocked;
+            renderVoiceParticipants();
+            try {
+                await safeUpdate(`${VOICE_PATH}/masterPolicy/blockedSpeak`, { [id]: blocked ? true : null });
+            } catch (error) {
+                voiceState.masterPolicy.blockedSpeak[id] = previous;
+                renderVoiceParticipants();
+                console.warn('Não foi possível alterar o microfone do participante.', error);
+            }
+        }
+
+        function renderVoiceParticipants() {
+            const box = document.getElementById('voice-participants');
+            if (!box || !usuarioAtual) return;
+            box.textContent = '';
+
+            VOICE_USERS.forEach(id => {
+                const self = id === voiceLocalKey();
+                const online = self ? voiceState.started : !!(voiceState.participants[id]?.online && voiceState.participants[id]?.sessionId);
+                const card = document.createElement('article');
+                const identity = document.createElement('div');
+                const avatar = document.createElement('span');
+                const text = document.createElement('div');
+                const name = document.createElement('strong');
+                const status = document.createElement('small');
+
+                card.className = 'voice-card';
+                card.classList.toggle('is-online', online);
+                card.classList.toggle('is-self', self);
+                identity.className = 'voice-card__identity';
+                avatar.className = 'voice-card__avatar';
+                text.className = 'voice-card__text';
+                avatar.textContent = voiceName(id).slice(0, 1).toUpperCase();
+                name.textContent = `${voiceName(id)}${self ? ' (você)' : ''}`;
+                status.textContent = voiceParticipantStatus(id);
+                text.append(name, status);
+                identity.append(avatar, text);
+                card.append(identity);
+
+                if (!self) {
+                    const actions = document.createElement('div');
+                    actions.className = 'voice-card__actions';
+
+                    const hears = voiceCanHear(id);
+                    const hearDisabled = voiceState.settings.deafened;
+                    actions.append(createVoiceActionButton(
+                        hears ? 'Ouvindo' : 'Não ouvir',
+                        hears,
+                        () => {
+                            voiceState.settings.hear[id] = voiceState.settings.hear[id] === false;
+                            saveVoiceSettings();
+                            updateRemoteAudibility();
+                            renderVoiceParticipants();
+                        },
+                        { disabled: hearDisabled, title: hearDisabled ? 'O áudio recebido está desligado globalmente.' : 'Alternar o áudio desta pessoa.' }
+                    ));
+
+                    const sends = voiceCanSendTo(id);
+                    const forcedMute = !!voiceState.masterPolicy.blockedSpeak?.[voiceLocalKey()];
+                    const whisperBlocks = voiceState.settings.whisperMaster && id !== 'dick';
+                    const sendDisabled = voiceState.settings.muted || forcedMute || whisperBlocks || !voiceState.started;
+                    actions.append(createVoiceActionButton(
+                        sends ? 'Recebe minha voz' : 'Sem minha voz',
+                        sends,
+                        () => {
+                            voiceState.settings.speakTo[id] = voiceState.settings.speakTo[id] === false;
+                            saveVoiceSettings();
+                            updateVoiceSenders();
+                            renderVoiceParticipants();
+                        },
+                        { disabled: sendDisabled, title: whisperBlocks ? 'O sussurro ao Mestre está ativo.' : 'Alternar o envio da sua voz para esta pessoa.' }
+                    ));
+
+                    if (usuarioAtual.cargo === 'Mestre') {
+                        const blocked = !!voiceState.masterPolicy.blockedSpeak?.[id];
+                        actions.append(createVoiceActionButton(
+                            blocked ? 'Silenciado na mesa' : 'Pode falar',
+                            !blocked,
+                            () => setMasterSpeakBlocked(id, !blocked),
+                            { danger: blocked, title: 'Silenciar ou liberar o microfone desta pessoa para todos.' }
+                        ));
+                    }
+
+                    card.append(actions);
+                }
+
+                box.append(card);
+            });
+
+            updateVoiceConnectionSummary();
+        }
+
+        function resetPersonalVoiceSettings() {
+            Object.assign(voiceState.settings, {
+                muted: false,
+                deafened: false,
+                volume: 1,
+                environment: 'normal',
+                hear: {},
+                speakTo: {},
+                whisperMaster: false
+            });
+            saveVoiceSettings();
+            applyLocalVoiceGraph();
+            updateVoiceSenders();
+            updateRemoteAudibility();
+            renderVoiceParticipants();
+        }
+
+        function buildVoiceUi() {
+            const panel = document.getElementById('voice-panel');
+            if (!panel || !usuarioAtual) return;
+            panel.hidden = false;
+
+            document.getElementById('voice-panel-toggle').onclick = () => toggleVoiceDrawer();
+            document.getElementById('voice-start').onclick = () => voiceState.started ? disconnectVoicePrototype() : startVoicePrototype();
+            document.getElementById('voice-mute').onclick = () => {
+                voiceState.settings.muted = !voiceState.settings.muted;
+                saveVoiceSettings();
+                updateVoiceSenders();
+                renderVoiceParticipants();
+            };
+            document.getElementById('voice-deafen').onclick = () => {
+                voiceState.settings.deafened = !voiceState.settings.deafened;
+                saveVoiceSettings();
+                updateRemoteAudibility();
+                renderVoiceParticipants();
+            };
+            document.getElementById('voice-whisper-master').onclick = () => {
+                voiceState.settings.whisperMaster = !voiceState.settings.whisperMaster;
+                saveVoiceSettings();
+                updateVoiceSenders();
+                renderVoiceParticipants();
+            };
+            document.getElementById('voice-environment').onchange = event => {
+                voiceState.settings.environment = VOICE_ENVIRONMENTS[event.target.value] ? event.target.value : 'normal';
+                saveVoiceSettings();
+                applyLocalVoiceGraph();
+                updateVoiceQuickControls();
+            };
+            document.getElementById('voice-master-volume').oninput = event => {
+                voiceState.settings.volume = clampVoiceNumber(event.target.value, 0, 1, 1);
+                saveVoiceSettings();
+                updateRemoteAudibility();
+            };
+            document.getElementById('voice-reset').onclick = resetPersonalVoiceSettings;
+            document.getElementById('voice-scene-cave').onclick = async () => {
+                await safeUpdate(`${VOICE_PATH}/masterPolicy`, { scene: 'cave', overrides: null });
+            };
+            document.getElementById('voice-scene-clear').onclick = async () => {
+                await safeUpdate(`${VOICE_PATH}/masterPolicy`, { scene: 'normal', overrides: null });
+            };
+            document.getElementById('voice-master-unmute-all').onclick = async () => {
+                await safeUpdate(`${VOICE_PATH}/masterPolicy`, { blockedSpeak: null, blockedHear: null, isolated: null });
+            };
+
+            updateVoiceQuickControls();
+            renderVoiceParticipants();
+        }
+
+        function syncVoicePeersWithPresence() {
+            if (!voiceState.started) {
+                renderVoiceParticipants();
+                return;
+            }
+
+            voicePeerIds().forEach(peerId => {
+                const participant = voiceState.participants[peerId];
+                const connection = voiceState.peers[peerId];
+                if (!participant?.online || !participant?.sessionId) {
+                    if (connection) closeVoicePeer(peerId);
+                    return;
+                }
+                if (connection && connection.remoteSession !== participant.sessionId) closeVoicePeer(peerId);
+                connectVoicePeer(peerId);
+            });
+
+            renderVoiceParticipants();
+        }
+
+        function initVoicePrototype() {
+            loadVoiceSettings();
+            buildVoiceUi();
+            toggleVoiceDrawer(false);
+            if (voiceState.initialized) return;
+            voiceState.initialized = true;
+
+            voiceState.roomUnsubscribers.push(onValue(dbRef(`${VOICE_PATH}/participants`), snapshot => {
+                voiceState.participants = snapshot.val() || {};
+                syncVoicePeersWithPresence();
+            }));
+
+            voiceState.roomUnsubscribers.push(onValue(dbRef(`${VOICE_PATH}/masterPolicy`), snapshot => {
+                const policy = snapshot.val() || {};
+                voiceState.masterPolicy = {
+                    blockedSpeak: policy.blockedSpeak || {},
+                    blockedHear: policy.blockedHear || {},
+                    isolated: policy.isolated || {},
+                    scene: policy.scene || 'normal',
+                    overrides: policy.overrides || {}
+                };
+                applyLocalVoiceGraph();
+                updateVoiceSenders();
+                updateRemoteAudibility();
+                renderVoiceParticipants();
+            }));
+
+            window.addEventListener('beforeunload', () => {
+                try { voiceState.localStream?.getTracks().forEach(track => track.stop()); } catch {}
+                Object.keys(voiceState.peers).forEach(closeVoicePeer);
+            });
+        }
