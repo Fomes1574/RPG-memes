@@ -235,19 +235,133 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
             return "monstro";
         }
 
-        function getHpMaxEfetivo(dados = {}, contexto = "") {
+        function hasMaximoNarrativo(dados = {}, chave = "") {
+            const valor = dados?.[chave];
+            return valor !== undefined && valor !== null && valor !== "" && Number.isFinite(Number(valor));
+        }
+
+        function getHpMaxCalculado(dados = {}, contexto = "") {
             const hpBase = Math.max(1, toNumber(dados['hp-max'], 20));
             return getTipoEntidade(dados, contexto) === "heroi"
                 ? Math.max(1, hpBase + (toNumber(dados.con, 0) * 3) + toNumber(getArvoreModifiers(dados).hpMax, 0))
                 : hpBase;
         }
 
-        function getManaMaxEfetivo(dados = {}, contexto = "") {
+        function getManaMaxCalculado(dados = {}, contexto = "") {
             const manaBase = Math.max(0, toNumber(dados['mana-max'], 20));
             return getTipoEntidade(dados, contexto) === "heroi"
                 ? Math.max(0, manaBase + (toNumber(dados.int, 0) * 2) + toNumber(getArvoreModifiers(dados).manaMax, 0))
                 : manaBase;
         }
+
+        function getHpMaxEfetivo(dados = {}, contexto = "") {
+            if(getTipoEntidade(dados, contexto) === "heroi" && hasMaximoNarrativo(dados, 'hp-max-override')) {
+                return Math.max(1, toNumber(dados['hp-max-override'], 1));
+            }
+            return getHpMaxCalculado(dados, contexto);
+        }
+
+        function getManaMaxEfetivo(dados = {}, contexto = "") {
+            if(getTipoEntidade(dados, contexto) === "heroi" && hasMaximoNarrativo(dados, 'mana-max-override')) {
+                return Math.max(0, toNumber(dados['mana-max-override'], 0));
+            }
+            return getManaMaxCalculado(dados, contexto);
+        }
+
+        function getMaximoNarrativoInfo(dados = {}, tipo = "hp", contexto = "") {
+            const isHp = tipo === "hp";
+            const chaveBase = isHp ? 'hp-max' : 'mana-max';
+            const chaveOverride = isHp ? 'hp-max-override' : 'mana-max-override';
+            const minimo = isHp ? 1 : 0;
+            const base = Math.max(minimo, toNumber(dados[chaveBase], 20));
+            const atributoNome = isHp ? "CON" : "INT";
+            const atributo = toNumber(dados[isHp ? 'con' : 'int'], 0) * (isHp ? 3 : 2);
+            const modificadores = getArvoreModifiers(dados);
+            const arvore = toNumber(isHp ? modificadores.hpMax : modificadores.manaMax, 0);
+            const automatico = isHp ? getHpMaxCalculado(dados, contexto) : getManaMaxCalculado(dados, contexto);
+            const overrideAtivo = hasMaximoNarrativo(dados, chaveOverride);
+            const efetivo = isHp ? getHpMaxEfetivo(dados, contexto) : getManaMaxEfetivo(dados, contexto);
+            return { tipo, chaveOverride, minimo, base, atributoNome, atributo, arvore, automatico, overrideAtivo, efetivo };
+        }
+
+        function renderizarMaximosNarrativosNoSlot(numSlot, dados = {}) {
+            const contexto = `fichas/${slotsDeVisao[numSlot]?.idFicha || ''}`;
+            ['hp', 'mana'].forEach(tipo => {
+                const info = getMaximoNarrativoInfo(dados, tipo, contexto);
+                const input = document.getElementById(`slot${numSlot}-${info.chaveOverride}`);
+                const autoButton = document.getElementById(`slot${numSlot}-${tipo}-max-auto`);
+                const breakdown = document.getElementById(`slot${numSlot}-${tipo}-max-breakdown`);
+                const efetivo = document.getElementById(`slot${numSlot}-${tipo}-efetivo`);
+                if(input && document.activeElement !== input) input.value = info.efetivo;
+                if(efetivo && document.activeElement !== input) efetivo.textContent = info.efetivo;
+                if(autoButton) {
+                    autoButton.disabled = !info.overrideAtivo;
+                    autoButton.classList.toggle('is-active', !info.overrideAtivo);
+                    autoButton.title = info.overrideAtivo
+                        ? "Remover o máximo narrativo e voltar ao cálculo automático"
+                        : "O cálculo automático já está ativo";
+                }
+                if(breakdown) {
+                    const calculo = `base ${info.base} + ${info.atributoNome} ${info.atributo} + árvore ${info.arvore} = ${info.automatico}`;
+                    breakdown.classList.toggle('is-override', info.overrideAtivo);
+                    breakdown.textContent = info.overrideAtivo
+                        ? `Total narrativo ativo: ${info.efetivo} · automático seria ${info.automatico}`
+                        : `Automático: ${calculo}`;
+                    breakdown.title = `Cálculo automático: ${calculo}`;
+                }
+            });
+        }
+
+        function previsualizarMaximoNarrativo(numSlot, tipo, valor) {
+            const dados = slotsDeVisao[numSlot]?.dados || {};
+            const info = getMaximoNarrativoInfo(dados, tipo, `fichas/${slotsDeVisao[numSlot]?.idFicha || ''}`);
+            const valorDigitado = String(valor ?? '').trim();
+            const maximo = valorDigitado === '' ? info.automatico : Math.max(info.minimo, toNumber(valorDigitado, info.minimo));
+            const efetivo = document.getElementById(`slot${numSlot}-${tipo}-efetivo`);
+            if(efetivo) efetivo.textContent = maximo;
+            atualizarBarrasEAlertaNoSlot(numSlot, 'heroi');
+        }
+
+        async function salvarMaximoNarrativoDoCampo(input) {
+            if(usuarioAtual?.cargo !== "Mestre" || !input) return;
+            const match = input.id.match(/^slot([12])-(hp|mana)-max-override$/);
+            if(!match) return;
+            const numSlot = Number(match[1]);
+            const tipo = match[2];
+            const slot = slotsDeVisao[numSlot];
+            if(!slot?.idFicha || slot.tipo !== 'heroi') return;
+            const infoAtual = getMaximoNarrativoInfo(slot.dados || {}, tipo, `fichas/${slot.idFicha}`);
+            const valorDigitado = String(input.value ?? '').trim();
+            const override = valorDigitado === '' ? null : Math.max(infoAtual.minimo, toNumber(valorDigitado, infoAtual.minimo));
+            const resultado = await safeTransaction(`fichas/${slot.idFicha}`, dadosAtuais => {
+                if(!dadosAtuais) return;
+                const proximo = { ...dadosAtuais };
+                if(override === null) delete proximo[infoAtual.chaveOverride];
+                else proximo[infoAtual.chaveOverride] = override;
+                const chaveAtual = tipo === 'hp' ? 'hp-atual' : 'mana-atual';
+                const maximoEfetivo = tipo === 'hp'
+                    ? getHpMaxEfetivo(proximo, `fichas/${slot.idFicha}`)
+                    : getManaMaxEfetivo(proximo, `fichas/${slot.idFicha}`);
+                proximo[chaveAtual] = clamp(toNumber(proximo[chaveAtual], 0), 0, maximoEfetivo);
+                return proximo;
+            });
+            if(!resultado.committed) {
+                renderizarMaximosNarrativosNoSlot(numSlot, slot.dados || {});
+                return alert("Não foi possível alterar o máximo narrativo.");
+            }
+            const dadosNovos = resultado.snapshot.val() || {};
+            slotsDeVisao[numSlot].dados = dadosNovos;
+            renderizarMaximosNarrativosNoSlot(numSlot, dadosNovos);
+            atualizarBarrasEAlertaNoSlot(numSlot, 'heroi');
+        }
+
+        window.limparMaximoNarrativo = async function(numSlot, tipo) {
+            if(usuarioAtual?.cargo !== "Mestre") return;
+            const input = document.getElementById(`slot${Number(numSlot)}-${tipo}-max-override`);
+            if(!input) return;
+            input.value = '';
+            await salvarMaximoNarrativoDoCampo(input);
+        };
 
         function inferirTipoEfeito(habId, hab = {}) {
             if (hab.effectKind) return hab.effectKind;
@@ -924,7 +1038,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
             const hpAtual = toNumber(d['hp-atual'], 0);
             const hpMax = Math.max(1, entrada.tipo === 'heroi' ? getHpMaxEfetivo(d, entrada.path) : toNumber(d['hp-max'], 1));
             const manaAtual = toNumber(d['mana-atual'], 0);
-            const manaMax = toNumber(d['mana-max'], 0);
+            const manaMax = entrada.tipo === 'heroi' ? getManaMaxEfetivo(d, entrada.path) : toNumber(d['mana-max'], 0);
             const ap = toNumber(d.ap, 0);
             const escudo = toNumber(d.escudo, 0);
             const hpPerc = clamp((hpAtual / hpMax) * 100, 0, 100);
@@ -1111,10 +1225,12 @@ function gerarHtmlHeroi(numSlot) {
                 <div class="fraction-input" style="justify-content: center;">
                     <input type="number" id="slot${numSlot}-hp-atual" class="editavel-slot${numSlot}" style="color: #27ae60;"><span>/</span><span id="slot${numSlot}-hp-efetivo" style="color: #27ae60; font-size: 20px; font-weight: bold; width:40px; display:inline-block; text-align:left;">20</span>
                 </div>
-                <div class="mestre-only-flex" style="justify-content: center;">
-                    <label style="margin:0; color:#9c8464;">Base Máx (Mestre):</label>
-                    <input type="number" id="slot${numSlot}-hp-max" class="editavel-slot${numSlot} mestre-unlocked" title="Vida Base Máxima (Padrão 20)" style="width:50px; padding:2px; font-size:11px;">
+                <div class="mestre-only-flex maximo-narrativo-control">
+                    <label for="slot${numSlot}-hp-max-override">HP máx. total (Mestre)</label>
+                    <input type="number" min="1" id="slot${numSlot}-hp-max-override" class="editavel-slot${numSlot} mestre-unlocked maximo-narrativo-input" title="Define diretamente o HP máximo total para fins narrativos.">
+                    <button type="button" id="slot${numSlot}-hp-max-auto" class="btn-maximo-auto" onclick="limparMaximoNarrativo(${numSlot}, 'hp')" title="Voltar ao cálculo automático de HP">AUTO</button>
                 </div>
+                <div id="slot${numSlot}-hp-max-breakdown" class="mestre-only-flex maximo-narrativo-breakdown"></div>
                 <div class="bar-bg"><div class="bar-fill hp-fill" id="bar-hp-slot${numSlot}" style="width: 100%;"></div><div class="shield-fill" id="bar-shield-slot${numSlot}" style="width: 0%;"></div><div class="hp-text-overlay" id="txt-escudo-slot${numSlot}"></div></div>
             </div>
             <div class="caixa-status" style="grid-column: span 1;">
@@ -1122,10 +1238,12 @@ function gerarHtmlHeroi(numSlot) {
                 <div class="fraction-input" style="justify-content: center;">
                     <input type="number" id="slot${numSlot}-mana-atual" class="editavel-slot${numSlot}" style="color: #2980b9;"><span>/</span><span id="slot${numSlot}-mana-efetivo" style="color: #2980b9; font-size: 20px; font-weight: bold; width:40px; display:inline-block; text-align:left;">20</span>
                 </div>
-                <div class="mestre-only-flex" style="justify-content: center;">
-                    <label style="margin:0; color:#9c8464;">Base Máx (Mestre):</label>
-                    <input type="number" id="slot${numSlot}-mana-max" class="editavel-slot${numSlot} mestre-unlocked" title="Mana Base Máxima (Padrão 20)" style="width:50px; padding:2px; font-size:11px;">
+                <div class="mestre-only-flex maximo-narrativo-control">
+                    <label for="slot${numSlot}-mana-max-override">Total máx. (Mestre)</label>
+                    <input type="number" min="0" id="slot${numSlot}-mana-max-override" class="editavel-slot${numSlot} mestre-unlocked maximo-narrativo-input" title="Define diretamente o máximo total de Mana ou Ki para fins narrativos.">
+                    <button type="button" id="slot${numSlot}-mana-max-auto" class="btn-maximo-auto" onclick="limparMaximoNarrativo(${numSlot}, 'mana')" title="Voltar ao cálculo automático de Mana ou Ki">AUTO</button>
                 </div>
+                <div id="slot${numSlot}-mana-max-breakdown" class="mestre-only-flex maximo-narrativo-breakdown"></div>
                 <div class="bar-bg"><div class="bar-fill mana-fill" id="bar-mana-slot${numSlot}" style="width: 100%;"></div></div>
             </div>
             <div class="caixa-status" style="padding: 10px; grid-column: span 2;">
@@ -2390,6 +2508,7 @@ window.toggleSidebarJogador = function(numSlot) {
         const ARVORE_ZOOM_MAX = 1.65;
         const ARVORE_ZOOM_STEP = 0.12;
         const ARVORE_ESCOLHA_RIVAL_MSG = "Este ramo avançado foi selado pela escolha do seu Caminho.";
+        const ARVORE_RESET_TESTE_FICHA = "gomes";
         const arvoreCamera = {
             x: 0, y: 0, zoom: 0.55, dragging: false,
             dragStartX: 0, dragStartY: 0, startX: 0, startY: 0,
@@ -2452,6 +2571,15 @@ window.toggleSidebarJogador = function(numSlot) {
 
         function getTreeSkillById(classe, skillId) {
             return getSkillTreeForClass(classe)?.nodes?.find(node => node.id === skillId) || null;
+        }
+
+        function podeResetarArvore(numSlot) {
+            const slot = slotsDeVisao[Number(numSlot)];
+            if(!slot?.idFicha) return false;
+            if(usuarioAtual?.cargo === "Mestre") return true;
+            return usuarioAtual?.cargo === "Jogador"
+                && usuarioAtual.idFicha === ARVORE_RESET_TESTE_FICHA
+                && slot.idFicha === ARVORE_RESET_TESTE_FICHA;
         }
 
         function getArvoreDataFromFicha(dados = {}) {
@@ -2892,8 +3020,9 @@ window.toggleSidebarJogador = function(numSlot) {
             const pontos = getPontosAprendizagem(dados);
             const level = getLevelData(toNumber(dados.expTotal, 0));
             const caminho = getArvoreDataFromFicha(dados).caminhoEscolhido;
-            const masterControls = usuarioAtual?.cargo === "Mestre"
-                ? `<button class="arvore-tool-button danger" type="button" onclick="resetSkillTree(${numSlot})" title="Reembolsar toda a árvore deste personagem">Reiniciar árvore</button>`
+            const resetTesteGomes = usuarioAtual?.cargo !== "Mestre";
+            const masterControls = podeResetarArvore(numSlot)
+                ? `<button class="arvore-tool-button danger" type="button" onclick="resetSkillTree(${numSlot})" title="${resetTesteGomes ? "Reset temporário liberado apenas para Gomes durante os testes" : "Reembolsar toda a árvore deste personagem"}">${resetTesteGomes ? "Reset de teste" : "Reiniciar árvore"}</button>`
                 : "";
             return `
                 <div class="arvore-monge-shell">
@@ -3375,12 +3504,12 @@ window.toggleSidebarJogador = function(numSlot) {
 
         window.resetSkillTree = async function(numSlot) {
             numSlot = Number(numSlot);
-            if(usuarioAtual?.cargo !== "Mestre") return;
             const slot = slotsDeVisao[numSlot];
-            if(!slot?.idFicha) return;
+            if(!slot?.idFicha || !podeResetarArvore(numSlot)) return alert("Você não tem permissão para reiniciar esta árvore.");
+            const resetTesteGomes = usuarioAtual?.cargo !== "Mestre";
             const confirmed = await abrirConfirmacaoArvore({
                 title: "Reiniciar toda a árvore?",
-                html: "<p>Todos os Pontos de Aprendizagem serão devolvidos e o Caminho atual será desfeito.</p><div class=\"confirm-warning\">As habilidades básicas poderão ser escolhidas novamente. Esta ação ficará registrada no histórico.</div>",
+                html: `<p>Todos os Pontos de Aprendizagem serão devolvidos e o Caminho atual será desfeito.</p><div class="confirm-warning">${resetTesteGomes ? "Permissão temporária de teste exclusiva da ficha Gomes. " : ""}As habilidades básicas poderão ser escolhidas novamente. Esta ação ficará registrada no histórico.</div>`,
                 confirmLabel: "Reiniciar árvore",
                 danger: true
             });
@@ -3617,20 +3746,14 @@ window.toggleSidebarJogador = function(numSlot) {
                 }
 
                 for(let chave in dados) {
-                    if(chave === 'efeitos' || chave === 'grimorio') continue;
+                    if(['efeitos', 'grimorio', 'hp-max-override', 'mana-max-override'].includes(chave)) continue;
                     let idHTML = formatarIdElemento(numSlot, tipo, chave);
                     let el = document.getElementById(idHTML);
                     if(el && document.activeElement !== el && el.value != dados[chave]) el.value = dados[chave];
                 }
 
                 if(tipo === 'heroi') {
-                    let hpEfetivo = getHpMaxEfetivo(dados, `fichas/${slotsDeVisao[numSlot]?.idFicha || ''}`);
-                    let manaEfetivo = getManaMaxEfetivo(dados, `fichas/${slotsDeVisao[numSlot]?.idFicha || ''}`);
-
-                    let elHpEfetivo = document.getElementById(`slot${numSlot}-hp-efetivo`);
-                    let elManaEfetivo = document.getElementById(`slot${numSlot}-mana-efetivo`);
-                    if(elHpEfetivo) elHpEfetivo.innerText = hpEfetivo;
-                    if(elManaEfetivo) elManaEfetivo.innerText = manaEfetivo;
+                    renderizarMaximosNarrativosNoSlot(numSlot, dados);
                     const recursoLabel = document.getElementById(`slot${numSlot}-recurso-espiritual-label`);
                     if(recursoLabel) recursoLabel.textContent = dados.classe === 'Monge' ? 'KI' : 'MANA';
                     const treeAvailable = Boolean(getSkillTreeForClass(dados.classe));
@@ -4650,8 +4773,11 @@ window.toggleSidebarJogador = function(numSlot) {
         // ==========================================
         // DELEGAÇÃO DE EVENTOS GLOBAL (PERFORMANCE)
         // ==========================================
-        document.addEventListener('change', (e) => {
+        document.addEventListener('change', async (e) => {
             tratarMudancaAlvoCombate(e.target);
+            if(e.target.classList?.contains('maximo-narrativo-input')) {
+                await salvarMaximoNarrativoDoCampo(e.target);
+            }
         });
 
         document.addEventListener('input', async (e) => {
@@ -4699,6 +4825,12 @@ window.toggleSidebarJogador = function(numSlot) {
 
                 let novoValor = e.target.value;
                 let dadosAntigos = slotsDeVisao[numSlot].dados || {};
+
+                if(tipo === 'heroi' && ['hp-max-override', 'mana-max-override'].includes(chaveDoBanco)) {
+                    if(usuarioAtual?.cargo !== 'Mestre') return;
+                    previsualizarMaximoNarrativo(numSlot, chaveDoBanco.startsWith('hp-') ? 'hp' : 'mana', novoValor);
+                    return;
+                }
 
                 let baseAtual = {for:0, des:0, con:0, int:0, sab:0, car:0, per:0};
                 let oldRaca = dadosAntigos.raca || '';

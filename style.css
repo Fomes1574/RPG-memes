@@ -358,7 +358,56 @@
         body.is-mestre .mestre-only-inline { display: inline-block; }
         .mestre-only-flex { display: none; }
         body.is-mestre .mestre-only-flex { display: flex; }
-        
+
+        .maximo-narrativo-control {
+            justify-content: center;
+            align-items: center;
+            gap: 5px;
+            margin-top: 2px;
+        }
+        .maximo-narrativo-control label {
+            margin: 0;
+            color: #9c8464;
+            font-size: 9px;
+            white-space: nowrap;
+        }
+        .maximo-narrativo-control input {
+            width: 58px;
+            padding: 3px 4px;
+            font-size: 11px;
+            text-align: center;
+            color: #e1cf9b;
+            border-color: #6f542e;
+            background: rgba(0,0,0,0.55);
+        }
+        .btn-maximo-auto {
+            min-height: 0;
+            padding: 4px 6px;
+            font-size: 7px;
+            letter-spacing: 0.6px;
+            color: #a8956e;
+            background: #120b07;
+            border-color: #4d3924;
+            box-shadow: none;
+        }
+        .btn-maximo-auto.is-active,
+        .btn-maximo-auto.is-active:disabled {
+            color: #d4af37;
+            border-color: #b8860b;
+            opacity: 1;
+            cursor: default;
+        }
+        .maximo-narrativo-breakdown {
+            justify-content: center;
+            min-height: 12px;
+            margin: 3px 0 5px;
+            color: #796b56;
+            font-size: 8px;
+            line-height: 1.25;
+            text-align: center;
+        }
+        .maximo-narrativo-breakdown.is-override { color: #d18a72; }
+
         body.is-jogador .esconder-jogador { display: none !important; }
         
         input.hud-stat-field[type="number"], .horda-compact-input { -webkit-appearance: number-input; -moz-appearance: number-input; appearance: number-input; }
