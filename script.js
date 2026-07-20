@@ -165,6 +165,11 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
             2: { ouvinte: null, idFicha: null, tipo: null, dados: {} }
         };
 
+        const expAnimationStates = {
+            1: { token: 0 },
+            2: { token: 0 }
+        };
+
         let combatLog = [];
         let combatLogRecolhido = true;
         let visaoTaticaMestreAtiva = false;
@@ -194,6 +199,10 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
             if (Number.isFinite(min) && n < min) n = min;
             if (Number.isFinite(max) && n > max) n = max;
             return n;
+        }
+
+        function esperarMs(ms = 0) {
+            return new Promise(resolve => setTimeout(resolve, Math.max(0, ms)));
         }
 
         function escapeHtml(value = "") {
@@ -1174,7 +1183,7 @@ function gerarHtmlHeroi(numSlot) {
                     <div style="flex: 1;"><label>Nome do Personagem</label><input type="text" id="slot${numSlot}-nome" class="editavel-slot${numSlot}"></div>
                     <div style="width: 130px; text-align: center;">
                         <label style="color:#d4af37; font-size: 14px; letter-spacing: 2px;">NÍVEL</label>
-                        <div class="level-display" id="slot${numSlot}-level-display" data-current-level="1" style="font-size: 26px;">LV. <span id="slot${numSlot}-num-level">1</span></div>
+                        <div class="level-display" id="slot${numSlot}-level-display" data-current-level="" style="font-size: 26px;">LV. <span id="slot${numSlot}-num-level">1</span></div>
                     </div>
                 </div>
                 <div><label>Jogador</label><input type="text" id="slot${numSlot}-jogador" class="editavel-slot${numSlot}" readonly></div>
@@ -1246,14 +1255,15 @@ function gerarHtmlHeroi(numSlot) {
                 <div id="slot${numSlot}-mana-max-breakdown" class="mestre-only-flex maximo-narrativo-breakdown"></div>
                 <div class="bar-bg"><div class="bar-fill mana-fill" id="bar-mana-slot${numSlot}" style="width: 100%;"></div></div>
             </div>
-            <div class="caixa-status" style="padding: 10px; grid-column: span 2;">
-                <div style="display:flex; justify-content: space-between; align-items: flex-end; margin-bottom: 5px;">
-                    <label style="color: #ffd700; margin: 0; text-shadow: 1px 1px 2px black;">EXPERIÊNCIA</label>
+            <div class="caixa-status exp-card" style="padding: 10px; grid-column: span 2;">
+                <div class="exp-heading">
+                    <label>EXPERIÊNCIA</label>
                     <div id="slot${numSlot}-exp-text" class="exp-text">0 / 100</div>
                 </div>
-                <div class="bar-bg" style="height: 14px; position: relative;">
+                <div id="slot${numSlot}-exp-progress" class="bar-bg exp-bar" role="progressbar" aria-label="Experiência para o próximo nível" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
                     <div class="bar-fill exp-fill" id="bar-exp-slot${numSlot}" style="width: 0%;"></div>
                 </div>
+                <div id="slot${numSlot}-exp-feedback" class="exp-gain-feedback" aria-live="polite"></div>
             </div>
             <div style="text-align: center;"><label>Ação (AP)</label><input type="number" id="slot${numSlot}-ap" class="editavel-slot${numSlot}" style="color:#d99c57; width: 60%; margin: 0 auto; display: block; text-align: center;"></div>
             <div style="text-align: center;"><label>Moedas de Ouro</label><input type="number" id="slot${numSlot}-ouro" class="editavel-slot${numSlot}" style="color:#d4af37; width: 60%; margin: 0 auto; display: block; text-align: center;"></div>
@@ -1701,6 +1711,7 @@ window.toggleSidebarJogador = function(numSlot) {
         }
 
         function limparSlot(numSlot) {
+            resetarExperienciaNoSlot(numSlot);
             document.getElementById(`slot-${numSlot}`).style.display = 'none';
             document.getElementById(`container-slot${numSlot}-heroi`).style.display = 'none';
             document.getElementById(`container-slot${numSlot}-monstro`).style.display = 'none';
@@ -1883,6 +1894,197 @@ window.toggleSidebarJogador = function(numSlot) {
                 exp -= requiredForNext; level++; requiredForNext *= 2;
             }
             return { level, currentExp: exp, requiredForNext };
+        }
+
+        function prefereMovimentoReduzido() {
+            return Boolean(globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches);
+        }
+
+        function getElementosExp(numSlot) {
+            return {
+                bar: document.getElementById(`slot${numSlot}-exp-progress`),
+                fill: document.getElementById(`bar-exp-slot${numSlot}`),
+                text: document.getElementById(`slot${numSlot}-exp-text`),
+                feedback: document.getElementById(`slot${numSlot}-exp-feedback`),
+                level: document.getElementById(`slot${numSlot}-level-display`),
+                levelNumber: document.getElementById(`slot${numSlot}-num-level`)
+            };
+        }
+
+        function atualizarSemanticaExp(elementos, levelData) {
+            if(!elementos.bar) return;
+            elementos.bar.setAttribute('aria-valuenow', String(levelData.currentExp));
+            elementos.bar.setAttribute('aria-valuemax', String(levelData.requiredForNext));
+            elementos.bar.setAttribute('aria-valuetext', `${levelData.currentExp} de ${levelData.requiredForNext} pontos para o nível ${levelData.level + 1}`);
+        }
+
+        function mostrarFeedbackExp(numSlot, texto, tipo = 'ganho') {
+            const feedback = document.getElementById(`slot${numSlot}-exp-feedback`);
+            if(!feedback) return;
+            if(feedback._hideTimer) clearTimeout(feedback._hideTimer);
+            feedback.className = 'exp-gain-feedback';
+            feedback.textContent = texto;
+            void feedback.offsetWidth;
+            feedback.classList.add('is-visible', `is-${tipo}`);
+            feedback._hideTimer = setTimeout(() => {
+                feedback.classList.remove('is-visible', `is-${tipo}`);
+            }, tipo === 'nivel' ? 1800 : 1300);
+        }
+
+        function criarParticulasExp(numSlot, percentual, quantidade = 8) {
+            if(prefereMovimentoReduzido()) return;
+            const bar = document.getElementById(`slot${numSlot}-exp-progress`);
+            if(!bar) return;
+            const origem = clamp(percentual, 2, 98);
+            for(let index = 0; index < quantidade; index++) {
+                const spark = document.createElement('span');
+                const angulo = (-150 + Math.random() * 120) * (Math.PI / 180);
+                const distancia = 14 + Math.random() * 22;
+                spark.className = 'exp-spark';
+                spark.style.left = `${origem}%`;
+                spark.style.setProperty('--spark-x', `${Math.cos(angulo) * distancia}px`);
+                spark.style.setProperty('--spark-y', `${Math.sin(angulo) * distancia}px`);
+                spark.style.setProperty('--spark-delay', `${index * 28}ms`);
+                bar.appendChild(spark);
+                spark.addEventListener('animationend', () => spark.remove(), { once: true });
+                setTimeout(() => spark.remove(), 1200);
+            }
+        }
+
+        function resetarExperienciaNoSlot(numSlot) {
+            const state = expAnimationStates[numSlot];
+            if(state) state.token++;
+            const elementos = getElementosExp(numSlot);
+            if(elementos.bar) {
+                elementos.bar.dataset.initialized = '';
+                elementos.bar.dataset.total = '';
+                elementos.bar.dataset.level = '';
+                elementos.bar.dataset.current = '';
+                elementos.bar.dataset.required = '';
+                elementos.bar.classList.remove('exp-recebendo', 'exp-reduzindo', 'exp-completando', 'exp-leveling', 'exp-quase-nivel', 'exp-no-transition');
+                elementos.bar.querySelectorAll('.exp-spark').forEach(spark => spark.remove());
+            }
+            if(elementos.fill) elementos.fill.style.width = '0%';
+            if(elementos.text) elementos.text.textContent = '0 / 100';
+            if(elementos.feedback) {
+                if(elementos.feedback._hideTimer) clearTimeout(elementos.feedback._hideTimer);
+                elementos.feedback.className = 'exp-gain-feedback';
+                elementos.feedback.textContent = '';
+            }
+            if(elementos.level) {
+                elementos.level.dataset.currentLevel = '';
+                elementos.level.classList.remove('epic-level-up');
+            }
+        }
+
+        async function atualizarExperienciaNoSlot(numSlot, dados = {}) {
+            const elementos = getElementosExp(numSlot);
+            const state = expAnimationStates[numSlot];
+            if(!state || !elementos.bar || !elementos.fill || !elementos.text) return;
+            const expTotal = Math.max(0, toNumber(dados.expTotal, 0));
+            const levelData = getLevelData(expTotal);
+            const percentual = clamp((levelData.currentExp / Math.max(1, levelData.requiredForNext)) * 100, 0, 100);
+            const inicializado = elementos.bar.dataset.initialized === 'true';
+            const totalAnterior = inicializado ? toNumber(elementos.bar.dataset.total, expTotal) : expTotal;
+            const nivelAnterior = inicializado ? toNumber(elementos.bar.dataset.level, levelData.level) : levelData.level;
+            const requeridoAnterior = inicializado ? toNumber(elementos.bar.dataset.required, levelData.requiredForNext) : levelData.requiredForNext;
+
+            atualizarSemanticaExp(elementos, levelData);
+            elementos.bar.classList.toggle('exp-quase-nivel', percentual >= 85);
+            elementos.bar.dataset.initialized = 'true';
+            elementos.bar.dataset.total = String(expTotal);
+            elementos.bar.dataset.level = String(levelData.level);
+            elementos.bar.dataset.current = String(levelData.currentExp);
+            elementos.bar.dataset.required = String(levelData.requiredForNext);
+
+            if(!inicializado) {
+                elementos.bar.classList.add('exp-no-transition');
+                elementos.fill.style.width = `${percentual}%`;
+                elementos.text.textContent = `${levelData.currentExp} / ${levelData.requiredForNext}`;
+                if(elementos.levelNumber) elementos.levelNumber.textContent = levelData.level;
+                if(elementos.level) elementos.level.dataset.currentLevel = String(levelData.level);
+                void elementos.fill.offsetWidth;
+                requestAnimationFrame(() => elementos.bar?.classList.remove('exp-no-transition'));
+                return;
+            }
+
+            if(expTotal === totalAnterior) {
+                elementos.text.textContent = `${levelData.currentExp} / ${levelData.requiredForNext}`;
+                if(elementos.levelNumber) elementos.levelNumber.textContent = levelData.level;
+                if(elementos.level) elementos.level.dataset.currentLevel = String(levelData.level);
+                return;
+            }
+
+            const token = ++state.token;
+            const delta = expTotal - totalAnterior;
+            const movimentoReduzido = prefereMovimentoReduzido();
+            const aindaAtual = () => state.token === token && elementos.bar?.isConnected;
+            elementos.bar.classList.remove('exp-recebendo', 'exp-reduzindo', 'exp-completando', 'exp-leveling');
+
+            if(movimentoReduzido) {
+                elementos.fill.style.width = `${percentual}%`;
+                elementos.text.textContent = `${levelData.currentExp} / ${levelData.requiredForNext}`;
+                if(elementos.levelNumber) elementos.levelNumber.textContent = levelData.level;
+                if(elementos.level) elementos.level.dataset.currentLevel = String(levelData.level);
+                mostrarFeedbackExp(numSlot, delta > 0 ? `+${delta} EXP` : `${delta} EXP`, delta > 0 ? 'ganho' : 'perda');
+                return;
+            }
+
+            if(levelData.level > nivelAnterior) {
+                elementos.bar.classList.add('exp-completando');
+                elementos.text.textContent = `${requeridoAnterior} / ${requeridoAnterior}`;
+                elementos.fill.style.width = '100%';
+                mostrarFeedbackExp(numSlot, `+${delta} EXP`, 'ganho');
+                await esperarMs(700);
+                if(!aindaAtual()) return;
+
+                const niveisGanhos = levelData.level - nivelAnterior;
+                elementos.bar.classList.add('exp-leveling');
+                criarParticulasExp(numSlot, 100, 14);
+                if(elementos.level && elementos.levelNumber) {
+                    elementos.levelNumber.textContent = levelData.level;
+                    elementos.level.dataset.currentLevel = String(levelData.level);
+                    elementos.level.classList.remove('epic-level-up');
+                    void elementos.level.offsetWidth;
+                    elementos.level.classList.add('epic-level-up');
+                }
+                mostrarFeedbackExp(numSlot, niveisGanhos > 1 ? `+${niveisGanhos} NÍVEIS` : `NÍVEL ${levelData.level}`, 'nivel');
+                await esperarMs(380);
+                if(!aindaAtual()) return;
+
+                elementos.bar.classList.add('exp-no-transition');
+                elementos.fill.style.width = '0%';
+                elementos.text.textContent = `0 / ${levelData.requiredForNext}`;
+                void elementos.fill.offsetWidth;
+                elementos.bar.classList.remove('exp-no-transition', 'exp-completando');
+                await esperarMs(45);
+                if(!aindaAtual()) return;
+
+                elementos.bar.classList.add('exp-recebendo');
+                elementos.fill.style.width = `${percentual}%`;
+                elementos.text.textContent = `${levelData.currentExp} / ${levelData.requiredForNext}`;
+                await esperarMs(620);
+                if(!aindaAtual()) return;
+                criarParticulasExp(numSlot, percentual, 9);
+                await esperarMs(420);
+                if(aindaAtual()) elementos.bar.classList.remove('exp-recebendo', 'exp-leveling');
+                return;
+            }
+
+            if(elementos.levelNumber) elementos.levelNumber.textContent = levelData.level;
+            if(elementos.level) {
+                elementos.level.dataset.currentLevel = String(levelData.level);
+                elementos.level.classList.remove('epic-level-up');
+            }
+            elementos.text.textContent = `${levelData.currentExp} / ${levelData.requiredForNext}`;
+            elementos.fill.style.width = `${percentual}%`;
+            elementos.bar.classList.add(delta > 0 ? 'exp-recebendo' : 'exp-reduzindo');
+            mostrarFeedbackExp(numSlot, delta > 0 ? `+${delta} EXP` : `${delta} EXP`, delta > 0 ? 'ganho' : 'perda');
+            await esperarMs(delta > 0 ? 650 : 900);
+            if(!aindaAtual()) return;
+            if(delta > 0) criarParticulasExp(numSlot, percentual, 8);
+            await esperarMs(420);
+            if(aindaAtual()) elementos.bar.classList.remove('exp-recebendo', 'exp-reduzindo');
         }
 
         window.abrirModalExp = function() {
@@ -2418,6 +2620,7 @@ window.toggleSidebarJogador = function(numSlot) {
 
         window.buySkill = async function(numSlot, skillId) {
             numSlot = Number(numSlot);
+            if(arvoreCompraEmAndamento) return;
             const slot = slotsDeVisao[numSlot];
             const idFicha = slot?.idFicha;
             if(!idFicha) return alert("Ficha não encontrada.");
@@ -2523,6 +2726,8 @@ window.toggleSidebarJogador = function(numSlot) {
         let arvoreConfirmResolver = null;
         let arvoreUltimoFoco = null;
         let arvoreKeyboardBound = false;
+        let arvoreCompraEmAndamento = false;
+        let arvoreAnimacaoCompraEmCurso = false;
 
         const TREE_ICON_MARKUP = Object.freeze({
             lotus: '<path d="M24 38c-8-5-13-12-13-20 7 1 11 4 13 9 2-5 6-8 13-9 0 8-5 15-13 20Z"/><path d="M24 27c-5-5-5-12 0-19 5 7 5 14 0 19Z"/><path d="M9 39h30"/>',
@@ -2669,6 +2874,44 @@ window.toggleSidebarJogador = function(numSlot) {
 
         function checkPrereqs(dados, skill) {
             return checkPrereqsWithChecker(skill, id => isSkillUnlocked(dados, id));
+        }
+
+        function getSkillAcquiredAt(dados, skillId) {
+            const skill = getTreeSkillById(dados.classe || getArvoreDataFromFicha(dados).classe || "Monge", skillId);
+            if(skill?.autoUnlocked) return 0;
+            const entry = getArvoreDataFromFicha(dados).habilidadesDesbloqueadas?.[skillId];
+            return entry && typeof entry === "object" ? Math.max(0, toNumber(entry.adquiridaEm, 0)) : 0;
+        }
+
+        function escolherOrigensPorOrdemDeCompra(dados, ids = [], quantidade = ids.length) {
+            return ids
+                .map((id, index) => ({ id, index, acquiredAt: getSkillAcquiredAt(dados, id) }))
+                .filter(item => isSkillUnlocked(dados, item.id))
+                .sort((a, b) => a.acquiredAt - b.acquiredAt || a.index - b.index)
+                .slice(0, Math.max(0, quantidade));
+        }
+
+        function getOrigensAtivacaoSkill(dados, skill) {
+            if(!skill) return [];
+            const origens = [...(skill.prereq || []).filter(id => isSkillUnlocked(dados, id))];
+            if(skill.prereqAnyCount?.from?.length) {
+                origens.push(...escolherOrigensPorOrdemDeCompra(
+                    dados,
+                    skill.prereqAnyCount.from,
+                    toNumber(skill.prereqAnyCount.count, 0)
+                ).map(item => item.id));
+            }
+            if(skill.unlockGroups?.length) {
+                const gruposElegiveis = skill.unlockGroups.map((group, groupIndex) => {
+                    const escolhidas = escolherOrigensPorOrdemDeCompra(dados, group.from, toNumber(group.count, group.from.length));
+                    const completa = escolhidas.length >= toNumber(group.count, group.from.length);
+                    const concluidaEm = completa ? Math.max(...escolhidas.map(item => item.acquiredAt), 0) : Number.POSITIVE_INFINITY;
+                    return { escolhidas, completa, concluidaEm, groupIndex };
+                }).filter(group => group.completa)
+                    .sort((a, b) => a.concluidaEm - b.concluidaEm || a.groupIndex - b.groupIndex);
+                origens.push(...(gruposElegiveis[0]?.escolhidas || []).map(item => item.id));
+            }
+            return [...new Set(origens)];
         }
 
         function isBloqueadoPorCaminho(dados, skill) {
@@ -2867,7 +3110,8 @@ window.toggleSidebarJogador = function(numSlot) {
                     affinityCross ? "atalho-cruzado" : ""
                 ].filter(Boolean).join(" ");
                 const path = buildOrganicPath(a, b);
-                return `<path class="arvore-link-shadow ${rival ? "bloqueada-caminho" : ""}" d="${path}" fill="none"></path><path class="${classes}" d="${path}" fill="none"></path>`;
+                const dataAttrs = `data-from="${escapeHtml(connection.from)}" data-to="${escapeHtml(connection.to)}" data-kind="${escapeHtml(connection.kind)}"`;
+                return `<path class="arvore-link-shadow ${rival ? "bloqueada-caminho" : ""}" d="${path}" fill="none"></path><path class="${classes}" ${dataAttrs} d="${path}" fill="none"></path>`;
             }).join("");
         }
 
@@ -2890,7 +3134,8 @@ window.toggleSidebarJogador = function(numSlot) {
                     onmouseenter="previewSkillTreeNode(${numSlot}, '${escapeHtml(skill.id)}')"
                     onfocus="previewSkillTreeNode(${numSlot}, '${escapeHtml(skill.id)}')"
                     onclick="selectSkillTreeNode(${numSlot}, '${escapeHtml(skill.id)}')">
-                    <span class="skill-node-core"><span class="skill-icon">${getTreeIconSvg(skill.icon, skill.nome)}</span></span>
+                    <span class="skill-node-core"><span class="skill-node-charge" aria-hidden="true"></span><span class="skill-icon">${getTreeIconSvg(skill.icon, skill.nome)}</span></span>
+                    <span class="skill-node-unlock-ring" aria-hidden="true"></span>
                     ${cost}
                     <span class="skill-name">${escapeHtml(skill.nome)}</span>
                     ${subpath}
@@ -3334,6 +3579,141 @@ window.toggleSidebarJogador = function(numSlot) {
             return `${prefix}_${uuid}`.replace(/[.#$\[\]/]/g, "-");
         }
 
+        function getArvoreConnectionElement(fromId, toId) {
+            return [...document.querySelectorAll('.arvore-monge-shell .arvore-link[data-from][data-to]')]
+                .find(path => path.dataset.from === fromId && path.dataset.to === toId) || null;
+        }
+
+        function criarParticulasDesbloqueio(node, quantidade = 10) {
+            if(!node || prefereMovimentoReduzido()) return;
+            for(let index = 0; index < quantidade; index++) {
+                const particle = document.createElement('span');
+                const angulo = ((360 / quantidade) * index + (Math.random() * 18 - 9)) * (Math.PI / 180);
+                const distancia = 42 + Math.random() * 34;
+                particle.className = 'skill-unlock-particle';
+                particle.style.setProperty('--particle-x', `${Math.cos(angulo) * distancia}px`);
+                particle.style.setProperty('--particle-y', `${Math.sin(angulo) * distancia}px`);
+                particle.style.setProperty('--particle-delay', `${Math.random() * 90}ms`);
+                node.appendChild(particle);
+                particle.addEventListener('animationend', () => particle.remove(), { once: true });
+                setTimeout(() => particle.remove(), 1300);
+            }
+        }
+
+        function setOrigemVisualDesbloqueio(node, tree, skillId, origemIds) {
+            const target = tree?.nodes?.find(skill => skill.id === skillId);
+            const sources = (origemIds || []).map(id => tree?.nodes?.find(skill => skill.id === id)).filter(Boolean);
+            if(!node || !target || !sources.length) return;
+            const vector = sources.reduce((acc, source) => ({
+                x: acc.x + source.x - target.x,
+                y: acc.y + source.y - target.y
+            }), { x: 0, y: 0 });
+            const magnitude = Math.hypot(vector.x, vector.y);
+            const normalX = magnitude > 0.001 ? vector.x / magnitude : 0;
+            const normalY = magnitude > 0.001 ? vector.y / magnitude : 0;
+            node.style.setProperty('--unlock-origin-x', `${50 + normalX * 45}%`);
+            node.style.setProperty('--unlock-origin-y', `${50 + normalY * 45}%`);
+        }
+
+        function animarFluxoDouradoNoPath(path, delay = 0, duration = 720) {
+            if(!path?.isConnected) return Promise.resolve();
+            const svg = path.closest('svg');
+            if(!svg) return Promise.resolve();
+            const namespace = 'http://www.w3.org/2000/svg';
+            const overlay = document.createElementNS(namespace, 'path');
+            const spark = document.createElementNS(namespace, 'circle');
+            const totalLength = Math.max(1, path.getTotalLength());
+            overlay.setAttribute('class', 'arvore-unlock-flow');
+            overlay.setAttribute('d', path.getAttribute('d') || '');
+            overlay.setAttribute('fill', 'none');
+            overlay.style.strokeDasharray = `${totalLength}`;
+            overlay.style.strokeDashoffset = `${totalLength}`;
+            spark.setAttribute('class', 'arvore-unlock-spark');
+            spark.setAttribute('r', '6');
+            svg.append(overlay, spark);
+
+            return new Promise(resolve => {
+                let startedAt = null;
+                const frame = now => {
+                    if(!overlay.isConnected || !path.isConnected) {
+                        overlay.remove();
+                        spark.remove();
+                        resolve();
+                        return;
+                    }
+                    if(startedAt === null) startedAt = now + delay;
+                    if(now < startedAt) {
+                        requestAnimationFrame(frame);
+                        return;
+                    }
+                    const progress = clamp((now - startedAt) / duration, 0, 1);
+                    const eased = 1 - Math.pow(1 - progress, 3);
+                    overlay.style.strokeDashoffset = `${totalLength * (1 - eased)}`;
+                    overlay.style.opacity = String(progress < 0.08 ? progress / 0.08 : 1);
+                    const point = path.getPointAtLength(totalLength * eased);
+                    spark.setAttribute('cx', String(point.x));
+                    spark.setAttribute('cy', String(point.y));
+                    spark.style.opacity = String(progress < 0.08 ? progress / 0.08 : Math.max(0, (1 - progress) / 0.14));
+                    if(progress < 1) requestAnimationFrame(frame);
+                    else {
+                        overlay.remove();
+                        spark.remove();
+                        resolve();
+                    }
+                };
+                requestAnimationFrame(frame);
+            });
+        }
+
+        async function animarDesbloqueioArvore(numSlot, skillId, origemIds = []) {
+            const node = document.querySelector(`.arvore-monge-shell .skill-node[data-skill-id="${CSS.escape(skillId)}"]`);
+            if(!node) return;
+            const dados = slotsDeVisao[Number(numSlot)]?.dados || {};
+            const tree = getSkillTreeForClass(dados.classe || 'Monge');
+            const paths = origemIds.map(id => getArvoreConnectionElement(id, skillId)).filter(Boolean);
+            const paOrb = document.querySelector('.arvore-monge-shell .arvore-pa-orb');
+            node.classList.add('aguardando-desbloqueio');
+            paths.forEach(path => path.classList.add('aguardando-desbloqueio'));
+            setOrigemVisualDesbloqueio(node, tree, skillId, origemIds);
+            if(paOrb) {
+                paOrb.classList.remove('pa-gasto');
+                void paOrb.offsetWidth;
+                paOrb.classList.add('pa-gasto');
+            }
+
+            const despertar = () => {
+                if(!node.isConnected || node.classList.contains('recebendo-energia')) return;
+                node.classList.remove('aguardando-desbloqueio');
+                node.classList.add('recebendo-energia');
+                criarParticulasDesbloqueio(node, node.classList.contains('node-final') ? 16 : 11);
+            };
+
+            if(prefereMovimentoReduzido()) {
+                paths.forEach(path => path.classList.remove('aguardando-desbloqueio'));
+                despertar();
+                await esperarMs(160);
+                node.classList.remove('recebendo-energia');
+                paOrb?.classList.remove('pa-gasto');
+                return;
+            }
+
+            const stagger = 65;
+            const duration = 720;
+            const wakeAt = Math.max(220, duration * 0.74 + Math.max(0, paths.length - 1) * stagger);
+            const wakeTimer = setTimeout(despertar, wakeAt);
+            if(paths.length) {
+                await Promise.all(paths.map((path, index) => animarFluxoDouradoNoPath(path, index * stagger, duration)));
+            } else {
+                await esperarMs(260);
+            }
+            clearTimeout(wakeTimer);
+            despertar();
+            paths.forEach(path => path.classList.remove('aguardando-desbloqueio'));
+            await esperarMs(690);
+            node.classList.remove('recebendo-energia');
+            paOrb?.classList.remove('pa-gasto');
+        }
+
         window.buySkill = async function(numSlot, skillId) {
             numSlot = Number(numSlot);
             const slot = slotsDeVisao[numSlot];
@@ -3360,54 +3740,70 @@ window.toggleSidebarJogador = function(numSlot) {
                 if(!confirmed) return;
             }
 
-            const eventId = getArvoreEventId("compra");
-            const acquiredAt = Date.now();
-            const resultado = await safeTransaction(`fichas/${idFicha}`, dadosAtuais => {
-                if(!dadosAtuais) return;
-                const skillAtual = getTreeSkillById(dadosAtuais.classe || "Monge", skillId);
-                const check = canBuySkill(dadosAtuais, skillAtual, numSlot);
-                if(!check.ok) return;
-                const arvore = getArvoreDataFromFicha(dadosAtuais);
-                const habilidadesDesbloqueadas = {
-                    ...arvore.habilidadesDesbloqueadas,
-                    [skillId]: {
-                        rank: 1,
-                        custoPago: toNumber(skillAtual.custo, 0),
-                        adquiridaEm: acquiredAt,
-                        schemaVersion: SKILL_TREE_SCHEMA_VERSION
-                    }
-                };
-                const caminhoEscolhido = skillAtual.tipo === "caminho" ? skillAtual.caminho : arvore.caminhoEscolhido;
-                const historico = {
-                    ...arvore.historico,
-                    [eventId]: { tipo: "compra", skillId, custo: skillAtual.custo, em: acquiredAt, por: usuarioAtual?.nome || "Jogador" }
-                };
-                const grimorio = { ...(dadosAtuais.grimorio || {}) };
-                const entrada = criarEntradaGrimorioDaArvore(skillAtual);
-                if(entrada) grimorio[skillAtual.id] = { ...(grimorio[skillAtual.id] || {}), ...entrada };
-                const proximo = {
-                    ...dadosAtuais,
-                    arvore: {
-                        schemaVersion: SKILL_TREE_SCHEMA_VERSION,
-                        classe: "Monge",
-                        caminhoEscolhido,
-                        habilidadesDesbloqueadas,
-                        historico
-                    },
-                    grimorio
-                };
-                proximo['hp-atual'] = clamp(toNumber(proximo['hp-atual'], 0), 0, getHpMaxEfetivo(proximo, `fichas/${slot.idFicha}`));
-                proximo['mana-atual'] = clamp(toNumber(proximo['mana-atual'], 0), 0, getManaMaxEfetivo(proximo, `fichas/${slot.idFicha}`));
-                return proximo;
-            });
-            if(!resultado.committed) return alert("Não foi possível desbloquear esta habilidade. Confira pontos e rotas.");
-            const dadosNovos = resultado.snapshot.val() || {};
-            slotsDeVisao[numSlot].dados = dadosNovos;
-            arvorePlanoAlvoId = null;
-            arvorePlanoIds = new Set();
-            renderizarArvoreAberta(numSlot, dadosNovos, skillId, true);
-            renderizarCaminhoNaFicha(numSlot, dadosNovos);
-            if(typeof mostrarCombatToast === "function") mostrarCombatToast(`${skill.nome} foi dominada.`);
+            const origensAtivacao = getOrigensAtivacaoSkill(slot.dados || {}, skill);
+            arvoreCompraEmAndamento = true;
+            arvoreAnimacaoCompraEmCurso = true;
+            let compraConfirmada = false;
+            try {
+                const eventId = getArvoreEventId("compra");
+                const acquiredAt = Date.now();
+                const resultado = await safeTransaction(`fichas/${idFicha}`, dadosAtuais => {
+                    if(!dadosAtuais) return;
+                    const skillAtual = getTreeSkillById(dadosAtuais.classe || "Monge", skillId);
+                    const check = canBuySkill(dadosAtuais, skillAtual, numSlot);
+                    if(!check.ok) return;
+                    const arvore = getArvoreDataFromFicha(dadosAtuais);
+                    const habilidadesDesbloqueadas = {
+                        ...arvore.habilidadesDesbloqueadas,
+                        [skillId]: {
+                            rank: 1,
+                            custoPago: toNumber(skillAtual.custo, 0),
+                            adquiridaEm: acquiredAt,
+                            origens: [...origensAtivacao],
+                            schemaVersion: SKILL_TREE_SCHEMA_VERSION
+                        }
+                    };
+                    const caminhoEscolhido = skillAtual.tipo === "caminho" ? skillAtual.caminho : arvore.caminhoEscolhido;
+                    const historico = {
+                        ...arvore.historico,
+                        [eventId]: { tipo: "compra", skillId, custo: skillAtual.custo, origens: [...origensAtivacao], em: acquiredAt, por: usuarioAtual?.nome || "Jogador" }
+                    };
+                    const grimorio = { ...(dadosAtuais.grimorio || {}) };
+                    const entrada = criarEntradaGrimorioDaArvore(skillAtual);
+                    if(entrada) grimorio[skillAtual.id] = { ...(grimorio[skillAtual.id] || {}), ...entrada };
+                    const proximo = {
+                        ...dadosAtuais,
+                        arvore: {
+                            schemaVersion: SKILL_TREE_SCHEMA_VERSION,
+                            classe: "Monge",
+                            caminhoEscolhido,
+                            habilidadesDesbloqueadas,
+                            historico
+                        },
+                        grimorio
+                    };
+                    proximo['hp-atual'] = clamp(toNumber(proximo['hp-atual'], 0), 0, getHpMaxEfetivo(proximo, `fichas/${slot.idFicha}`));
+                    proximo['mana-atual'] = clamp(toNumber(proximo['mana-atual'], 0), 0, getManaMaxEfetivo(proximo, `fichas/${slot.idFicha}`));
+                    return proximo;
+                });
+                if(!resultado.committed) return alert("Não foi possível desbloquear esta habilidade. Confira pontos e rotas.");
+                compraConfirmada = true;
+                const dadosNovos = resultado.snapshot.val() || {};
+                slotsDeVisao[numSlot].dados = dadosNovos;
+                arvorePlanoAlvoId = null;
+                arvorePlanoIds = new Set();
+                renderizarArvoreAberta(numSlot, dadosNovos, skillId, true);
+                renderizarCaminhoNaFicha(numSlot, dadosNovos);
+                await animarDesbloqueioArvore(numSlot, skillId, origensAtivacao);
+                if(typeof mostrarCombatToast === "function") mostrarCombatToast(`${skill.nome} foi dominada.`);
+            } catch (error) {
+                console.error('Falha ao desbloquear habilidade.', error);
+                if(!compraConfirmada) alert("Não foi possível desbloquear esta habilidade. Tente novamente.");
+                else if(typeof mostrarCombatToast === "function") mostrarCombatToast(`${skill.nome} foi dominada.`);
+            } finally {
+                arvoreCompraEmAndamento = false;
+                arvoreAnimacaoCompraEmCurso = false;
+            }
         };
 
         function getTreeDescendants(tree, skillId) {
@@ -3762,43 +4158,12 @@ window.toggleSidebarJogador = function(numSlot) {
                     if(treeButton) treeButton.style.display = treeAvailable ? '' : 'none';
                     if(treePath) treePath.style.display = treeAvailable ? '' : 'none';
 
-                    let expTotal = Number(dados['expTotal']) || 0;
-                    let levelData = getLevelData(expTotal);
-                    let elLevel = document.getElementById(`slot${numSlot}-level-display`);
-                    let numLevelSpan = document.getElementById(`slot${numSlot}-num-level`);
-
-                    if(elLevel && numLevelSpan) {
-                        let lastLevel = elLevel.dataset.currentLevel || 1;
-                        if(levelData.level > lastLevel) {
-                            elLevel.classList.add('epic-level-up');
-                            setTimeout(() => elLevel.classList.remove('epic-level-up'), 3000);
-                        }
-                        numLevelSpan.innerText = levelData.level;
-                        elLevel.dataset.currentLevel = levelData.level;
-                    }
-
-                    let percExp = (levelData.currentExp / levelData.requiredForNext) * 100;
-                    if(percExp > 100) percExp = 100;
-                    document.getElementById(`bar-exp-slot${numSlot}`).style.width = `${percExp}%`;
-
-                    let expText = document.getElementById(`slot${numSlot}-exp-text`);
-                    expText.innerText = `${levelData.currentExp} / ${levelData.requiredForNext}`;
-                    let glow = percExp / 6;
-                    expText.style.textShadow = `0 0 ${glow}px rgba(255, 215, 0, 0.9), 1px 1px 2px black`;
+                    const expTotal = Number(dados['expTotal']) || 0;
+                    const levelData = getLevelData(expTotal);
+                    void atualizarExperienciaNoSlot(numSlot, dados);
                     renderizarCaminhoNaFicha(numSlot, dados);
-                    if(numSlotArvoreAberta === numSlot && getSkillTreeForClass(dados.classe)) {
+                    if(numSlotArvoreAberta === numSlot && getSkillTreeForClass(dados.classe) && !arvoreAnimacaoCompraEmCurso) {
                         renderizarArvoreAberta(numSlot, dados, nodeArvoreSelecionado || "mon_fund_01");
-                    }
-
-                    // Lógica para Ouro Derretido que cresce com XP
-                    const elBarra = document.getElementById(`bar-exp-slot${numSlot}`);
-                    if(elBarra) {
-                        let opacidade = 0.4 + (percExp / 100) * 0.6; // De 0.4 a 1.0
-                        let blur = 10 + (percExp / 100) * 20; // De 10px a 30px
-                        let spread = 2 + (percExp / 100) * 8; // De 2px a 10px
-                        elBarra.style.setProperty('--brilho-xp-opacity', opacidade.toString());
-                        elBarra.style.setProperty('--brilho-xp-blur', blur + 'px');
-                        elBarra.style.setProperty('--brilho-xp-spread', spread + 'px');
                     }
 
                     let maxAtributos = 10 + (levelData.level - 1);
