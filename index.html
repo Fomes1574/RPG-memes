@@ -134,17 +134,29 @@
     </div>
 
     <!-- MODAL ÁRVORE DE HABILIDADES -->
-    <div id="modal-arvore">
+    <div id="modal-arvore" role="dialog" aria-modal="true" aria-labelledby="arvore-titulo-principal" aria-hidden="true">
         <div class="arvore-container">
-            <button class="btn-fechar-arvore" onclick="fecharArvore()">✖ FECHAR</button>
+            <button class="btn-fechar-arvore" type="button" onclick="fecharArvore()" aria-label="Fechar árvore de habilidades" title="Fechar (Esc)">✕</button>
             <div class="arvore-header">
-                <h2 class="arvore-titulo">Árvore de Habilidades</h2>
-                <div class="arvore-classes-tabs" id="arvore-tabs-container">
-                    <!-- As abas das classes serão injetadas via script -->
+                <div class="arvore-header-emblema" aria-hidden="true">✦</div>
+                <div>
+                    <div class="arvore-header-suptitulo">Disciplina de classe</div>
+                    <h2 class="arvore-titulo" id="arvore-titulo-principal">A Árvore da Disciplina</h2>
+                    <div class="arvore-class-identity" id="arvore-class-identity">Monge</div>
                 </div>
             </div>
-            <div class="arvore-content" id="arvore-views-container">
-                <!-- As visões das árvores serão injetadas via script -->
+            <div class="arvore-content" id="arvore-views-container"></div>
+        </div>
+
+        <div id="arvore-confirm-overlay" class="arvore-confirm-overlay" hidden>
+            <div class="arvore-confirm-card" role="alertdialog" aria-modal="true" aria-labelledby="arvore-confirm-title" aria-describedby="arvore-confirm-body">
+                <div class="arvore-confirm-sigil" aria-hidden="true">✦</div>
+                <h3 id="arvore-confirm-title">Confirmar escolha</h3>
+                <div id="arvore-confirm-body" class="arvore-confirm-body"></div>
+                <div class="arvore-confirm-actions">
+                    <button id="arvore-confirm-cancel" type="button" class="arvore-confirm-cancel">Voltar</button>
+                    <button id="arvore-confirm-accept" type="button" class="arvore-confirm-accept">Confirmar</button>
+                </div>
             </div>
         </div>
     </div>
