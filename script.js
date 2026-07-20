@@ -123,8 +123,9 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
             "Bardo":     { "bar_inspiracao":   { nome: "Inspiração",              desc: "concede bônus a aliados.",                                                      tipo: "passiva", alvo: "any",  icon: "🎵",  class: "Bardo",     spriteIdx:0, spriteTotal:3 },
                            "bar_cancao":       { nome: "Canção Arcana",           desc: "pode causar efeitos mágicos variados.",                                         tipo: "passiva", alvo: "any",  icon: "🎸",  class: "Bardo",     spriteIdx:1, spriteTotal:3 },
                            "bar_manipulacao":  { nome: "Manipulação Social",      desc: "bônus em diálogo.",                                                             tipo: "passiva", alvo: "self", icon: "🎭",  class: "Bardo",     spriteIdx:2, spriteTotal:3 } },
-            // As antigas habilidades automáticas do Monge foram incorporadas à árvore V2.
-            "Monge":     {}
+            "Monge":     { "mon_golpes":       { nome: "Golpes Rápidos",          desc: "múltiplos ataques por turno.",                                                  tipo: "passiva", alvo: "self", icon: "👊",  class: "Monge",     spriteIdx:0, spriteTotal:3 },
+                           "mon_ki":           { nome: "Ki Interior",             desc: "usa energia para aumentar a resistência.",                                      tipo: "ativa",  alvo: "self", icon: "🧘",  class: "Monge",     spriteIdx:1, spriteTotal:3 },
+                           "mon_esquiva":      { nome: "Esquiva Suprema",         desc: "alta evasão.",                                                                   tipo: "passiva", alvo: "self", icon: "🥋",  class: "Monge",     spriteIdx:2, spriteTotal:3 } }
         };
 
         // Enriquece um objeto de habilidade vindo do Firebase com metadados do dicionário local.
