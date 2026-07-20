@@ -1377,7 +1377,7 @@ input:focus, textarea:focus {
 }
 
 .bar-fill.exp-fill {
-    overflow: visible !important;
+    overflow: hidden !important;
     border-radius: 8px;
     background:
         radial-gradient(ellipse at 88% 45%, rgba(255, 248, 202, 0.98) 0 2%, rgba(255, 208, 61, 0.72) 7%, transparent 25%),
@@ -1412,20 +1412,29 @@ input:focus, textarea:focus {
     content: '';
     display: block;
     position: absolute;
-    top: -3px;
-    right: -3px;
-    bottom: -3px;
+    top: 2px;
+    right: 1px;
+    bottom: 2px;
     left: auto;
     z-index: 3;
-    width: 11px;
-    border-radius: 50%;
-    transform: none;
+    width: 3px;
+    border-radius: 999px;
+    transform: scaleY(0.82);
+    transform-origin: center;
     pointer-events: none;
-    opacity: 0.9;
-    background: radial-gradient(ellipse, #fffce4 0 11%, #ffe591 28%, rgba(255, 185, 46, 0.56) 50%, transparent 73%);
-    filter: blur(0.2px);
-    box-shadow: 0 0 9px rgba(255, 213, 91, 0.94), 0 0 19px rgba(215, 145, 23, 0.5);
+    opacity: 0.82;
+    background: linear-gradient(180deg, rgba(255, 248, 205, 0.28), #fffbd7 42%, #f6c34e 100%);
+    box-shadow: 0 0 4px rgba(255, 231, 146, 0.78), 0 0 8px rgba(216, 155, 35, 0.36);
     animation: exp-leading-breathe 2.8s ease-in-out infinite;
+}
+
+.exp-bar.exp-sem-progresso .exp-fill {
+    box-shadow: none !important;
+}
+
+.exp-bar.exp-sem-progresso .exp-fill::after {
+    opacity: 0;
+    animation: none;
 }
 
 .exp-bar.exp-quase-nivel::before {

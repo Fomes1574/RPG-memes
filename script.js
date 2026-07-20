@@ -1260,7 +1260,7 @@ function gerarHtmlHeroi(numSlot) {
                     <label>EXPERIÊNCIA</label>
                     <div id="slot${numSlot}-exp-text" class="exp-text">0 / 100</div>
                 </div>
-                <div id="slot${numSlot}-exp-progress" class="bar-bg exp-bar" role="progressbar" aria-label="Experiência para o próximo nível" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+                <div id="slot${numSlot}-exp-progress" class="bar-bg exp-bar exp-sem-progresso" role="progressbar" aria-label="Experiência para o próximo nível" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
                     <div class="bar-fill exp-fill" id="bar-exp-slot${numSlot}" style="width: 0%;"></div>
                 </div>
                 <div id="slot${numSlot}-exp-feedback" class="exp-gain-feedback" aria-live="polite"></div>
@@ -1918,6 +1918,12 @@ window.toggleSidebarJogador = function(numSlot) {
             elementos.bar.setAttribute('aria-valuetext', `${levelData.currentExp} de ${levelData.requiredForNext} pontos para o nível ${levelData.level + 1}`);
         }
 
+        function definirPreenchimentoExp(elementos, percentual) {
+            const percentualVisual = clamp(toNumber(percentual, 0), 0, 100);
+            elementos.bar?.classList.toggle('exp-sem-progresso', percentualVisual <= 0);
+            if(elementos.fill) elementos.fill.style.width = `${percentualVisual}%`;
+        }
+
         function mostrarFeedbackExp(numSlot, texto, tipo = 'ganho') {
             const feedback = document.getElementById(`slot${numSlot}-exp-feedback`);
             if(!feedback) return;
@@ -1962,9 +1968,10 @@ window.toggleSidebarJogador = function(numSlot) {
                 elementos.bar.dataset.current = '';
                 elementos.bar.dataset.required = '';
                 elementos.bar.classList.remove('exp-recebendo', 'exp-reduzindo', 'exp-completando', 'exp-leveling', 'exp-quase-nivel', 'exp-no-transition');
+                elementos.bar.classList.add('exp-sem-progresso');
                 elementos.bar.querySelectorAll('.exp-spark').forEach(spark => spark.remove());
             }
-            if(elementos.fill) elementos.fill.style.width = '0%';
+            definirPreenchimentoExp(elementos, 0);
             if(elementos.text) elementos.text.textContent = '0 / 100';
             if(elementos.feedback) {
                 if(elementos.feedback._hideTimer) clearTimeout(elementos.feedback._hideTimer);
@@ -1999,7 +2006,7 @@ window.toggleSidebarJogador = function(numSlot) {
 
             if(!inicializado) {
                 elementos.bar.classList.add('exp-no-transition');
-                elementos.fill.style.width = `${percentual}%`;
+                definirPreenchimentoExp(elementos, percentual);
                 elementos.text.textContent = `${levelData.currentExp} / ${levelData.requiredForNext}`;
                 if(elementos.levelNumber) elementos.levelNumber.textContent = levelData.level;
                 if(elementos.level) elementos.level.dataset.currentLevel = String(levelData.level);
@@ -2022,7 +2029,7 @@ window.toggleSidebarJogador = function(numSlot) {
             elementos.bar.classList.remove('exp-recebendo', 'exp-reduzindo', 'exp-completando', 'exp-leveling');
 
             if(movimentoReduzido) {
-                elementos.fill.style.width = `${percentual}%`;
+                definirPreenchimentoExp(elementos, percentual);
                 elementos.text.textContent = `${levelData.currentExp} / ${levelData.requiredForNext}`;
                 if(elementos.levelNumber) elementos.levelNumber.textContent = levelData.level;
                 if(elementos.level) elementos.level.dataset.currentLevel = String(levelData.level);
@@ -2033,7 +2040,7 @@ window.toggleSidebarJogador = function(numSlot) {
             if(levelData.level > nivelAnterior) {
                 elementos.bar.classList.add('exp-completando');
                 elementos.text.textContent = `${requeridoAnterior} / ${requeridoAnterior}`;
-                elementos.fill.style.width = '100%';
+                definirPreenchimentoExp(elementos, 100);
                 mostrarFeedbackExp(numSlot, `+${delta} EXP`, 'ganho');
                 await esperarMs(700);
                 if(!aindaAtual()) return;
@@ -2053,7 +2060,7 @@ window.toggleSidebarJogador = function(numSlot) {
                 if(!aindaAtual()) return;
 
                 elementos.bar.classList.add('exp-no-transition');
-                elementos.fill.style.width = '0%';
+                definirPreenchimentoExp(elementos, 0);
                 elementos.text.textContent = `0 / ${levelData.requiredForNext}`;
                 void elementos.fill.offsetWidth;
                 elementos.bar.classList.remove('exp-no-transition', 'exp-completando');
@@ -2061,7 +2068,7 @@ window.toggleSidebarJogador = function(numSlot) {
                 if(!aindaAtual()) return;
 
                 elementos.bar.classList.add('exp-recebendo');
-                elementos.fill.style.width = `${percentual}%`;
+                definirPreenchimentoExp(elementos, percentual);
                 elementos.text.textContent = `${levelData.currentExp} / ${levelData.requiredForNext}`;
                 await esperarMs(620);
                 if(!aindaAtual()) return;
@@ -2077,7 +2084,7 @@ window.toggleSidebarJogador = function(numSlot) {
                 elementos.level.classList.remove('epic-level-up');
             }
             elementos.text.textContent = `${levelData.currentExp} / ${levelData.requiredForNext}`;
-            elementos.fill.style.width = `${percentual}%`;
+            definirPreenchimentoExp(elementos, percentual);
             elementos.bar.classList.add(delta > 0 ? 'exp-recebendo' : 'exp-reduzindo');
             mostrarFeedbackExp(numSlot, delta > 0 ? `+${delta} EXP` : `${delta} EXP`, delta > 0 ? 'ganho' : 'perda');
             await esperarMs(delta > 0 ? 650 : 900);
