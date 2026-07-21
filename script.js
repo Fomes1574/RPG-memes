@@ -88,44 +88,80 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
         // Sistema de imagens foi removido a pedido do usuário. Usando ícones CSS.
 
         const HABILIDADES_SISTEMA = {
-            //── Raças ─────────────────────────────────────────────────────────────────────────────
-            "Humanos":   { "hum_adaptavel":   { nome: "Adaptável",              desc: "pode refazer 1 teste por sessão.",                                                tipo: "ativa",  alvo: "self", icon: "👤",  race: "Humano",     spriteIdx:0, spriteTotal:1 } },
-            "Elfo":      { "elf_visao":        { nome: "Visão Aguçada",          desc: "enxerga no escuro.",                                                               tipo: "passiva", alvo: "self", icon: "👁️",  race: "Elfo",       spriteIdx:0, spriteTotal:2 },
-                           "elf_afinidade":    { nome: "Afinidade Arcana",        desc: "bônus em testes mágicos.",                                                         tipo: "passiva", alvo: "self", icon: "✨",  race: "Elfo",       spriteIdx:1, spriteTotal:2 } },
-            "Anão":      { "anao_resistencia": { nome: "Resistência Anã",         desc: "Resistência contra efeitos negativos (debuffs).",                              tipo: "passiva", alvo: "self", icon: "🛡️",  race: "Anão",       spriteIdx:0, spriteTotal:1 } },
-            "Orc":       { "orc_furia":        { nome: "Fúria",                   desc: "pode causar dano extra por alguns turnos.",                                     tipo: "ativa",  alvo: "self", icon: "🩸",  race: "Orc",        spriteIdx:0, spriteTotal:1 } },
-            "Gnomo":     { "gno_natureza":     { nome: "Natureza Mística",        desc: "bônus em magia ou criação de poções.",                                          tipo: "passiva", alvo: "self", icon: "🐿️",  race: "Gnomo",      spriteIdx:0, spriteTotal:2 },
-                           "gno_mente":        { nome: "Mente Rápida",            desc: "vantagem contra ilusões ou efeitos mentais; +2 Percepção.",                     tipo: "passiva", alvo: "self", icon: "🧠",  race: "Gnomo",      spriteIdx:1, spriteTotal:2 } },
-            "Halfling":  { "hal_sorte":        { nome: "Sorte Incrível",          desc: "pode rerrolar 1 dado por sessão.",                                              tipo: "ativa",  alvo: "self", icon: "🍀",  race: "Halfling",   spriteIdx:0, spriteTotal:1 } },
-            "Khajiit":   { "kha_sentidos":     { nome: "Sentidos Felinos",        desc: "bônus em percepção e visão noturna; +2 Percepção.",                             tipo: "passiva", alvo: "self", icon: "🐈",  race: "Khajiit",   spriteIdx:0, spriteTotal:2 },
-                           "kha_garras":       { nome: "Garras Naturais",          desc: "ataque desarmado causa dano extra.",                                             tipo: "passiva", alvo: "any",  icon: "🐾",  race: "Khajiit",   spriteIdx:1, spriteTotal:2 } },
-            "Argoniano": { "arg_regeneracao":  { nome: "Regeneração",             desc: "recupera pequena quantidade de vida ao longo do tempo.",                        tipo: "passiva", alvo: "self", icon: "🦎",  race: "Argoniano", spriteIdx:0, spriteTotal:3 },
-                           "arg_anfibio":      { nome: "Anfíbio",                  desc: "respira debaixo d'água e nada com facilidade; +2 Destreza (quando debaixo d'água).", tipo: "passiva", alvo: "self", icon: "💧", race: "Argoniano", spriteIdx:1, spriteTotal:3 },
-                           "arg_resistencia":  { nome: "Resistência Natural",     desc: "bônus contra doenças e venenos.",                                               tipo: "passiva", alvo: "self", icon: "🌿",  race: "Argoniano", spriteIdx:2, spriteTotal:3 } },
-            //── Classes ────────────────────────────────────────────────────────────────────────────
-            "Guerreiro": { "guer_especialista":{ nome: "Especialista em Combate", desc: "bônus com todas as armas.",                                                        tipo: "passiva", alvo: "self", icon: "⚔️",  class: "Guerreiro", spriteIdx:0, spriteTotal:2 },
-                           "guer_postura":     { nome: "Postura Defensiva",       desc: "reduz dano recebido por alguns turnos.",                                        tipo: "ativa",  alvo: "self", icon: "🛡️",  class: "Guerreiro", spriteIdx:1, spriteTotal:2 } },
-            "Paladino":  { "pal_golpe":        { nome: "Golpe Sagrado",           desc: "causa dano extra contra inimigos malignos.",                                    tipo: "passiva", alvo: "self", icon: "⚡",  class: "Paladino",  spriteIdx:0, spriteTotal:2 },
-                           "pal_cura":         { nome: "Cura Divina",             desc: "pode curar a si ou aliados.",                                                   tipo: "ativa",  alvo: "any",  icon: "❤️",  class: "Paladino",  spriteIdx:1, spriteTotal:2 } },
-            "Druida":    { "dru_forma":        { nome: "Forma Selvagem",          desc: "transforma-se em animal temporariamente (até 3 vezes por sessão).",             tipo: "ativa",  alvo: "self", icon: "🐻",  class: "Druida",    spriteIdx:0, spriteTotal:2 },
-                           "dru_vinculo":      { nome: "Vínculo com a Natureza",  desc: "conhecimento com plantas, cogumelos e ervas, pode conversar com animais.",      tipo: "passiva", alvo: "self", icon: "🌳",  class: "Druida",    spriteIdx:1, spriteTotal:2 } },
-            "Bárbaro":   { "bar_furia":        { nome: "Fúria",                   desc: "aumenta dano e resistência por alguns turnos.",                                 tipo: "ativa",  alvo: "self", icon: "😡",  class: "Bárbaro",   spriteIdx:0, spriteTotal:2 },
-                           "bar_resistencia":  { nome: "Resistência Brutal",      desc: "reduz dano físico recebido.",                                                   tipo: "passiva", alvo: "self", icon: "💪",  class: "Bárbaro",   spriteIdx:1, spriteTotal:2 } },
-            "Arqueiro":  { "arq_tiro":         { nome: "Tiro Preciso",            desc: "maior chance de acerto crítico.",                                               tipo: "passiva", alvo: "self", icon: "🏹",  class: "Arqueiro",  spriteIdx:0, spriteTotal:2 },
-                           "arq_olho":         { nome: "Olho de Águia",           desc: "acerta o alvo com facilidade.",                                                 tipo: "passiva", alvo: "self", icon: "🦅",  class: "Arqueiro",  spriteIdx:1, spriteTotal:2 } },
-            "Ladino":    { "lad_ataque":       { nome: "Ataque Furtivo",          desc: "causa dano crítico ao atacar desprevenido.",                                    tipo: "passiva", alvo: "self", icon: "🗡️",  class: "Ladino",    spriteIdx:0, spriteTotal:3 },
-                           "lad_evasao":       { nome: "Evasão",                  desc: "maior chance de esquivar.",                                                      tipo: "passiva", alvo: "self", icon: "💨",  class: "Ladino",    spriteIdx:1, spriteTotal:3 },
-                           "lad_especialista": { nome: "Especialista em Perícias",desc: "bônus em furtividade, lockpick, etc..",                                         tipo: "passiva", alvo: "self", icon: "🕵️",  class: "Ladino",    spriteIdx:2, spriteTotal:3 } },
-            "Mago":      { "mag_mana":         { nome: "Regeneração de Mana",     desc: "recupera mana mais rápido.",                                                    tipo: "passiva", alvo: "self", icon: "🔮",  class: "Mago",      spriteIdx:0, spriteTotal:1 } },
-            "Curandeiro":{ "cur_cura":         { nome: "Cura Maior",              desc: "recupera vida de aliados.",                                                      tipo: "ativa",  alvo: "any",  icon: "🌿",  class: "Curandeiro", spriteIdx:0, spriteTotal:3 },
-                           "cur_protecao":     { nome: "Proteção Espiritual",     desc: "reduz dano recebido pelo grupo.",                                               tipo: "passiva", alvo: "any",  icon: "🛡️",  class: "Curandeiro", spriteIdx:1, spriteTotal:3 },
-                           "cur_purificacao":  { nome: "Purificação",             desc: "remove efeitos negativos.",                                                      tipo: "ativa",  alvo: "any",  icon: "✨",  class: "Curandeiro", spriteIdx:2, spriteTotal:3 } },
-            "Bardo":     { "bar_inspiracao":   { nome: "Inspiração",              desc: "concede bônus a aliados.",                                                      tipo: "passiva", alvo: "any",  icon: "🎵",  class: "Bardo",     spriteIdx:0, spriteTotal:3 },
-                           "bar_cancao":       { nome: "Canção Arcana",           desc: "pode causar efeitos mágicos variados.",                                         tipo: "passiva", alvo: "any",  icon: "🎸",  class: "Bardo",     spriteIdx:1, spriteTotal:3 },
-                           "bar_manipulacao":  { nome: "Manipulação Social",      desc: "bônus em diálogo.",                                                             tipo: "passiva", alvo: "self", icon: "🎭",  class: "Bardo",     spriteIdx:2, spriteTotal:3 } },
-            "Monge":     { "mon_golpes":       { nome: "Golpes Rápidos",          desc: "múltiplos ataques por turno.",                                                  tipo: "passiva", alvo: "self", icon: "👊",  class: "Monge",     spriteIdx:0, spriteTotal:3 },
-                           "mon_ki":           { nome: "Ki Interior",             desc: "usa energia para aumentar a resistência.",                                      tipo: "ativa",  alvo: "self", icon: "🧘",  class: "Monge",     spriteIdx:1, spriteTotal:3 },
-                           "mon_esquiva":      { nome: "Esquiva Suprema",         desc: "alta evasão.",                                                                   tipo: "passiva", alvo: "self", icon: "🥋",  class: "Monge",     spriteIdx:2, spriteTotal:3 } }
+            // Raças
+            "Humanos": {
+                "hum_adaptavel": { nome: "Adaptável", desc: "Traço narrativo: adapta-se rapidamente e pode justificar uma nova abordagem no roleplay.", tipo: "passiva", categoriaPassiva: "narrativa", targetMode: "self", effectKind: "passiva", icon: "👤", race: "Humano", spriteIdx: 0, spriteTotal: 1 }
+            },
+            "Elfo": {
+                "elf_visao": { nome: "Visão Aguçada", desc: "Traço narrativo: enxerga no escuro e percebe detalhes distantes.", tipo: "passiva", categoriaPassiva: "narrativa", targetMode: "self", effectKind: "passiva", icon: "👁️", race: "Elfo", spriteIdx: 0, spriteTotal: 2 },
+                "elf_afinidade": { nome: "Afinidade Arcana", desc: "Traço narrativo: possui familiaridade natural com fenômenos e testes mágicos.", tipo: "passiva", categoriaPassiva: "narrativa", targetMode: "self", effectKind: "passiva", icon: "✨", race: "Elfo", spriteIdx: 1, spriteTotal: 2 }
+            },
+            "Anão": {
+                "anao_resistencia": { nome: "Resistência Anã", desc: "Traço narrativo: grande resistência contra venenos e outros efeitos nocivos.", tipo: "passiva", categoriaPassiva: "narrativa", targetMode: "self", effectKind: "passiva", icon: "🛡️", race: "Anão", spriteIdx: 0, spriteTotal: 1 }
+            },
+            "Orc": {
+                "orc_furia": { nome: "Fúria Orc", desc: "Uma vez por combate, entra em Fúria por 2 turnos próprios. O primeiro ataque de cada turno recebe +4 de dano.", mecanica: "+4 de dano em uma oportunidade por turno; 2 turnos; não gasta Ação.", tipo: "ativa", targetMode: "self", effectKind: "buff", freeAction: true, oncePerCombat: true, combatEffect: "orc_furia", icon: "🩸", race: "Orc", spriteIdx: 0, spriteTotal: 1 }
+            },
+            "Gnomo": {
+                "gno_natureza": { nome: "Natureza Mística", desc: "Traço narrativo: afinidade com magia, alquimia e criação de poções.", tipo: "passiva", categoriaPassiva: "narrativa", targetMode: "self", effectKind: "passiva", icon: "🐿️", race: "Gnomo", spriteIdx: 0, spriteTotal: 2 },
+                "gno_mente": { nome: "Mente Rápida", desc: "Traço narrativo contra ilusões e efeitos mentais; concede automaticamente +2 de Percepção.", tipo: "passiva", categoriaPassiva: "mista", targetMode: "self", effectKind: "passiva", attributeBonus: { per: 2 }, icon: "🧠", race: "Gnomo", spriteIdx: 1, spriteTotal: 2 }
+            },
+            "Halfling": {
+                "hal_sorte": { nome: "Sorte Incrível", desc: "Traço narrativo: a sorte pode favorecer uma reviravolta durante o roleplay.", tipo: "passiva", categoriaPassiva: "narrativa", targetMode: "self", effectKind: "passiva", icon: "🍀", race: "Halfling", spriteIdx: 0, spriteTotal: 1 }
+            },
+            "Khajiit": {
+                "kha_sentidos": { nome: "Sentidos Felinos", desc: "Traço narrativo de visão noturna; concede automaticamente +2 de Percepção.", tipo: "passiva", categoriaPassiva: "mista", targetMode: "self", effectKind: "passiva", attributeBonus: { per: 2 }, icon: "🐈", race: "Khajiit", spriteIdx: 0, spriteTotal: 2 },
+                "kha_garras": { nome: "Garras Naturais", desc: "Todo Ataque Básico causado pelo Khajiit recebe +2 de dano.", tipo: "passiva", categoriaPassiva: "condicional", targetMode: "self", effectKind: "passiva", basicAttackDamage: 2, icon: "🐾", race: "Khajiit", spriteIdx: 1, spriteTotal: 2 }
+            },
+            "Argoniano": {
+                "arg_regeneracao": { nome: "Regeneração", desc: "No início de cada turno próprio, recupera até 2 HP. Não funciona com 0 HP.", tipo: "passiva", categoriaPassiva: "automatica", targetMode: "self", effectKind: "passiva", turnHpRegen: 2, icon: "🦎", race: "Argoniano", spriteIdx: 0, spriteTotal: 3 },
+                "arg_anfibio": { nome: "Anfíbio", desc: "Traço narrativo: respira debaixo d'água e nada com facilidade; concede automaticamente +2 de Destreza.", tipo: "passiva", categoriaPassiva: "mista", targetMode: "self", effectKind: "passiva", attributeBonus: { des: 2 }, icon: "💧", race: "Argoniano", spriteIdx: 1, spriteTotal: 3 },
+                "arg_resistencia": { nome: "Resistência Natural", desc: "Traço narrativo: resistência natural contra doenças e venenos.", tipo: "passiva", categoriaPassiva: "narrativa", targetMode: "self", effectKind: "passiva", icon: "🌿", race: "Argoniano", spriteIdx: 2, spriteTotal: 3 }
+            },
+            // Classes
+            "Guerreiro": {
+                "guer_especialista": { nome: "Especialista em Combate", desc: "Traço narrativo: domínio e familiaridade com todas as armas.", tipo: "passiva", categoriaPassiva: "narrativa", targetMode: "self", effectKind: "passiva", icon: "⚔️", class: "Guerreiro", spriteIdx: 0, spriteTotal: 2 },
+                "guer_postura": { nome: "Postura Defensiva", desc: "Uma vez por combate, reduz em 3 todo dano recebido durante 2 turnos próprios.", mecanica: "-3 de dano recebido; 2 turnos próprios; não gasta Ação.", tipo: "ativa", targetMode: "self", effectKind: "buff", freeAction: true, oncePerCombat: true, combatEffect: "guer_postura", icon: "🛡️", class: "Guerreiro", spriteIdx: 1, spriteTotal: 2 }
+            },
+            "Paladino": {
+                "pal_golpe": { nome: "Golpe Sagrado", desc: "Traço narrativo: golpes sagrados podem ser relevantes contra inimigos malignos.", tipo: "passiva", categoriaPassiva: "narrativa", targetMode: "self", effectKind: "passiva", icon: "⚡", class: "Paladino", spriteIdx: 0, spriteTotal: 2 },
+                "pal_cura": { nome: "Cura Divina", desc: "Cura a si ou um aliado em 1d8 + CAR.", mecanica: "Cura 1d8 + CAR; custa 1 Ação e 5 Mana; alvo único.", tipo: "ativa", targetMode: "ally", effectKind: "cura", formula: "1d8+CAR", ap: 1, mana: 5, icon: "❤️", class: "Paladino", spriteIdx: 1, spriteTotal: 2 }
+            },
+            "Druida": {
+                "dru_forma": { nome: "Forma Selvagem", desc: "Traço narrativo: transforma-se em animal quando a narrativa e o Mestre permitirem.", tipo: "passiva", categoriaPassiva: "narrativa", targetMode: "self", effectKind: "passiva", icon: "🐻", class: "Druida", spriteIdx: 0, spriteTotal: 2 },
+                "dru_vinculo": { nome: "Vínculo com a Natureza", desc: "Traço narrativo: conhece plantas, cogumelos e ervas e pode conversar com animais.", tipo: "passiva", categoriaPassiva: "narrativa", targetMode: "self", effectKind: "passiva", icon: "🌳", class: "Druida", spriteIdx: 1, spriteTotal: 2 }
+            },
+            "Bárbaro": {
+                "bar_furia": { nome: "Fúria Bárbara", desc: "Uma vez por combate, por 2 turnos próprios causa +2 de dano no primeiro ataque e reduz em 2 o dano recebido.", mecanica: "+2 de dano em uma oportunidade por turno e -2 recebido; 2 turnos; não gasta Ação.", tipo: "ativa", targetMode: "self", effectKind: "buff", freeAction: true, oncePerCombat: true, combatEffect: "bar_furia", icon: "😡", class: "Bárbaro", spriteIdx: 0, spriteTotal: 2 },
+                "bar_resistencia": { nome: "Resistência Brutal", desc: "Reduz permanentemente em 1 o dano recebido de Ataques Básicos.", tipo: "passiva", categoriaPassiva: "condicional", targetMode: "self", effectKind: "passiva", basicAttackReduction: 1, icon: "💪", class: "Bárbaro", spriteIdx: 1, spriteTotal: 2 }
+            },
+            "Arqueiro": {
+                "arq_tiro": { nome: "Tiro Preciso", desc: "Traço narrativo: precisão excepcional e maior potencial para acertos decisivos.", tipo: "passiva", categoriaPassiva: "narrativa", targetMode: "self", effectKind: "passiva", icon: "🏹", class: "Arqueiro", spriteIdx: 0, spriteTotal: 2 },
+                "arq_olho": { nome: "Olho de Águia", desc: "Traço narrativo: identifica e acompanha alvos com grande facilidade.", tipo: "passiva", categoriaPassiva: "narrativa", targetMode: "self", effectKind: "passiva", icon: "🦅", class: "Arqueiro", spriteIdx: 1, spriteTotal: 2 }
+            },
+            "Ladino": {
+                "lad_ataque": { nome: "Ataque Furtivo", desc: "Traço narrativo: ataques contra alvos desprevenidos podem ser especialmente perigosos.", tipo: "passiva", categoriaPassiva: "narrativa", targetMode: "self", effectKind: "passiva", icon: "🗡️", class: "Ladino", spriteIdx: 0, spriteTotal: 3 },
+                "lad_evasao": { nome: "Evasão", desc: "Traço narrativo: reflexos e mobilidade extraordinários para evitar perigos.", tipo: "passiva", categoriaPassiva: "narrativa", targetMode: "self", effectKind: "passiva", icon: "💨", class: "Ladino", spriteIdx: 1, spriteTotal: 3 },
+                "lad_especialista": { nome: "Especialista em Perícias", desc: "Traço narrativo: experiência em furtividade, fechaduras e outras perícias ladinas.", tipo: "passiva", categoriaPassiva: "narrativa", targetMode: "self", effectKind: "passiva", icon: "🕵️", class: "Ladino", spriteIdx: 2, spriteTotal: 3 }
+            },
+            "Mago": {
+                "mag_mana": { nome: "Regeneração de Mana", desc: "No início de cada turno próprio, recupera até 2 de Mana, respeitando o máximo.", tipo: "passiva", categoriaPassiva: "automatica", targetMode: "self", effectKind: "passiva", turnManaRegen: 2, icon: "🔮", class: "Mago", spriteIdx: 0, spriteTotal: 1 }
+            },
+            "Curandeiro": {
+                "cur_cura": { nome: "Cura Maior", desc: "Cura a si ou um aliado em 2d8 + SAB.", mecanica: "Cura 2d8 + SAB; custa 1 Ação e 5 Mana; alvo único.", tipo: "ativa", targetMode: "ally", effectKind: "cura", formula: "2d8+SAB", ap: 1, mana: 5, icon: "🌿", class: "Curandeiro", spriteIdx: 0, spriteTotal: 3 },
+                "cur_protecao": { nome: "Proteção Espiritual", desc: "Protege todos os jogadores, reduzindo em 2 o dano recebido durante 2 turnos do Curandeiro.", mecanica: "Grupo inteiro recebe -2 de dano por 2 turnos do conjurador; custa 1 Ação e 12 Mana.", tipo: "ativa", targetMode: "allPlayers", effectKind: "buff_grupo", ap: 1, mana: 12, combatEffect: "cur_protecao", icon: "🛡️", class: "Curandeiro", spriteIdx: 1, spriteTotal: 3 },
+                "cur_purificacao": { nome: "Purificação", desc: "Remove instantaneamente todos os efeitos negativos purificáveis de um alvo.", mecanica: "Remove apenas debuffs, dano contínuo e reduções de atributos; custa 1 Ação e 5 Mana.", tipo: "ativa", targetMode: "ally", effectKind: "purificacao", ap: 1, mana: 5, icon: "✨", class: "Curandeiro", spriteIdx: 2, spriteTotal: 3 }
+            },
+            "Bardo": {
+                "bar_inspiracao": { nome: "Inspiração", desc: "Traço narrativo: inspira aliados por meio de presença, palavras ou música.", tipo: "passiva", categoriaPassiva: "narrativa", targetMode: "self", effectKind: "passiva", icon: "🎵", class: "Bardo", spriteIdx: 0, spriteTotal: 3 },
+                "bar_cancao": { nome: "Canção Arcana", desc: "Traço narrativo: canções podem produzir manifestações mágicas conforme a cena.", tipo: "passiva", categoriaPassiva: "narrativa", targetMode: "self", effectKind: "passiva", icon: "🎸", class: "Bardo", spriteIdx: 1, spriteTotal: 3 },
+                "bar_manipulacao": { nome: "Manipulação Social", desc: "Traço narrativo: grande domínio de diálogo, atuação e persuasão.", tipo: "passiva", categoriaPassiva: "narrativa", targetMode: "self", effectKind: "passiva", icon: "🎭", class: "Bardo", spriteIdx: 2, spriteTotal: 3 }
+            },
+            "Monge": {
+                "mon_golpes": { nome: "Golpes Rápidos", desc: "Concede automaticamente 2 Ações por turno em vez de 1.", tipo: "passiva", categoriaPassiva: "automatica", targetMode: "self", effectKind: "passiva", actionMax: 2, icon: "👊", class: "Monge", spriteIdx: 0, spriteTotal: 3 },
+                "mon_ki": { nome: "Ki Interior", desc: "Reduz em 2 o dano recebido até o início do próximo turno do Monge.", mecanica: "-2 de dano recebido até o próximo turno; custa 1 Ação.", tipo: "ativa", targetMode: "self", effectKind: "buff", ap: 1, mana: 0, combatEffect: "mon_ki", icon: "🧘", class: "Monge", spriteIdx: 1, spriteTotal: 3 },
+                "mon_esquiva": { nome: "Esquiva Suprema", desc: "Traço narrativo: movimentos e reflexos excepcionais para escapar de ataques.", tipo: "passiva", categoriaPassiva: "narrativa", targetMode: "self", effectKind: "passiva", icon: "🥋", class: "Monge", spriteIdx: 2, spriteTotal: 3 }
+            }
         };
 
         // Enriquece um objeto de habilidade vindo do Firebase com metadados do dicionário local.
@@ -134,7 +170,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
             // Varre o dicionário procurando o habId
             for (let groupKey in HABILIDADES_SISTEMA) {
                 if (HABILIDADES_SISTEMA[groupKey][habId]) {
-                    return normalizeHabV1(habId, Object.assign({}, HABILIDADES_SISTEMA[groupKey][habId], habFirebase));
+                    return normalizeHabV1(habId, Object.assign({}, habFirebase, HABILIDADES_SISTEMA[groupKey][habId], { isSystemObj: true }));
                 }
             }
             // Se não encontrou pelo habId (ex: skill adicionada manualmente com id hab_123), tenta encontrar pelo NOME exato
@@ -143,7 +179,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
                 for (let groupKey in HABILIDADES_SISTEMA) {
                     for (let k in HABILIDADES_SISTEMA[groupKey]) {
                         if (HABILIDADES_SISTEMA[groupKey][k].nome.trim().toLowerCase() === nomeBusca) {
-                            return normalizeHabV1(k, Object.assign({}, HABILIDADES_SISTEMA[groupKey][k], habFirebase));
+                            return normalizeHabV1(k, Object.assign({}, habFirebase, HABILIDADES_SISTEMA[groupKey][k], { isSystemObj: true }));
                         }
                     }
                 }
@@ -181,14 +217,58 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
         const INICIATIVA_ESTADOS = Object.freeze({ COLETANDO: 'coletando', ORGANIZANDO: 'organizando', ATIVA: 'ativa' });
         const PATH_ESTADO_COMBATE = 'estado_combate';
         const PATH_INICIATIVA = 'estado_combate/iniciativa';
+        const COMBATE_FICHA_SCHEMA_VERSION = 1;
+        const PASSIVAS_ATRIBUTOS_SCHEMA_VERSION = 1;
         let iniciativaAtual = null;
         let unsubscribeIniciativa = null;
         let iniciativaTurnoTravado = false;
+        const acaoCombateSelecionadaPorSlot = { 1: 'fisico', 2: 'fisico' };
 
         const FORMULAS_PADRAO_HABILIDADES = {
             pal_cura: "1d8+CAR",
             cur_cura: "2d8+SAB"
         };
+
+        const DEFINICOES_EFEITOS_COMBATE = Object.freeze({
+            orc_furia: {
+                nome: "Fúria Orc",
+                visual: "furia-orc",
+                bonusDano: 4,
+                turnos: 2,
+                cargas: 2,
+                ancoraDuracao: "dono"
+            },
+            bar_furia: {
+                nome: "Fúria Bárbara",
+                visual: "furia-barbara",
+                bonusDano: 2,
+                reducaoDano: 2,
+                turnos: 2,
+                cargas: 2,
+                ancoraDuracao: "dono"
+            },
+            guer_postura: {
+                nome: "Postura Defensiva",
+                visual: "postura",
+                reducaoDano: 3,
+                turnos: 2,
+                ancoraDuracao: "dono"
+            },
+            cur_protecao: {
+                nome: "Proteção Espiritual",
+                visual: "protecao",
+                reducaoDano: 2,
+                turnos: 2,
+                ancoraDuracao: "fonte"
+            },
+            mon_ki: {
+                nome: "Ki Interior",
+                visual: "ki",
+                reducaoDano: 2,
+                expiraNoProximoTurno: true,
+                ancoraDuracao: "dono"
+            }
+        });
 
         function toNumber(value, fallback = 0) {
             const n = Number(value);
@@ -200,6 +280,107 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
             if (Number.isFinite(min) && n < min) n = min;
             if (Number.isFinite(max) && n > max) n = max;
             return n;
+        }
+
+        function getHabilidadeSistemaPorId(habId) {
+            for(const grupo of Object.values(HABILIDADES_SISTEMA)) {
+                if(grupo?.[habId]) return grupo[habId];
+            }
+            return null;
+        }
+
+        function getBonusAtributosPassivos(raca = '', classe = '') {
+            const bonus = Object.fromEntries(ATTRS.map(attr => [attr, 0]));
+            [raca, classe].forEach(grupoId => {
+                Object.values(HABILIDADES_SISTEMA[grupoId] || {}).forEach(habilidade => {
+                    Object.entries(habilidade.attributeBonus || {}).forEach(([attr, valor]) => {
+                        if(Object.prototype.hasOwnProperty.call(bonus, attr)) bonus[attr] += toNumber(valor, 0);
+                    });
+                });
+            });
+            return bonus;
+        }
+
+        function getBaseAtributosNaturais(raca = '', classe = '') {
+            const base = Object.fromEntries(ATTRS.map(attr => [attr, 0]));
+            if(RACES[raca] && !RACES[raca].points) {
+                ATTRS.forEach(attr => { base[attr] += toNumber(RACES[raca][attr], 0); });
+            }
+            if(CLASSES[classe]) {
+                ATTRS.forEach(attr => { base[attr] += toNumber(CLASSES[classe][attr], 0); });
+            }
+            const passivas = getBonusAtributosPassivos(raca, classe);
+            ATTRS.forEach(attr => { base[attr] += passivas[attr]; });
+            return base;
+        }
+
+        function getModificadoresAtributosEfeitos(dados = {}) {
+            const modificadores = Object.fromEntries(ATTRS.map(attr => [attr, 0]));
+            (Array.isArray(dados.efeitos) ? dados.efeitos : []).forEach(efeito => {
+                if(efeito?.attrDestino && Object.prototype.hasOwnProperty.call(modificadores, efeito.attrDestino)) {
+                    modificadores[efeito.attrDestino] += toNumber(efeito.modAttr, 0);
+                }
+            });
+            return modificadores;
+        }
+
+        function getAcoesMaximas(dados = {}) {
+            return dados.classe === 'Monge' ? 2 : 1;
+        }
+
+        function getCombateIdAtivo() {
+            return iniciativaAtual?.estado === INICIATIVA_ESTADOS.ATIVA ? iniciativaAtual.combateId || '' : '';
+        }
+
+        function normalizarCombateFicha(dados = {}, combateId = getCombateIdAtivo()) {
+            const atual = dados.combate || {};
+            if(!combateId || atual.combateId !== combateId) {
+                return {
+                    schemaVersion: COMBATE_FICHA_SCHEMA_VERSION,
+                    combateId: combateId || '',
+                    efeitos: {},
+                    usos: {},
+                    inicioTurnoProcessado: '',
+                    fimTurnoProcessado: ''
+                };
+            }
+            return {
+                schemaVersion: COMBATE_FICHA_SCHEMA_VERSION,
+                combateId,
+                efeitos: { ...(atual.efeitos || {}) },
+                usos: { ...(atual.usos || {}) },
+                inicioTurnoProcessado: atual.inicioTurnoProcessado || '',
+                fimTurnoProcessado: atual.fimTurnoProcessado || ''
+            };
+        }
+
+        function getEfeitosCombateAtivos(dados = {}, combateId = getCombateIdAtivo()) {
+            if(!combateId || dados.combate?.combateId !== combateId) return {};
+            return dados.combate?.efeitos || {};
+        }
+
+        function criarEfeitoCombate(habId, fonteId, turnoToken, options = {}) {
+            const definicao = DEFINICOES_EFEITOS_COMBATE[habId];
+            if(!definicao) return null;
+            return {
+                id: options.id || habId,
+                habilidadeId: habId,
+                nome: definicao.nome,
+                visual: definicao.visual,
+                fonteId,
+                positivo: true,
+                purificavel: false,
+                bonusDano: toNumber(definicao.bonusDano, 0),
+                reducaoDano: toNumber(definicao.reducaoDano, 0),
+                turnosRestantes: toNumber(definicao.turnos, 0),
+                cargasRestantes: toNumber(definicao.cargas, 0),
+                cargasMaximas: toNumber(definicao.cargas, 0),
+                ancoraDuracao: definicao.ancoraDuracao,
+                expiraNoProximoTurno: Boolean(definicao.expiraNoProximoTurno),
+                ativadoNoTurno: String(turnoToken || ''),
+                ultimoTurnoConsumido: '',
+                ultimoTurnoDuracao: ''
+            };
         }
 
         function esperarMs(ms = 0) {
@@ -383,7 +564,8 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
             if (hab.tipo === 'buff') return 'buff';
             if (hab.tipo === 'debuff') return 'debuff';
             if (hab.tipo === 'utilidade') return 'utilidade';
-            return 'dano';
+            // Uma ativa sem metadados explícitos nunca pode virar dano por acidente.
+            return 'utilidade';
         }
 
         function normalizeHabV1(habId, hab = {}) {
@@ -459,15 +641,37 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
             return { total: Math.max(0, total), detalhes };
         }
 
-        function calcularEfeitoVidaResultado(dados = {}, valor, effectKind = 'dano', contexto = "") {
+        function getReducoesDano(dados = {}, contextoAcao = {}) {
+            const reducoes = [];
+            if(contextoAcao.tipoAtaque === 'basico' && dados.classe === 'Bárbaro') {
+                reducoes.push({ id: 'bar_resistencia', nome: 'Resistência Brutal', valor: 1 });
+            }
+            const combateId = contextoAcao.combateId || getCombateIdAtivo();
+            Object.values(getEfeitosCombateAtivos(dados, combateId)).forEach(efeito => {
+                const valor = Math.max(0, toNumber(efeito.reducaoDano, 0));
+                if(valor > 0) reducoes.push({ id: efeito.id || efeito.habilidadeId, nome: efeito.nome || 'Proteção', valor });
+            });
+            return reducoes;
+        }
+
+        function calcularEfeitoVidaResultado(dados = {}, valor, effectKind = 'dano', contexto = "", contextoAcao = {}) {
             const proximo = { ...dados };
             const hpAtual = toNumber(proximo['hp-atual'], 0);
             const hpMax = getHpMaxEfetivo(proximo, contexto);
             const escudoAtual = Math.max(0, toNumber(proximo.escudo, 0));
             const valorSeguro = Math.max(0, toNumber(valor, 0));
+            const reducoes = effectKind === 'dano' ? getReducoesDano(proximo, contextoAcao) : [];
+            const reducaoPotencial = reducoes.reduce((total, reducao) => total + reducao.valor, 0);
+            const reducaoAplicada = Math.min(valorSeguro, reducaoPotencial);
             const meta = {
                 effectKind,
                 valor: valorSeguro,
+                valorBase: Math.max(0, toNumber(contextoAcao.valorBase, valorSeguro)),
+                bonusOfensivos: Array.isArray(contextoAcao.bonusOfensivos) ? contextoAcao.bonusOfensivos : [],
+                reducoes,
+                reducaoTotal: reducaoAplicada,
+                danoAposReducao: effectKind === 'dano' ? Math.max(0, valorSeguro - reducaoAplicada) : 0,
+                tipoAtaque: contextoAcao.tipoAtaque || '',
                 hpAntes: hpAtual,
                 hpDepois: hpAtual,
                 hpMax,
@@ -493,7 +697,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
                 return { dadosAtualizados: proximo, meta };
             }
 
-            let danoRestante = valorSeguro;
+            let danoRestante = meta.danoAposReducao;
             let escudo = escudoAtual;
             if (escudo > 0) {
                 const absorvido = Math.min(escudo, danoRestante);
@@ -509,15 +713,15 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
             return { dadosAtualizados: proximo, meta };
         }
 
-        function aplicarEfeitoVidaDados(dados = {}, valor, effectKind = 'dano', contexto = "") {
-            return calcularEfeitoVidaResultado(dados, valor, effectKind, contexto).dadosAtualizados;
+        function aplicarEfeitoVidaDados(dados = {}, valor, effectKind = 'dano', contexto = "", contextoAcao = {}) {
+            return calcularEfeitoVidaResultado(dados, valor, effectKind, contexto, contextoAcao).dadosAtualizados;
         }
 
-        async function aplicarEfeitoVidaPath(path, valor, effectKind = 'dano') {
+        async function aplicarEfeitoVidaPath(path, valor, effectKind = 'dano', contextoAcao = {}) {
             let metaFinal = null;
             const resultado = await safeTransaction(path, (dadosAtuais) => {
                 if (!dadosAtuais) return dadosAtuais;
-                const resultadoEfeito = calcularEfeitoVidaResultado(dadosAtuais, valor, effectKind, path);
+                const resultadoEfeito = calcularEfeitoVidaResultado(dadosAtuais, valor, effectKind, path, contextoAcao);
                 metaFinal = resultadoEfeito.meta;
                 return resultadoEfeito.dadosAtualizados;
             });
@@ -696,6 +900,12 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
 
         function tratarMudancaAlvoCombate(input) {
             if(!input?.matches?.('.checkbox-alvo input[type="checkbox"]')) return;
+            const seletorJogador = input.closest('[id^="alvos-combate-slot"]');
+            if(input.checked && seletorJogador) {
+                seletorJogador.querySelectorAll('input[type="checkbox"]').forEach(outro => {
+                    if(outro !== input) outro.checked = false;
+                });
+            }
             const classes = Array.from(input.classList || []);
             const classeAtaqueUnico = classes.find(cls => cls.startsWith('alvo-ataque-'));
             if(input.checked && classeAtaqueUnico) {
@@ -709,6 +919,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
         function partesFeedbackFromMeta(meta) {
             if(!meta) return [];
             const partes = [];
+            if(meta.reducaoTotal > 0) partes.push({ texto: `🛡 -${meta.reducaoTotal}`, tipo: 'escudo-dano' });
             if(meta.escudoAbsorvido > 0) partes.push({ texto: `🛡 -${meta.escudoAbsorvido}`, tipo: 'escudo-dano' });
             if(meta.danoHp > 0) partes.push({ texto: `-${meta.danoHp}`, tipo: 'dano' });
             if(meta.curaHp > 0) partes.push({ texto: `+${meta.curaHp}`, tipo: 'cura' });
@@ -735,8 +946,10 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
         function textosUltimoEvento(meta) {
             if(!meta) return [];
             const textos = [];
+            if(meta.reducaoTotal > 0) textos.push({ texto: `Defesas reduziram ${meta.reducaoTotal}`, tipo: 'escudo-dano' });
             if(meta.escudoAbsorvido > 0) textos.push({ texto: `Escudo absorveu ${meta.escudoAbsorvido}`, tipo: 'escudo-dano' });
             if(meta.danoHp > 0) textos.push({ texto: `Sofreu ${meta.danoHp} dano`, tipo: 'dano' });
+            if(meta.effectKind === 'dano' && meta.valor > 0 && meta.danoHp === 0 && meta.escudoAbsorvido === 0) textos.push({ texto: 'Dano anulado', tipo: 'escudo-dano' });
             if(meta.curaHp > 0) textos.push({ texto: `Curou ${meta.curaHp} HP`, tipo: 'cura' });
             if(meta.escudoGanho > 0) textos.push({ texto: `Ganhou ${meta.escudoGanho} escudo`, tipo: 'escudo' });
             return textos;
@@ -801,6 +1014,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
         function descreverMeta(meta) {
             if(!meta) return '';
             const partes = [];
+            if(meta.reducaoTotal > 0) partes.push(`defesas reduziram ${meta.reducaoTotal}`);
             if(meta.escudoAbsorvido > 0) partes.push(`escudo absorveu ${meta.escudoAbsorvido}`);
             if(meta.danoHp > 0) partes.push(`${meta.danoHp} dano em HP`);
             if(meta.curaHp > 0) partes.push(`${meta.curaHp} cura`);
@@ -810,6 +1024,16 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
 
         function descreverMetaNarrativa(meta) {
             if(!meta) return '';
+            if(meta.effectKind === 'dano') {
+                const calculo = [`${toNumber(meta.valorBase, meta.valor)} base`];
+                (meta.bonusOfensivos || []).forEach(bonus => calculo.push(`+${toNumber(bonus.valor, 0)} ${bonus.nome || 'bônus'}`));
+                (meta.reducoes || []).forEach(reducao => calculo.push(`-${toNumber(reducao.valor, 0)} ${reducao.nome || 'defesa'}`));
+                const resultado = [];
+                if(meta.escudoAbsorvido > 0) resultado.push(`${meta.escudoAbsorvido} foi absorvido por escudo`);
+                if(meta.danoHp > 0) resultado.push(`causou ${meta.danoHp} de dano em HP`);
+                if(meta.danoHp === 0 && meta.escudoAbsorvido === 0) resultado.push('teve todo o dano anulado');
+                return `o cálculo [${calculo.join(' ')}] ${resultado.join(' e ')}`;
+            }
             const partes = [];
             if(meta.escudoAbsorvido > 0) partes.push(`${meta.escudoAbsorvido} foi absorvido por escudo`);
             if(meta.danoHp > 0) partes.push(`causou ${meta.danoHp} de dano em HP`);
@@ -848,6 +1072,12 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
         function metaFromUltimoEvento(evento = {}) {
             return {
                 effectKind: evento.tipo || 'dano',
+                valor: toNumber(evento.valor, 0),
+                valorBase: toNumber(evento.valorBase, evento.valor),
+                bonusOfensivos: Array.isArray(evento.bonusOfensivos) ? evento.bonusOfensivos : [],
+                reducoes: Array.isArray(evento.reducoes) ? evento.reducoes : [],
+                reducaoTotal: toNumber(evento.reducaoTotal, 0),
+                danoAposReducao: toNumber(evento.danoAposReducao, 0),
                 danoHp: toNumber(evento.danoHp, 0),
                 curaHp: toNumber(evento.curaHp, 0),
                 escudoGanho: toNumber(evento.escudoGanho, 0),
@@ -874,6 +1104,12 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
                 alvoTipo: alvoInfo.alvoTipo,
                 alvoId: alvoInfo.alvoId,
                 membroId: alvoInfo.membroId || '',
+                valor: toNumber(meta.valor, 0),
+                valorBase: toNumber(meta.valorBase, meta.valor),
+                bonusOfensivos: meta.bonusOfensivos || [],
+                reducoes: meta.reducoes || [],
+                reducaoTotal: toNumber(meta.reducaoTotal, 0),
+                danoAposReducao: toNumber(meta.danoAposReducao, 0),
                 danoHp: toNumber(meta.danoHp, 0),
                 curaHp: toNumber(meta.curaHp, 0),
                 escudoGanho: toNumber(meta.escudoGanho, 0),
@@ -1143,22 +1379,27 @@ function gerarHtmlHeroi(numSlot) {
 
                 <button class="btn-abrir-grimorio editavel-slot${numSlot}" onclick="abrirGrimorio(${numSlot})">📜 GRIMÓRIO</button>
 
+                <div id="acoes-rapidas-slot${numSlot}" class="acoes-rapidas-combate" hidden>
+                    <div class="combate-subtitulo">Ações gratuitas</div>
+                    <div id="lista-acoes-rapidas-slot${numSlot}" class="lista-acoes-rapidas"></div>
+                </div>
+
                 <div class="box-magias-equipadas" id="box-magias-equipadas-slot${numSlot}">
-                    <label style="color:#d4af37; border-bottom: 1px solid #3a2212; padding-bottom: 5px; margin-bottom: 5px; text-align: left;">ATAQUES / MAGIAS</label>
+                    <label style="color:#d4af37; border-bottom: 1px solid #3a2212; padding-bottom: 5px; margin-bottom: 5px; text-align: left;">AÇÃO PRINCIPAL EQUIPADA</label>
                     <div id="lista-feiticos-combate-slot${numSlot}" style="max-height: 120px; overflow-y: auto;">
-                        <label class="magia-radio-item"><input type="radio" name="feitico-selecionado-slot${numSlot}" value="fisico" checked><span class="magia-icon-mini">⚔️</span> <span>Ataque Básico</span></label>
+                        <label class="magia-radio-item"><input type="radio" name="feitico-selecionado-slot${numSlot}" value="fisico" checked onchange="selecionarAcaoCombate(${numSlot}, 'fisico')"><span class="magia-icon-mini">⚔️</span> <span>Ataque Básico</span></label>
                     </div>
                 </div>
 
                 <div style="display: flex; gap: 10px; align-items: center; margin-top: 15px;">
-                    <label style="color:#b89c72; margin:0;">Total Rolado (Dano/Cura)</label>
+                    <label id="rotulo-valor-acao-slot${numSlot}" style="color:#b89c72; margin:0;">Total rolado do Ataque Básico</label>
                     <input type="number" id="slot${numSlot}-jogador-ataque-dano" class="editavel-slot${numSlot}" placeholder="Valor" style="text-align:center; font-size: 16px; padding: 5px; border-color:#d4af37; color:#fff; width: 80px;">
                 </div>
 
                 <button id="btn-acao-combate-slot${numSlot}" data-acao-combate="ataque-jogador" onclick="jogadorLancarFeitico(${numSlot})" class="btn-lancar-feitico editavel-slot${numSlot}">ATACAR</button>
 
                 <div class="box-passivas-combate">
-                    <div class="titulo-passivas">Passivas em Vigor no Combate</div>
+                    <div class="titulo-passivas">Passivas e traços da ficha</div>
                     <div class="passivas-flex" id="lista-passivas-combate-slot${numSlot}">
                         <div style="color:#5c3a21; font-size: 10px; font-style: italic;">Nenhuma equipada</div>
                     </div>
@@ -1256,6 +1497,10 @@ function gerarHtmlHeroi(numSlot) {
                 <div id="slot${numSlot}-mana-max-breakdown" class="mestre-only-flex maximo-narrativo-breakdown"></div>
                 <div class="bar-bg"><div class="bar-fill mana-fill" id="bar-mana-slot${numSlot}" style="width: 100%;"></div></div>
             </div>
+            <div id="estado-combate-ficha-slot${numSlot}" class="estado-combate-ficha" style="grid-column: span 2;" hidden>
+                <div id="barras-furia-slot${numSlot}" class="barras-furia"></div>
+                <div id="efeitos-atuais-slot${numSlot}" class="efeitos-atuais-combate"></div>
+            </div>
             <div class="caixa-status exp-card" style="padding: 10px; grid-column: span 2;">
                 <div class="exp-heading">
                     <label>EXPERIÊNCIA</label>
@@ -1266,7 +1511,11 @@ function gerarHtmlHeroi(numSlot) {
                 </div>
                 <div id="slot${numSlot}-exp-feedback" class="exp-gain-feedback" aria-live="polite"></div>
             </div>
-            <div style="text-align: center;"><label>Ação (AP)</label><input type="number" id="slot${numSlot}-ap" class="editavel-slot${numSlot}" style="color:#d99c57; width: 60%; margin: 0 auto; display: block; text-align: center;"></div>
+            <div class="acoes-ficha-control" style="text-align: center;">
+                <label>Ações do turno</label>
+                <div id="slot${numSlot}-acoes-marcadores" class="acoes-marcadores" aria-live="polite"></div>
+                <div class="acoes-contador"><input type="number" min="0" id="slot${numSlot}-ap" class="editavel-slot${numSlot} mestre-unlocked" title="Somente o Mestre pode ajustar as Ações atuais."><span>/</span><strong id="slot${numSlot}-ap-max">1</strong></div>
+            </div>
             <div style="text-align: center;"><label>Moedas de Ouro</label><input type="number" id="slot${numSlot}-ouro" class="editavel-slot${numSlot}" style="color:#d4af37; width: 60%; margin: 0 auto; display: block; text-align: center;"></div>
             <div style="grid-column: span 2;"><label>Condição Física</label><input type="text" id="slot${numSlot}-condicao" class="editavel-slot${numSlot}"></div>
         </div>
@@ -1462,9 +1711,211 @@ window.toggleSidebarJogador = function(numSlot) {
         function normalizarEstadoIniciativa(iniciativa, contextoAtual = {}) { if(!iniciativa||iniciativa.estado!==INICIATIVA_ESTADOS.ATIVA)return null; const antes=JSON.stringify({o:iniciativa.ordem,i:iniciativa.indiceAtual,r:iniciativa.rodada,h:iniciativa.hordaTurno,e:iniciativa.estadoInterno}); const participantes={...(iniciativa.participantes||{})}; let ordem=[...(iniciativa.ordem||[])].filter(ch=>participantes[ch]&&isParticipanteValidoIniciativa(participantes[ch])); let indiceAtual=Math.max(0,Math.min(toNumber(iniciativa.indiceAtual,0),Math.max(ordem.length-1,0))); let rodada=Math.max(1,toNumber(iniciativa.rodada,1)); if(ordem.length && indiceAtual>=ordem.length){ indiceAtual=0; rodada++; } const prox={...iniciativa, participantes, ordem, indiceAtual, rodada, estadoInterno: ordem.length?'normal':'sem_participantes'}; prox.hordaTurno=normalizarHordaTurno(prox); return antes===JSON.stringify({o:prox.ordem,i:prox.indiceAtual,r:prox.rodada,h:prox.hordaTurno,e:prox.estadoInterno}) ? null : prox; }
         async function persistirNormalizacaoIniciativa() { if(usuarioAtual?.cargo!=='Mestre'||!iniciativaAtual?.combateId)return; const combateId=iniciativaAtual.combateId; try { await safeTransaction(PATH_INICIATIVA, atual=>{ if(!atual||atual.combateId!==combateId||atual.estado!==INICIATIVA_ESTADOS.ATIVA)return; return normalizarEstadoIniciativa(atual,{}) || atual; }); } catch(err) { console.error('Erro ao normalizar iniciativa.', err); } }
         async function criarEstadoInicialIniciativa(ameacaId, tipoAmeaca) { const participantes={}; let ordemEntrada=0; playersList.forEach(id=>{ if(fichasNoBanco[id]||usuarios[id]){ const ch=chaveParticipanteIniciativa('jogador',id); participantes[ch]={chave:ch,id,tipo:'jogador',nome:usuarios[id]?.nome||id,iniciativa:0,confirmado:false,ordemEntrada:ordemEntrada++}; } }); const dados=tipoAmeaca==='horda'?hordasNoBanco[ameacaId]:fichasNoBanco[ameacaId]; const ch=chaveParticipanteIniciativa(tipoAmeaca,ameacaId); participantes[ch]={chave:ch,id:ameacaId,tipo:tipoAmeaca,nome:dados?.nome||ameacaId,iniciativa:0,confirmado:true,ordemEntrada:ordemEntrada++}; return { schemaVersion: INICIATIVA_SCHEMA_VERSION, combateId: gerarIdIniciativa('combate'), ameacaId, ameacaTipo: tipoAmeaca, estado: INICIATIVA_ESTADOS.COLETANDO, estadoInterno: 'normal', rodada: 1, indiceAtual: 0, versaoTurno: 0, participantes, ordem: ordenarParticipantesIniciativa(participantes), hordaTurno: { hordaId:'', membroAtualId:'', membrosConcluidos:{} }, ultimaAcaoId: '', criadoEm: Date.now() }; }
-        async function ativarCombateComIniciativa(ameacaId, tipoAmeaca) { if(usuarioAtual?.cargo!=='Mestre') throw new Error('Somente o Mestre pode iniciar combate.'); const existe=tipoAmeaca==='horda' ? (hordasNoBanco[ameacaId] || (await safeGet(`hordas/${ameacaId}`)).val()) : (fichasNoBanco[ameacaId] || (await safeGet(`fichas/${ameacaId}`)).val()); if(!ameacaId||!existe) throw new Error(`Ameaça inexistente para iniciativa: ${ameacaId}`); const iniciativa=await criarEstadoInicialIniciativa(ameacaId,tipoAmeaca); await safeUpdate(PATH_ESTADO_COMBATE, { ativo: ameacaId, iniciativa }); return iniciativa; }
-        async function encerrarCombateComIniciativa() { await safeUpdate(PATH_ESTADO_COMBATE, { ativo: null, iniciativa: null }); limparInterfaceIniciativa(); }
-        function limparInterfaceIniciativa() { iniciativaAtual=null; iniciativaTurnoTravado=false; ['initiative-player-modal','initiative-master-modal'].forEach(id=>{ const el=document.getElementById(id); if(el){ el.classList.remove('is-open'); el.setAttribute('aria-hidden','true'); } }); const board=document.getElementById('initiative-turn-board'); if(board) board.hidden=true; document.querySelectorAll('[data-acao-combate]').forEach(el=>el.disabled=false); }
+        async function prepararFichasParaCombate(combateId) {
+            await Promise.all(playersList.map(idFicha => safeTransaction(`fichas/${idFicha}`, dadosAtuais => {
+                if(!dadosAtuais) return;
+                return {
+                    ...dadosAtuais,
+                    ap: 0,
+                    combate: normalizarCombateFicha({}, combateId)
+                };
+            })));
+        }
+
+        async function limparFichasDepoisCombate(combateId = '') {
+            await Promise.all(playersList.map(idFicha => safeTransaction(`fichas/${idFicha}`, dadosAtuais => {
+                if(!dadosAtuais) return;
+                if(combateId && dadosAtuais.combate?.combateId && dadosAtuais.combate.combateId !== combateId) return;
+                const proximo = { ...dadosAtuais, ap: getAcoesMaximas(dadosAtuais) };
+                delete proximo.combate;
+                return proximo;
+            })));
+        }
+
+        function getTokenTurno(iniciativa, participante = getParticipanteAtual(iniciativa)) {
+            if(!iniciativa?.combateId || !participante?.chave) return '';
+            return `${iniciativa.combateId}:${toNumber(iniciativa.versaoTurno, 0)}:${participante.chave}`;
+        }
+
+        function avancarEfeitosGenericosNoTurno(efeitosAtuais = []) {
+            const resultado = {
+                efeitos: [],
+                deltaHp: 0,
+                deltaMana: 0,
+                reversoesAtributos: {},
+                expirados: []
+            };
+
+            (Array.isArray(efeitosAtuais) ? efeitosAtuais : []).forEach(efeitoAtual => {
+                const turnosAtuais = Math.max(0, toNumber(efeitoAtual?.turnos, 0));
+                if(turnosAtuais <= 0) return;
+
+                const efeito = { ...efeitoAtual, turnos: turnosAtuais - 1 };
+                resultado.deltaHp += toNumber(efeito.modHp, 0);
+                resultado.deltaMana += toNumber(efeito.modMana, 0);
+
+                if(efeito.turnos <= 0) {
+                    resultado.expirados.push(efeito.nome || 'Efeito');
+                    if(efeito.attrDestino && toNumber(efeito.modAttr, 0) !== 0) {
+                        resultado.reversoesAtributos[efeito.attrDestino] =
+                            toNumber(resultado.reversoesAtributos[efeito.attrDestino], 0) + toNumber(efeito.modAttr, 0);
+                    }
+                    return;
+                }
+                resultado.efeitos.push(efeito);
+            });
+
+            return resultado;
+        }
+
+        async function processarInicioTurnoIndividual(participante, contexto = {}) {
+            if(participante?.tipo !== 'jogador' || !participante.id) return {};
+            const iniciativa = contexto.iniciativa || iniciativaAtual;
+            const combateId = iniciativa?.combateId || '';
+            const turnoToken = getTokenTurno(iniciativa, participante);
+            if(!combateId || !turnoToken) return {};
+
+            // Durações ancoradas no dono/fonte expiram no início do turno correto.
+            // Assim Postura e Proteção permanecem válidas entre o fim do segundo turno
+            // e o começo do terceiro, inclusive para ataques dos demais participantes.
+            for(const idFicha of playersList) {
+                await safeTransaction(`fichas/${idFicha}`, dadosAtuais => {
+                    if(!dadosAtuais || dadosAtuais.combate?.combateId !== combateId) return;
+                    const combate = normalizarCombateFicha(dadosAtuais, combateId);
+                    const efeitos = { ...combate.efeitos };
+                    let mudou = false;
+                    Object.entries(efeitos).forEach(([efeitoId, efeitoAtual]) => {
+                        const efeito = { ...efeitoAtual };
+                        if(efeito.expiraNoProximoTurno && idFicha === participante.id && efeito.ativadoNoTurno !== turnoToken) {
+                            delete efeitos[efeitoId];
+                            mudou = true;
+                            return;
+                        }
+                        if(toNumber(efeito.cargasMaximas, 0) > 0 || efeito.expiraNoProximoTurno) return;
+                        const ancoraDoDono = efeito.ancoraDuracao === 'dono' && idFicha === participante.id;
+                        const ancoraDaFonte = efeito.ancoraDuracao === 'fonte' && efeito.fonteId === participante.id;
+                        if((!ancoraDoDono && !ancoraDaFonte) || efeito.ultimoTurnoDuracao === turnoToken || efeito.ativadoNoTurno === turnoToken) return;
+                        efeito.turnosRestantes = Math.max(0, toNumber(efeito.turnosRestantes, 0) - 1);
+                        efeito.ultimoTurnoDuracao = turnoToken;
+                        if(efeito.turnosRestantes <= 0) delete efeitos[efeitoId];
+                        else efeitos[efeitoId] = efeito;
+                        mudou = true;
+                    });
+                    return mudou ? { ...dadosAtuais, combate: { ...combate, efeitos } } : undefined;
+                });
+            }
+
+            let resumo = null;
+            const resultado = await safeTransaction(`fichas/${participante.id}`, dadosAtuais => {
+                if(!dadosAtuais) return;
+                const combate = normalizarCombateFicha(dadosAtuais, combateId);
+                if(dadosAtuais.combate?.combateId !== combateId || combate.inicioTurnoProcessado === turnoToken) return;
+
+                const efeitos = { ...combate.efeitos };
+                const avancamentoGenerico = avancarEfeitosGenericosNoTurno(dadosAtuais.efeitos);
+                const hpAntes = toNumber(dadosAtuais['hp-atual'], 0);
+                const manaAntes = toNumber(dadosAtuais['mana-atual'], 0);
+                const dadosDepoisEfeitos = { ...dadosAtuais, efeitos: avancamentoGenerico.efeitos };
+                Object.entries(avancamentoGenerico.reversoesAtributos).forEach(([atributo, valor]) => {
+                    dadosDepoisEfeitos[atributo] = toNumber(dadosAtuais[atributo], 0) - toNumber(valor, 0);
+                });
+
+                const hpMax = getHpMaxEfetivo(dadosDepoisEfeitos, `fichas/${participante.id}`);
+                const manaMax = getManaMaxEfetivo(dadosDepoisEfeitos, `fichas/${participante.id}`);
+                const hpAposEfeitos = clamp(hpAntes + avancamentoGenerico.deltaHp, 0, hpMax);
+                const manaAposEfeitos = clamp(manaAntes + avancamentoGenerico.deltaMana, 0, manaMax);
+                const hpDepois = dadosAtuais.raca === 'Argoniano' && hpAposEfeitos > 0
+                    ? clamp(hpAposEfeitos + 2, 0, hpMax)
+                    : hpAposEfeitos;
+                const manaDepois = dadosAtuais.classe === 'Mago'
+                    ? clamp(manaAposEfeitos + 2, 0, manaMax)
+                    : manaAposEfeitos;
+                resumo = {
+                    efeitoHp: hpAposEfeitos - hpAntes,
+                    efeitoMana: manaAposEfeitos - manaAntes,
+                    hp: Math.max(0, hpDepois - hpAposEfeitos),
+                    mana: Math.max(0, manaDepois - manaAposEfeitos),
+                    expirados: avancamentoGenerico.expirados,
+                    acoes: getAcoesMaximas(dadosAtuais)
+                };
+                return {
+                    ...dadosDepoisEfeitos,
+                    'hp-atual': hpDepois,
+                    'mana-atual': manaDepois,
+                    ap: resumo.acoes,
+                    combate: { ...combate, efeitos, inicioTurnoProcessado: turnoToken }
+                };
+            });
+            if(resultado.committed && resumo) {
+                const nome = resultado.snapshot.val()?.nome || participante.nome || participante.id;
+                const ganhos = [];
+                if(resumo.hp > 0) ganhos.push(`+${resumo.hp} HP`);
+                if(resumo.mana > 0) ganhos.push(`+${resumo.mana} Mana`);
+                if(resumo.efeitoHp !== 0 || resumo.efeitoMana !== 0) {
+                    const variacoes = [];
+                    if(resumo.efeitoHp !== 0) variacoes.push(`${resumo.efeitoHp > 0 ? '+' : ''}${resumo.efeitoHp} HP`);
+                    if(resumo.efeitoMana !== 0) variacoes.push(`${resumo.efeitoMana > 0 ? '+' : ''}${resumo.efeitoMana} Mana`);
+                    adicionarCombatLog(`${nome} recebeu ${variacoes.join(' e ')} por efeitos ativos.`, resumo.efeitoHp < 0 ? 'dano' : 'efeito');
+                }
+                if(ganhos.length) adicionarCombatLog(`${nome} iniciou o turno e recuperou ${ganhos.join(' e ')}.`, 'cura');
+                if(resumo.expirados.length) adicionarCombatLog(`Efeitos encerrados em ${nome}: ${resumo.expirados.join(', ')}.`, 'sistema');
+            }
+            return { atualizado: Boolean(resultado.committed), resumo };
+        }
+
+        function processarEfeitosNoFimDoTurno(efeitosAtuais, participanteId, turnoToken, isDono) {
+            const efeitos = { ...(efeitosAtuais || {}) };
+            Object.entries(efeitos).forEach(([efeitoId, efeitoAtual]) => {
+                const efeito = { ...efeitoAtual };
+                const isFuriaDoDono = isDono && efeito.ancoraDuracao === 'dono' && toNumber(efeito.cargasMaximas, 0) > 0;
+                if(!isFuriaDoDono || efeito.ultimoTurnoDuracao === turnoToken) return;
+                if(efeito.ultimoTurnoConsumido !== turnoToken) efeito.cargasRestantes = Math.max(0, toNumber(efeito.cargasRestantes, 0) - 1);
+                efeito.turnosRestantes = Math.max(0, toNumber(efeito.cargasRestantes, 0));
+                efeito.ultimoTurnoDuracao = turnoToken;
+                if(efeito.cargasRestantes <= 0) delete efeitos[efeitoId];
+                else efeitos[efeitoId] = efeito;
+            });
+            return efeitos;
+        }
+
+        function consumirBonusDanoDeEfeitos(efeitosAtuais, turnoToken, tipoEfeito = 'dano') {
+            const efeitos = { ...(efeitosAtuais || {}) };
+            const bonusOfensivos = [];
+            if(tipoEfeito !== 'dano') return { efeitos, bonusOfensivos };
+
+            Object.entries(efeitos).forEach(([efeitoId, efeitoAtual]) => {
+                const efeito = { ...efeitoAtual };
+                const bonus = Math.max(0, toNumber(efeito.bonusDano, 0));
+                if(bonus <= 0 || toNumber(efeito.cargasRestantes, 0) <= 0 || efeito.ultimoTurnoConsumido === turnoToken) return;
+                bonusOfensivos.push({ nome: efeito.nome || 'Fúria', valor: bonus });
+                efeito.cargasRestantes = Math.max(0, toNumber(efeito.cargasRestantes, 0) - 1);
+                efeito.turnosRestantes = efeito.cargasRestantes;
+                efeito.ultimoTurnoConsumido = turnoToken;
+                if(efeito.cargasRestantes <= 0) delete efeitos[efeitoId];
+                else efeitos[efeitoId] = efeito;
+            });
+            return { efeitos, bonusOfensivos };
+        }
+
+        async function ativarCombateComIniciativa(ameacaId, tipoAmeaca) {
+            if(usuarioAtual?.cargo !== 'Mestre') throw new Error('Somente o Mestre pode iniciar combate.');
+            const existe = tipoAmeaca === 'horda'
+                ? (hordasNoBanco[ameacaId] || (await safeGet(`hordas/${ameacaId}`)).val())
+                : (fichasNoBanco[ameacaId] || (await safeGet(`fichas/${ameacaId}`)).val());
+            if(!ameacaId || !existe) throw new Error(`Ameaça inexistente para iniciativa: ${ameacaId}`);
+            const iniciativa = await criarEstadoInicialIniciativa(ameacaId, tipoAmeaca);
+            await prepararFichasParaCombate(iniciativa.combateId);
+            await safeUpdate(PATH_ESTADO_COMBATE, { ativo: ameacaId, iniciativa });
+            return iniciativa;
+        }
+
+        async function encerrarCombateComIniciativa() {
+            const combateId = iniciativaAtual?.combateId || '';
+            await limparFichasDepoisCombate(combateId);
+            await safeUpdate(PATH_ESTADO_COMBATE, { ativo: null, iniciativa: null });
+            limparInterfaceIniciativa();
+        }
+        function limparInterfaceIniciativa() { iniciativaAtual=null; iniciativaTurnoTravado=false; ['initiative-player-modal','initiative-master-modal'].forEach(id=>{ const el=document.getElementById(id); if(el){ el.classList.remove('is-open'); el.setAttribute('aria-hidden','true'); } }); const board=document.getElementById('initiative-turn-board'); if(board) board.hidden=true; document.querySelectorAll('[data-acao-combate]').forEach(el=>{ el.disabled = el.dataset.acaoCombate === 'ataque-jogador'; }); }
         function abrirModalIniciativa(el){ if(el){ el.classList.add('is-open'); el.setAttribute('aria-hidden','false'); setTimeout(()=>el.querySelector('input,button')?.focus(),0); } }
         function fecharModalIniciativa(el){ if(el){ el.classList.remove('is-open'); el.setAttribute('aria-hidden','true'); } }
         function renderizarIniciativa(){ try{ if(!iniciativaAtual)return limparInterfaceIniciativa(); renderizarModalJogadorIniciativa(); renderizarModalMestreIniciativa(); renderizarQuadroTurnosIniciativa(); atualizarPermissoesAcoesCombate(); }catch(err){ console.error('Erro ao renderizar iniciativa.',err); } }
@@ -1473,22 +1924,123 @@ window.toggleSidebarJogador = function(numSlot) {
         async function editarIniciativaParticipante(ch,valor){ const combateId=iniciativaAtual?.combateId; await safeTransaction(PATH_INICIATIVA,atual=>{ if(!atual||atual.combateId!==combateId||![INICIATIVA_ESTADOS.COLETANDO,INICIATIVA_ESTADOS.ORGANIZANDO].includes(atual.estado)||!atual.participantes?.[ch])return; const participantes={...atual.participantes,[ch]:{...atual.participantes[ch],iniciativa:Math.max(0,Math.trunc(valor))}}; return {...atual,participantes,ordem:atual.estado===INICIATIVA_ESTADOS.COLETANDO?ordenarParticipantesIniciativa(participantes):atual.ordem}; }); }
         async function organizarOrdemIniciativa(){ const combateId=iniciativaAtual?.combateId; await safeTransaction(PATH_INICIATIVA,atual=>!atual||atual.combateId!==combateId||atual.estado!==INICIATIVA_ESTADOS.COLETANDO?undefined:{...atual,estado:INICIATIVA_ESTADOS.ORGANIZANDO,ordem:ordenarParticipantesIniciativa(atual.participantes)}); }
         async function moverParticipanteIniciativa(idx,delta){ const combateId=iniciativaAtual?.combateId; await safeTransaction(PATH_INICIATIVA,atual=>{ if(!atual||atual.combateId!==combateId||atual.estado!==INICIATIVA_ESTADOS.ORGANIZANDO)return; const ordem=[...(atual.ordem||[])], j=idx+delta; if(j<0||j>=ordem.length)return; [ordem[idx],ordem[j]]=[ordem[j],ordem[idx]]; return {...atual,ordem}; }); }
-        async function confirmarOrdemIniciativa(){ const combateId=iniciativaAtual?.combateId; await safeTransaction(PATH_INICIATIVA,atual=>{ if(!atual||atual.combateId!==combateId||atual.estado!==INICIATIVA_ESTADOS.ORGANIZANDO)return; let prox={...atual,estado:INICIATIVA_ESTADOS.ATIVA,rodada:1,indiceAtual:0,versaoTurno:toNumber(atual.versaoTurno,0)+1}; prox=normalizarEstadoIniciativa(prox,{})||prox; prox.hordaTurno=normalizarHordaTurno(prox); return prox; }); }
+        async function confirmarOrdemIniciativa() {
+            const combateId = iniciativaAtual?.combateId;
+            const resultado = await safeTransaction(PATH_INICIATIVA, atual => {
+                if(!atual || atual.combateId !== combateId || atual.estado !== INICIATIVA_ESTADOS.ORGANIZANDO) return;
+                let proximo = {
+                    ...atual,
+                    estado: INICIATIVA_ESTADOS.ATIVA,
+                    rodada: 1,
+                    indiceAtual: 0,
+                    versaoTurno: toNumber(atual.versaoTurno, 0) + 1
+                };
+                proximo = normalizarEstadoIniciativa(proximo, {}) || proximo;
+                proximo.hordaTurno = normalizarHordaTurno(proximo);
+                return proximo;
+            });
+            if(resultado.committed) {
+                const iniciativa = resultado.snapshot.val();
+                await processarInicioTurnoIndividual(getParticipanteAtual(iniciativa), { iniciativa });
+            }
+        }
         function getFotoParticipante(p){ if(!p)return ''; const foto=fotosNoBanco[p.id]; return foto?.base64 || foto || ''; }
         function renderizarQuadroTurnosIniciativa(){ const board=document.getElementById('initiative-turn-board'); if(!board)return; const atual=getParticipanteAtual(); if(!ameacaEmCombateGlobal||iniciativaAtual?.estado!==INICIATIVA_ESTADOS.ATIVA||!atual||iniciativaAtual.estadoInterno==='sem_participantes'){ board.hidden=true; return; } board.hidden=false; document.getElementById('initiative-round').textContent=`Rodada ${toNumber(iniciativaAtual.rodada,1)}`; const cont=document.getElementById('initiative-portraits'); cont.textContent=''; (iniciativaAtual.ordem||[]).slice(toNumber(iniciativaAtual.indiceAtual,0),toNumber(iniciativaAtual.indiceAtual,0)+5).forEach((ch,i)=>{ const p=iniciativaAtual.participantes[ch]; if(!p)return; const item=document.createElement('div'); item.className='initiative-portrait'+(i===0?' is-current':''); item.tabIndex=0; if(i===0)item.setAttribute('aria-current','true'); const foto=getFotoParticipante(p); if(foto){ const img=document.createElement('img'); img.src=foto; img.alt=''; item.appendChild(img); } const tip=document.createElement('div'); tip.className='initiative-tooltip'; let texto=p.nome||p.id; if(p.tipo==='horda'){ const vivos=membrosVivosHorda(p.id); texto += ` - membro ${iniciativaAtual.hordaTurno?.membroAtualId || vivos[0] || '-'} - vivos ${vivos.length}`; } tip.textContent=texto; item.appendChild(tip); cont.appendChild(item); }); const btn=document.getElementById('initiative-end-turn'); btn.disabled=iniciativaTurnoTravado||!podeEncerrarTurno(usuarioAtual,atual); btn.onclick=encerrarTurnoIniciativa; }
         function podeEncerrarTurno(usuario,participanteAtual){ if(!usuario||!participanteAtual)return false; if(usuario.cargo==='Mestre')return true; return participanteAtual.tipo==='jogador'&&usuario.idFicha===participanteAtual.id; }
         function podeUsuarioAgirAgora(slotNum=null,contexto={}){ if(!iniciativaAtual||iniciativaAtual.estado!==INICIATIVA_ESTADOS.ATIVA)return true; const atual=getParticipanteAtual(); if(!atual)return false; if(usuarioAtual?.cargo==='Mestre')return atual.tipo!=='jogador'; return atual.tipo==='jogador'&&usuarioAtual?.idFicha===atual.id; }
-        function atualizarPermissoesAcoesCombate(){ document.querySelectorAll('[data-acao-combate]').forEach(el=>{ el.disabled=!podeUsuarioAgirAgora(); }); }
-        async function processarFimTurnoIndividual(participante, contexto) {
-            if(participante?.tipo !== 'jogador' || !participante.id) return {};
-            const resultado = await safeTransaction(`fichas/${participante.id}`, dadosAtuais => {
-                if(!dadosAtuais || !Object.keys(dadosAtuais.recargas || {}).length) return;
-                return { ...dadosAtuais, recargas: decrementarRecargas(dadosAtuais.recargas) };
+        function atualizarPermissoesAcoesCombate() {
+            document.querySelectorAll('[data-acao-combate]').forEach(elemento => {
+                if(elemento.dataset.acaoCombate === 'ataque-jogador') {
+                    const match = elemento.id.match(/slot(\d+)/);
+                    const numSlot = Number(match?.[1] || 0);
+                    const dados = slotsDeVisao[numSlot]?.dados || {};
+                    elemento.disabled = !getCombateIdAtivo() || !podeUsuarioAgirAgora(numSlot) || toNumber(dados.ap, 0) < 1;
+                } else {
+                    elemento.disabled = !podeUsuarioAgirAgora();
+                }
             });
-            return { recargasAtualizadas: Boolean(resultado.committed), contexto };
+            Object.entries(slotsDeVisao).forEach(([numSlot, slot]) => {
+                if(slot?.tipo === 'heroi') renderizarGrimorioNoSlot(Number(numSlot), slot.dados?.grimorio || {});
+            });
         }
-        async function encerrarTurnoIniciativa(){ const atual=getParticipanteAtual(); if(!podeEncerrarTurno(usuarioAtual,atual))return; iniciativaTurnoTravado=true; renderizarQuadroTurnosIniciativa(); await processarFimTurnoIndividual(atual,{iniciativa:iniciativaAtual}); const esperado={combateId:iniciativaAtual.combateId,ameacaId:iniciativaAtual.ameacaId,indiceAtual:toNumber(iniciativaAtual.indiceAtual,0),versaoTurno:toNumber(iniciativaAtual.versaoTurno,0),chave:atual.chave}; const acaoId=gerarIdIniciativa('acao'); const r=await safeTransaction(PATH_INICIATIVA,ini=>{ if(!ini||ini.combateId!==esperado.combateId||ini.ameacaId!==esperado.ameacaId||ini.estado!==INICIATIVA_ESTADOS.ATIVA||toNumber(ini.indiceAtual,0)!==esperado.indiceAtual||toNumber(ini.versaoTurno,0)!==esperado.versaoTurno||(ini.ordem||[])[ini.indiceAtual]!==esperado.chave)return; const p=ini.participantes?.[esperado.chave]; let prox={...ini,ultimaAcaoId:acaoId,versaoTurno:esperado.versaoTurno+1}; if(p?.tipo==='horda'){ const ht=normalizarHordaTurno(prox), concl={...(ht.membrosConcluidos||{})}; if(ht.membroAtualId)concl[ht.membroAtualId]=true; const proxM=membrosVivosHorda(p.id).find(id=>!concl[id]); if(proxM)return {...prox,hordaTurno:{hordaId:p.id,membroAtualId:proxM,membrosConcluidos:concl}}; } if(esperado.indiceAtual>=(prox.ordem||[]).length-1){ prox.indiceAtual=0; prox.rodada=toNumber(prox.rodada,1)+1; prox.hordaTurno={hordaId:'',membroAtualId:'',membrosConcluidos:{}}; } else prox.indiceAtual=esperado.indiceAtual+1; return normalizarEstadoIniciativa(prox,{})||prox; }); if(!r.committed)iniciativaTurnoTravado=false; }
-        function iniciarOuvinteIniciativa(){ if(unsubscribeIniciativa)unsubscribeIniciativa(); unsubscribeIniciativa=onValue(dbRef(PATH_INICIATIVA),snap=>{ iniciativaAtual=snap.val(); renderizarIniciativa(); persistirNormalizacaoIniciativa(); }); }
+        async function processarFimTurnoIndividual(participante, contexto = {}) {
+            if(participante?.tipo !== 'jogador' || !participante.id) return {};
+            const iniciativa = contexto.iniciativa || iniciativaAtual;
+            const combateId = iniciativa?.combateId || '';
+            const turnoToken = getTokenTurno(iniciativa, participante);
+            if(!combateId || !turnoToken) return {};
+
+            let atualizou = false;
+            for(const idFicha of playersList) {
+                const resultado = await safeTransaction(`fichas/${idFicha}`, dadosAtuais => {
+                    if(!dadosAtuais || dadosAtuais.combate?.combateId !== combateId) return;
+                    const combate = normalizarCombateFicha(dadosAtuais, combateId);
+                    const isDono = idFicha === participante.id;
+                    if(isDono && combate.fimTurnoProcessado === turnoToken) return;
+                    const efeitos = processarEfeitosNoFimDoTurno(combate.efeitos, participante.id, turnoToken, isDono);
+                    const proximo = {
+                        ...dadosAtuais,
+                        combate: {
+                            ...combate,
+                            efeitos,
+                            fimTurnoProcessado: isDono ? turnoToken : combate.fimTurnoProcessado
+                        }
+                    };
+                    if(isDono) {
+                        proximo.recargas = decrementarRecargas(dadosAtuais.recargas || {});
+                        proximo.ap = 0;
+                    }
+                    return proximo;
+                });
+                atualizou ||= Boolean(resultado.committed);
+            }
+            return { atualizado: atualizou, contexto };
+        }
+
+        async function encerrarTurnoIniciativa() {
+            const atual = getParticipanteAtual();
+            if(!podeEncerrarTurno(usuarioAtual, atual)) return;
+            iniciativaTurnoTravado = true;
+            renderizarQuadroTurnosIniciativa();
+            const iniciativaAntes = iniciativaAtual;
+            await processarFimTurnoIndividual(atual, { iniciativa: iniciativaAntes });
+            const esperado = {
+                combateId: iniciativaAntes.combateId,
+                ameacaId: iniciativaAntes.ameacaId,
+                indiceAtual: toNumber(iniciativaAntes.indiceAtual, 0),
+                versaoTurno: toNumber(iniciativaAntes.versaoTurno, 0),
+                chave: atual.chave
+            };
+            const acaoId = gerarIdIniciativa('acao');
+            const resultado = await safeTransaction(PATH_INICIATIVA, iniciativa => {
+                if(!iniciativa || iniciativa.combateId !== esperado.combateId || iniciativa.ameacaId !== esperado.ameacaId || iniciativa.estado !== INICIATIVA_ESTADOS.ATIVA || toNumber(iniciativa.indiceAtual, 0) !== esperado.indiceAtual || toNumber(iniciativa.versaoTurno, 0) !== esperado.versaoTurno || (iniciativa.ordem || [])[iniciativa.indiceAtual] !== esperado.chave) return;
+                const participante = iniciativa.participantes?.[esperado.chave];
+                let proximo = { ...iniciativa, ultimaAcaoId: acaoId, versaoTurno: esperado.versaoTurno + 1 };
+                if(participante?.tipo === 'horda') {
+                    const hordaTurno = normalizarHordaTurno(proximo);
+                    const concluidos = { ...(hordaTurno.membrosConcluidos || {}) };
+                    if(hordaTurno.membroAtualId) concluidos[hordaTurno.membroAtualId] = true;
+                    const proximoMembro = membrosVivosHorda(participante.id).find(id => !concluidos[id]);
+                    if(proximoMembro) return { ...proximo, hordaTurno: { hordaId: participante.id, membroAtualId: proximoMembro, membrosConcluidos: concluidos } };
+                }
+                if(esperado.indiceAtual >= (proximo.ordem || []).length - 1) {
+                    proximo.indiceAtual = 0;
+                    proximo.rodada = toNumber(proximo.rodada, 1) + 1;
+                    proximo.hordaTurno = { hordaId: '', membroAtualId: '', membrosConcluidos: {} };
+                } else {
+                    proximo.indiceAtual = esperado.indiceAtual + 1;
+                }
+                return normalizarEstadoIniciativa(proximo, {}) || proximo;
+            });
+            if(resultado.committed) {
+                const iniciativaDepois = resultado.snapshot.val();
+                iniciativaAtual = iniciativaDepois;
+                await processarInicioTurnoIndividual(getParticipanteAtual(iniciativaDepois), { iniciativa: iniciativaDepois });
+            }
+            iniciativaTurnoTravado = false;
+            renderizarIniciativa();
+        }
+        function iniciarOuvinteIniciativa(){ if(unsubscribeIniciativa)unsubscribeIniciativa(); unsubscribeIniciativa=onValue(dbRef(PATH_INICIATIVA),snap=>{ iniciativaAtual=snap.val(); renderizarIniciativa(); persistirNormalizacaoIniciativa(); if(iniciativaAtual?.estado===INICIATIVA_ESTADOS.ATIVA) processarInicioTurnoIndividual(getParticipanteAtual(iniciativaAtual),{iniciativa:iniciativaAtual}).catch(err=>console.error('Erro ao garantir o início do turno.',err)); }); }
 
         function iniciarOuvintesGerais() {
             iniciarOuvinteIniciativa();
@@ -1713,6 +2265,7 @@ window.toggleSidebarJogador = function(numSlot) {
 
         function limparSlot(numSlot) {
             resetarExperienciaNoSlot(numSlot);
+            acaoCombateSelecionadaPorSlot[numSlot] = 'fisico';
             document.getElementById(`slot-${numSlot}`).style.display = 'none';
             document.getElementById(`container-slot${numSlot}-heroi`).style.display = 'none';
             document.getElementById(`container-slot${numSlot}-monstro`).style.display = 'none';
@@ -1872,13 +2425,18 @@ window.toggleSidebarJogador = function(numSlot) {
             if(!dano || dano <= 0) return alert("Insira um valor de dano válido!");
 
             const checkboxes = document.querySelectorAll(`.alvo-ataque-${membroId}:checked`);
-            if(checkboxes.length === 0) return alert("Selecione pelo menos um alvo para o ataque!");
+            if(checkboxes.length !== 1) return alert("Selecione exatamente um alvo para o Ataque Básico!");
 
             const alvos = Array.from(checkboxes).map(cb => cb.value);
             const ator = getNomeAtorHorda(membroId);
             for(let alvo of alvos) {
                 const pathAlvo = 'fichas/' + alvo;
-                const meta = await aplicarEfeitoVidaPath(pathAlvo, dano, 'dano');
+                const meta = await aplicarEfeitoVidaPath(pathAlvo, dano, 'dano', {
+                    combateId: getCombateIdAtivo(),
+                    tipoAtaque: 'basico',
+                    valorBase: dano,
+                    bonusOfensivos: []
+                });
                 registrarFeedbackELog(pathAlvo, meta, { ator });
             }
             inputDano.value = '';
@@ -2960,7 +3518,7 @@ window.toggleSidebarJogador = function(numSlot) {
                 alvo: skill.targetMode || "self",
                 targetMode: skill.targetMode || "self",
                 effectKind: skill.effectKind || (skill.grimorioTipo === "ativa" ? "utilidade" : skill.grimorioTipo),
-                ap: toNumber(skill.ap, 0),
+                ap: skill.grimorioTipo === "ativa" ? 1 : 0,
                 mana: toNumber(skill.mana, 0),
                 formula: skill.formula || "",
                 cooldown: toNumber(skill.cooldown, 0),
@@ -3186,7 +3744,7 @@ window.toggleSidebarJogador = function(numSlot) {
 
         function renderSkillEffectChips(skill) {
             const chips = [];
-            if(skill.ap) chips.push(`<span>⚡ ${skill.ap} AP</span>`);
+            if(skill.grimorioTipo === "ativa") chips.push(`<span>⚡ 1 Ação</span>`);
             if(skill.mana) chips.push(`<span>✦ ${skill.mana} Ki</span>`);
             if(skill.formula) chips.push(`<span>🎲 ${escapeHtml(skill.formula)}</span>`);
             if(skill.targetMode && skill.grimorioTipo === "ativa") chips.push(`<span>◎ ${escapeHtml(getTargetLabel(skill.targetMode))}</span>`);
@@ -4176,39 +4734,38 @@ window.toggleSidebarJogador = function(numSlot) {
 
                     let maxAtributos = 10 + (levelData.level - 1);
 
-                    let baseBonus = { for:0, des:0, con:0, int:0, sab:0, car:0, per:0 };
                     let raca = dados.raca || '';
                     let vocacao = dados.classe || '';
+                    let baseBonus = getBaseAtributosNaturais(raca, vocacao);
+                    let modsEfeitosAtributos = getModificadoresAtributosEfeitos(dados);
 
                     if(typeof RACES !== 'undefined' && RACES[raca]) {
                         if(RACES[raca].points) maxAtributos += RACES[raca].points;
-                        else {
-                            for(let a in baseBonus) if(RACES[raca][a]) baseBonus[a] += RACES[raca][a];
-                        }
-                    }
-                    if(typeof CLASSES !== 'undefined' && CLASSES[vocacao]) {
-                        for(let a in baseBonus) if(CLASSES[vocacao][a]) baseBonus[a] += CLASSES[vocacao][a];
                     }
 
                     let ptsDistribuidos = 0;
                     ['for', 'des', 'con', 'int', 'sab', 'car', 'per'].forEach(a => {
                         let val = Number(dados[a]) || 0;
                         let minVal = baseBonus[a];
+                        let modEfeito = modsEfeitosAtributos[a] || 0;
+                        let minEfetivo = minVal + modEfeito;
 
                         // Restringir a caixa de texto
                         let inputEl = document.getElementById(`slot${numSlot}-${a}`);
                         if(inputEl) {
-                            inputEl.min = minVal;
-                            // Se o valor estiver menor que o mínimo nativo, forçamos o valor mínimo visualmente
-                            // O banco de dados pode ter ficado atrasado se ele apenas mudou a raça.
-                            if(val < minVal) {
-                                inputEl.value = minVal;
-                                val = minVal;
-                                safeUpdate(path, { [a]: minVal });
+                            inputEl.min = minEfetivo;
+                            // O piso vale para a parcela permanente. Efeitos temporários negativos
+                            // ainda podem levar o valor efetivo abaixo do mínimo natural.
+                            if((val - modEfeito) < minVal) {
+                                inputEl.value = minEfetivo;
+                                val = minEfetivo;
+                                if(toNumber(dados.passivasAtributosSchemaVersion, 0) >= PASSIVAS_ATRIBUTOS_SCHEMA_VERSION) {
+                                    safeUpdate(path, { [a]: minEfetivo });
+                                }
                             }
                         }
 
-                        ptsDistribuidos += Math.max(0, val - minVal);
+                        ptsDistribuidos += Math.max(0, (val - modEfeito) - minVal);
                     });
 
                     let ptsLivres = maxAtributos - ptsDistribuidos;
@@ -4235,6 +4792,7 @@ window.toggleSidebarJogador = function(numSlot) {
                 renderizarEfeitosNoSlot(numSlot, tipo, dados.efeitos || []);
                 if(tipo === 'heroi') renderizarGrimorioNoSlot(numSlot, dados.grimorio || {});
                 if(tipo === 'heroi') sincronizarHabilidadesSistemaSeNecessario(idFicha, dados);
+                if(tipo === 'heroi') sincronizarBonusPassivasAtributosSeNecessario(idFicha, dados);
                 atualizarBarrasEAlertaNoSlot(numSlot, tipo);
                 atualizarTooltipsAtributosNoSlot(numSlot, tipo, dados);
                 if(visaoTaticaMestreAtiva) renderizarVisaoTaticaMestre();
@@ -4353,7 +4911,18 @@ window.toggleSidebarJogador = function(numSlot) {
                     proximo[attrDestino] = toNumber(dados[attrDestino], 0) + modAttr;
                 }
 
-                efeitos.push({ idUnico, nome, modHp, modMana, attrDestino, modAttr, turnos });
+                const negativo = modHp < 0 || modMana < 0 || modAttr < 0;
+                efeitos.push({
+                    idUnico,
+                    nome,
+                    modHp,
+                    modMana,
+                    attrDestino,
+                    modAttr,
+                    turnos,
+                    polaridade: negativo ? 'negativo' : 'positivo',
+                    purificavel: negativo
+                });
                 proximo.efeitos = efeitos;
                 return proximo;
             });
@@ -4381,6 +4950,7 @@ window.toggleSidebarJogador = function(numSlot) {
 
         window.avancarTurnoGlobal = async function() {
             if (usuarioAtual.cargo !== "Mestre") return;
+            if(getCombateIdAtivo()) return alert('Durante um combate, use FIM DO TURNO na iniciativa para atualizar Ações, regenerações e durações corretamente.');
 
             const refFichas = dbRef('fichas');
             const snapFichas = await get(refFichas);
@@ -4452,7 +5022,7 @@ window.toggleSidebarJogador = function(numSlot) {
             listaDiv.innerHTML = '';
 
             efeitos.forEach(efeito => {
-                const isDebuff = (efeito.modHp < 0 || efeito.modMana < 0 || efeito.modAttr < 0);
+                const isDebuff = isEfeitoNegativoPurificavel(efeito);
                 let detalhes = [];
                 if(efeito.modHp !== 0) detalhes.push(`HP: ${efeito.modHp > 0 ? '+' : ''}${efeito.modHp}/t`);
                 if(efeito.modMana !== 0) detalhes.push(`Mana: ${efeito.modMana > 0 ? '+' : ''}${efeito.modMana}/t`);
@@ -4479,16 +5049,13 @@ window.toggleSidebarJogador = function(numSlot) {
             const atributos = ['for', 'des', 'con', 'int', 'sab', 'car', 'per'];
             const prefixo = tipo === 'heroi' ? `slot${numSlot}` : `slot${numSlot}-monstro`;
 
-            let baseBonus = {for:0, des:0, con:0, int:0, sab:0, car:0, per:0};
+            let baseBonus = Object.fromEntries(ATTRS.map(attr => [attr, 0]));
+            let bonusPassivas = Object.fromEntries(ATTRS.map(attr => [attr, 0]));
             if(tipo === 'heroi') {
                 let raca = dados.raca || '';
                 let vocacao = dados.classe || '';
-                if(typeof RACES !== 'undefined' && RACES[raca] && !RACES[raca].points) {
-                    for(let a in baseBonus) if(RACES[raca][a]) baseBonus[a] += RACES[raca][a];
-                }
-                if(typeof CLASSES !== 'undefined' && CLASSES[vocacao]) {
-                    for(let a in baseBonus) if(CLASSES[vocacao][a]) baseBonus[a] += CLASSES[vocacao][a];
-                }
+                baseBonus = getBaseAtributosNaturais(raca, vocacao);
+                bonusPassivas = getBonusAtributosPassivos(raca, vocacao);
             }
 
             let modsItens = {for:0, des:0, con:0, int:0, sab:0, car:0, per:0};
@@ -4519,7 +5086,9 @@ window.toggleSidebarJogador = function(numSlot) {
 
                 let inputEl = document.getElementById(`${prefixo}-${attr}`);
                 if(inputEl && inputEl.parentElement) {
-                    let txt = `Distrib.: ${ptsDistribuidos > 0 ? '+'+ptsDistribuidos : ptsDistribuidos}\nNativo (Raça/Classe): ${mNat > 0 ? '+'+mNat : mNat}\nItens: ${mItem > 0 ? '+'+mItem : mItem}\nEfeitos: ${mBuff > 0 ? '+'+mBuff : mBuff}`;
+                    const bonusPassiva = bonusPassivas[attr] || 0;
+                    const nativoSemPassiva = mNat - bonusPassiva;
+                    let txt = `Distrib.: ${ptsDistribuidos > 0 ? '+'+ptsDistribuidos : ptsDistribuidos}\nRaça/Classe: ${nativoSemPassiva > 0 ? '+'+nativoSemPassiva : nativoSemPassiva}\nPassivas: ${bonusPassiva > 0 ? '+'+bonusPassiva : bonusPassiva}\nItens: ${mItem > 0 ? '+'+mItem : mItem}\nEfeitos: ${mBuff > 0 ? '+'+mBuff : mBuff}`;
                     inputEl.parentElement.title = txt;
                     inputEl.title = txt;
                 }
@@ -4533,14 +5102,19 @@ window.toggleSidebarJogador = function(numSlot) {
             if(!dano || dano <= 0) return alert("Insira um valor de dano válido!");
 
             const checkboxes = document.querySelectorAll(`.alvo-ataque-slot${numSlot}:checked`);
-            if(checkboxes.length === 0) return alert("Selecione pelo menos um alvo para o ataque!");
+            if(checkboxes.length !== 1) return alert("Selecione exatamente um alvo para o Ataque Básico!");
 
             const alvos = Array.from(checkboxes).map(cb => cb.value);
             const ator = getNomeAtorDoSlot(numSlot);
 
             for(let alvo of alvos) {
                 const pathAlvo = 'fichas/' + alvo;
-                const meta = await aplicarEfeitoVidaPath(pathAlvo, dano, 'dano');
+                const meta = await aplicarEfeitoVidaPath(pathAlvo, dano, 'dano', {
+                    combateId: getCombateIdAtivo(),
+                    tipoAtaque: 'basico',
+                    valorBase: dano,
+                    bonusOfensivos: []
+                });
                 registrarFeedbackELog(pathAlvo, meta, { ator });
             }
 
@@ -4746,12 +5320,82 @@ window.toggleSidebarJogador = function(numSlot) {
             numSlotGrimorioAberto = null;
         }
 
+        window.selecionarAcaoCombate = function(numSlot, habId, fecharDepois = false) {
+            numSlot = Number(numSlot);
+            acaoCombateSelecionadaPorSlot[numSlot] = habId || 'fisico';
+            const radio = document.querySelector(`input[name="feitico-selecionado-slot${numSlot}"][value="${CSS.escape(acaoCombateSelecionadaPorSlot[numSlot])}"]`);
+            if(radio && !radio.disabled) radio.checked = true;
+            window.atualizarTextoBotaoAcaoJogador(numSlot);
+            if(fecharDepois && numSlotGrimorioAberto === numSlot) window.fecharGrimorio();
+        };
+
+        function renderizarAcoesNoSlot(numSlot, dados = {}) {
+            const atual = Math.max(0, Math.trunc(toNumber(dados.ap, 0)));
+            const maximo = getAcoesMaximas(dados);
+            const maximoVisual = Math.max(maximo, atual);
+            const marcadores = document.getElementById(`slot${numSlot}-acoes-marcadores`);
+            const maxElement = document.getElementById(`slot${numSlot}-ap-max`);
+            if(maxElement) maxElement.textContent = maximo;
+            if(marcadores) {
+                marcadores.innerHTML = Array.from({ length: maximoVisual }, (_, index) => `<span class="marcador-acao ${index < atual ? 'disponivel' : 'gasta'}" aria-hidden="true">${index < atual ? '◆' : '◇'}</span>`).join('');
+                marcadores.setAttribute('aria-label', `${atual} de ${maximo} Ações disponíveis`);
+            }
+            const botao = document.getElementById(`btn-acao-combate-slot${numSlot}`);
+            if(botao) {
+                const podeAgir = Boolean(getCombateIdAtivo()) && podeUsuarioAgirAgora(numSlot, { acao: 'ataque-jogador' });
+                botao.disabled = !podeAgir || atual < 1;
+                botao.classList.toggle('sem-acoes', atual < 1);
+            }
+        }
+
+        function renderizarEstadoCombateNoSlot(numSlot, dados = {}) {
+            const combateId = getCombateIdAtivo();
+            const efeitos = Object.values(getEfeitosCombateAtivos(dados, combateId));
+            const painel = document.getElementById(`estado-combate-ficha-slot${numSlot}`);
+            const barras = document.getElementById(`barras-furia-slot${numSlot}`);
+            const chips = document.getElementById(`efeitos-atuais-slot${numSlot}`);
+            const container = document.getElementById(`container-slot${numSlot}-heroi`);
+            const furias = efeitos.filter(efeito => toNumber(efeito.bonusDano, 0) > 0);
+            const defesas = efeitos.filter(efeito => toNumber(efeito.reducaoDano, 0) > 0);
+
+            if(barras) barras.innerHTML = furias.map(efeito => {
+                const maximo = Math.max(1, toNumber(efeito.cargasMaximas, 2));
+                const cargas = clamp(toNumber(efeito.cargasRestantes, 0), 0, maximo);
+                const percentual = (cargas / maximo) * 100;
+                const defesa = toNumber(efeito.reducaoDano, 0);
+                return `
+                    <div class="furia-medidor ${escapeHtml(efeito.visual || '')}">
+                        <div class="furia-medidor-cabecalho"><strong>${escapeHtml(efeito.nome || 'Fúria')}</strong><span>+${toNumber(efeito.bonusDano, 0)} dano${defesa ? ` · -${defesa} recebido` : ''}</span></div>
+                        <div class="furia-trilho"><i style="width:${percentual}%"></i><b>${cargas}/${maximo}</b></div>
+                        <small>${toNumber(efeito.turnosRestantes, 0)} turno(s) próprio(s) restante(s)</small>
+                    </div>`;
+            }).join('');
+            if(chips) chips.innerHTML = defesas.map(efeito => `
+                <div class="efeito-combate-chip ${escapeHtml(efeito.visual || '')}">
+                    <strong>${escapeHtml(efeito.nome || 'Proteção')}</strong>
+                    <span>-${toNumber(efeito.reducaoDano, 0)} dano</span>
+                    <small>${efeito.expiraNoProximoTurno ? 'até o próximo turno' : `${toNumber(efeito.turnosRestantes, 0)} turno(s)`}</small>
+                </div>`).join('');
+            if(painel) painel.hidden = efeitos.length === 0;
+            if(container) {
+                container.classList.toggle('em-furia', furias.length > 0);
+                container.classList.toggle('em-furia-orc', efeitos.some(efeito => efeito.habilidadeId === 'orc_furia'));
+                container.classList.toggle('em-furia-barbara', efeitos.some(efeito => efeito.habilidadeId === 'bar_furia'));
+                container.classList.toggle('em-postura-defensiva', efeitos.some(efeito => efeito.habilidadeId === 'guer_postura'));
+            }
+            renderizarAcoesNoSlot(numSlot, dados);
+        }
+
         window.atualizarTextoBotaoAcaoJogador = function(numSlot) {
             const btn = document.getElementById(`btn-acao-combate-slot${numSlot}`);
             if(!btn) return;
             const radioSelecionado = document.querySelector(`input[name="feitico-selecionado-slot${numSlot}"]:checked`);
+            const input = document.getElementById(`slot${numSlot}-jogador-ataque-dano`);
+            const rotulo = document.getElementById(`rotulo-valor-acao-slot${numSlot}`);
             if(!radioSelecionado || radioSelecionado.value === 'fisico') {
                 btn.textContent = 'ATACAR';
+                if(rotulo) rotulo.textContent = 'Total rolado do Ataque Básico';
+                if(input) { input.hidden = false; input.readOnly = false; input.placeholder = 'Dano'; }
                 return;
             }
 
@@ -4760,18 +5404,33 @@ window.toggleSidebarJogador = function(numSlot) {
             const effectKind = inferirTipoEfeito(radioSelecionado.value, hab);
             if(effectKind === 'cura') btn.textContent = 'CURAR';
             else if(effectKind === 'escudo') btn.textContent = 'CONJURAR ESCUDO';
-            else btn.textContent = 'LANÇAR FEITIÇO';
+            else if(effectKind === 'purificacao') btn.textContent = 'PURIFICAR';
+            else if(effectKind === 'buff_grupo') btn.textContent = 'PROTEGER GRUPO';
+            else if(effectKind === 'buff') btn.textContent = 'ATIVAR';
+            else if(effectKind === 'dano') btn.textContent = 'ATACAR COM HABILIDADE';
+            else btn.textContent = 'USAR HABILIDADE';
+            const precisaValor = ['dano', 'cura', 'escudo'].includes(effectKind);
+            if(input) {
+                input.hidden = !precisaValor;
+                input.readOnly = Boolean(hab.formula);
+                input.placeholder = hab.formula ? 'Automático' : 'Valor';
+            }
+            if(rotulo) rotulo.textContent = hab.formula ? `Rolagem automática: ${hab.formula}` : (precisaValor ? 'Total rolado' : 'Esta habilidade não exige valor');
         }
 
         window.renderizarGrimorioNoSlot = function(numSlot, grimorio) {
-            // 1. Atualiza a Sidebar de Combate (Habilidades Equipadas)
             const containerFeiticos = document.getElementById(`lista-feiticos-combate-slot${numSlot}`);
             const containerPassivas = document.getElementById(`lista-passivas-combate-slot${numSlot}`);
+            const containerRapidas = document.getElementById(`lista-acoes-rapidas-slot${numSlot}`);
+            const boxRapidas = document.getElementById(`acoes-rapidas-slot${numSlot}`);
 
             if(containerFeiticos && containerPassivas) {
                 const dadosFicha = slotsDeVisao[numSlot]?.dados || {};
-                let htmlFeiticos = `<label class="magia-radio-item"><input type="radio" name="feitico-selecionado-slot${numSlot}" value="fisico" checked onchange="atualizarTextoBotaoAcaoJogador(${numSlot})"><span class="magia-icon-mini">⚔️</span> <span>Ataque Básico</span></label>`;
-                let htmlPassivas = '';
+                const selecionada = acaoCombateSelecionadaPorSlot[numSlot] || 'fisico';
+                let htmlFeiticos = `<label class="magia-radio-item"><input type="radio" name="feitico-selecionado-slot${numSlot}" value="fisico" ${selecionada === 'fisico' ? 'checked' : ''} onchange="selecionarAcaoCombate(${numSlot}, 'fisico')"><span class="magia-icon-mini">⚔️</span> <span>Ataque Básico <small>1 Ação · alvo único</small></span></label>`;
+                const passivasPorGrupo = { automatica: [], condicional: [], mista: [], narrativa: [], melhoria: [] };
+                const rapidas = [];
+                let selecionadaDisponivel = selecionada === 'fisico';
 
                 for(let habId in grimorio) {
                     let hab = enrichHab(habId, grimorio[habId]);
@@ -4785,37 +5444,61 @@ window.toggleSidebarJogador = function(numSlot) {
                         let iconUrl = `Icones/${habId}.png`;
                         let descHabHtml = escapeHtml(hab.desc || '');
                         let tooltipHabHtml = escapeHtml(`${hab.nome || habId}${hab.desc ? ': ' + hab.desc : ''}`);
-                        htmlPassivas += `
-                            <div class="passiva-mini" data-tooltip="${tooltipHabHtml}">
+                        const categoria = hab.tipo === 'melhoria' ? 'melhoria' : (hab.categoriaPassiva || 'narrativa');
+                        (passivasPorGrupo[categoria] ||= []).push(`
+                            <div class="passiva-mini categoria-${escapeHtml(categoria)}" data-tooltip="${tooltipHabHtml}">
                                 <div class="passiva-mini-icon">
                                     <div style="width:100%;height:100%;background-image:url('${iconUrl}');background-size:cover;background-position:center;border-radius:50%;position:absolute;top:0;left:0;z-index:2;"></div>
                                     <div class="skill-icon-glow" style="z-index:1;">${icon}</div>
                                 </div>
                                 <div class="passiva-mini-nome">${nomeHabHtml}</div>
+                                <span class="passiva-mini-tipo">${escapeHtml(categoria)}</span>
                                 <span class="passiva-mini-desc">${descHabHtml}</span>
-                            </div>
-                        `;
+                            </div>`);
+                    } else if(hab.freeAction) {
+                        rapidas.push({ habId, hab });
                     } else {
                         const meta = hab.formula ? ` • ${formulaHabHtml}` : '';
                         const recargaRestante = getRecargaRestante(dadosFicha, habId);
                         const recargaMeta = recargaRestante > 0 ? ` • recarga ${recargaRestante}` : '';
+                        if(habId === selecionada && recargaRestante <= 0) selecionadaDisponivel = true;
                         htmlFeiticos += `
                             <label class="magia-radio-item ${recargaRestante > 0 ? 'em-recarga' : ''}">
-                                <input type="radio" name="feitico-selecionado-slot${numSlot}" value="${habId}" ${recargaRestante > 0 ? 'disabled' : ''} onchange="atualizarTextoBotaoAcaoJogador(${numSlot})">
-                                <span class="magia-icon-mini">${icon}</span> <span>${nomeHabHtml}${meta}${recargaMeta}</span>
+                                <input type="radio" name="feitico-selecionado-slot${numSlot}" value="${habId}" ${habId === selecionada && recargaRestante <= 0 ? 'checked' : ''} ${recargaRestante > 0 ? 'disabled' : ''} onchange="selecionarAcaoCombate(${numSlot}, '${habId}')">
+                                <span class="magia-icon-mini">${icon}</span> <span>${nomeHabHtml}${meta}${recargaMeta}<small>1 Ação${toNumber(hab.mana, 0) ? ` · ${toNumber(hab.mana, 0)} ${dadosFicha.classe === 'Monge' ? 'Ki' : 'Mana'}` : ''}</small></span>
                             </label>
                         `;
                     }
                 }
 
-                if(htmlPassivas === '') htmlPassivas = '<div style="color:#5c3a21; font-size: 10px; font-style: italic;">Nenhuma equipada</div>';
+                if(!selecionadaDisponivel) {
+                    acaoCombateSelecionadaPorSlot[numSlot] = 'fisico';
+                    htmlFeiticos = htmlFeiticos.replace('value="fisico" ', 'value="fisico" checked ');
+                }
+
+                const titulos = { automatica: 'Automáticas', condicional: 'Condicionais', mista: 'Mistas', narrativa: 'Traços narrativos', melhoria: 'Melhorias da árvore' };
+                const htmlPassivas = Object.entries(passivasPorGrupo).filter(([, itens]) => itens.length).map(([categoria, itens]) => `<section class="passivas-grupo"><div class="passivas-grupo-titulo">${titulos[categoria]}</div><div class="passivas-grupo-itens">${itens.join('')}</div></section>`).join('') || '<div style="color:#5c3a21; font-size: 10px; font-style: italic;">Nenhuma passiva</div>';
 
                 containerFeiticos.innerHTML = htmlFeiticos;
                 containerPassivas.innerHTML = htmlPassivas;
+                if(containerRapidas && boxRapidas) {
+                    const isDono = usuarioAtual?.cargo === 'Jogador' && usuarioAtual.idFicha === slotsDeVisao[numSlot]?.idFicha;
+                    const usos = dadosFicha.combate?.combateId === getCombateIdAtivo() ? (dadosFicha.combate?.usos || {}) : {};
+                    const efeitos = getEfeitosCombateAtivos(dadosFicha);
+                    containerRapidas.innerHTML = rapidas.map(({ habId, hab }) => {
+                        const usada = Boolean(usos[habId]);
+                        const ativa = Boolean(efeitos[getChaveEfeitoCombate(habId)]);
+                        const foraDoTurno = Boolean(getCombateIdAtivo()) && !podeUsuarioAgirAgora(numSlot, { acao: habId });
+                        return `<button type="button" class="acao-rapida ${usada ? 'usada' : ''} ${ativa ? 'ativa' : ''}" onclick="ativarHabilidadeRapida(${numSlot}, '${habId}')" ${!isDono || usada || foraDoTurno ? 'disabled' : ''}><span>${escapeHtml(hab.icon || '✦')}</span><strong>${escapeHtml(hab.nome || habId)}</strong><small>${ativa ? 'EM VIGOR' : usada ? 'USADA NESTE COMBATE' : '0 Ações · 1× por combate'}</small></button>`;
+                    }).join('');
+                    boxRapidas.hidden = rapidas.length === 0;
+                }
+                renderizarEstadoCombateNoSlot(numSlot, dadosFicha);
                 atualizarTextoBotaoAcaoJogador(numSlot);
             }
 
-            // 2. Atualiza o Modal do Grimório se estiver aberto
+            renderizarEstadoCombateNoSlot(numSlot, slotsDeVisao[numSlot]?.dados || {});
+
             if(numSlotGrimorioAberto === numSlot) {
                 renderizarGrimorioModal(numSlot, grimorio);
             }
@@ -4836,30 +5519,46 @@ window.toggleSidebarJogador = function(numSlot) {
             }
 
             const temPermissao = (usuarioAtual.cargo === "Mestre") || (usuarioAtual.idFicha === slotsDeVisao[numSlot].idFicha);
+            const selecionada = acaoCombateSelecionadaPorSlot[numSlot] || 'fisico';
+            divAtivas.innerHTML = `
+                <div class="skill-card-visual grimorio-ataque-basico ${selecionada === 'fisico' ? 'selecionada-combate' : ''}">
+                    <div class="skill-icon-container"><div class="skill-icon-glow" style="z-index:1;">⚔️</div></div>
+                    <div class="skill-data-visual">
+                        <div class="skill-title-visual">Ataque Básico</div>
+                        <div class="skill-stats-visual"><span>⚔️ Ataque · 1 Ação · inimigo único</span></div>
+                        <div class="skill-desc-visual">Ação sempre disponível. O valor rolado recebe automaticamente bônus de Fúria e +2 de Garras Naturais quando aplicável.</div>
+                        ${temPermissao ? `<button onclick="selecionarAcaoCombate(${numSlot}, 'fisico', true)" class="btn-selecionar-acao">${selecionada === 'fisico' ? 'Selecionado' : 'Selecionar para atacar'}</button>` : ''}
+                    </div>
+                </div>`;
 
             for(let habId in grimorio) {
                 let hab = enrichHab(habId, grimorio[habId]);
                 let isEquipada = hab.equipada || false;
+                const isUsada = Boolean(dadosFicha.combate?.combateId === getCombateIdAtivo() && dadosFicha.combate?.usos?.[habId]);
                 const iconHtml = escapeHtml(hab.icon || '✨');
                 const nomeHabHtml = escapeHtml(hab.nome || habId);
                 const descHabHtml = escapeHtml(hab.desc || '');
                 const effectKindHtml = escapeHtml(hab.effectKind || '');
-                const alvoHtml = escapeHtml(hab.alvo || '');
+                const alvoHtml = escapeHtml(hab.targetMode || hab.alvo || 'self');
                 const formulaHtml = escapeHtml(hab.formula || '');
                 const mecanicaHtml = escapeHtml(hab.mecanica || '');
                 const recargaRestante = getRecargaRestante(dadosFicha, habId);
+                const categoriaPassiva = hab.tipo === 'passiva' ? (hab.categoriaPassiva || 'narrativa') : '';
 
                 let btnEquiparHtml = '';
                 // Passivas e melhorias nunca recebem botão de equipar (sempre ativas nativamente)
                 if(temPermissao && hab.tipo !== 'passiva' && hab.tipo !== 'melhoria' && !(hab.treeSkill && usuarioAtual.cargo === "Mestre")) {
                     btnEquiparHtml = `<button onclick="toggleEquiparHabilidade(${numSlot}, '${habId}')" class="btn-equipar-visual">${isEquipada ? 'Desequipar' : 'Equipar'}</button>`;
+                    if(isEquipada && !hab.freeAction && recargaRestante <= 0) {
+                        btnEquiparHtml += `<button onclick="selecionarAcaoCombate(${numSlot}, '${habId}', true)" class="btn-selecionar-acao">${selecionada === habId ? 'Selecionada para agir' : 'Selecionar para agir'}</button>`;
+                    }
                 }
 
-                let delHtml = (temPermissao && !hab.treeSkill) ? `<button onclick="deletarHabilidade(${numSlot}, '${habId}')" style="position: absolute; top: 10px; right: 10px; background:none; border:none; color:#8c1c13; cursor:pointer; font-size: 16px;" title="Apagar Habilidade">🗑️</button>` : '';
+                let delHtml = (temPermissao && !hab.treeSkill && !hab.isSystemObj) ? `<button onclick="deletarHabilidade(${numSlot}, '${habId}')" style="position: absolute; top: 10px; right: 10px; background:none; border:none; color:#8c1c13; cursor:pointer; font-size: 16px;" title="Apagar Habilidade">🗑️</button>` : '';
 
                 let iconUrl = `Icones/${habId}.png`;
                 let cardHtml = `
-                    <div class="skill-card-visual ${isEquipada ? 'equipada' : ''} tipo-${hab.tipo}">
+                    <div class="skill-card-visual ${isEquipada ? 'equipada' : ''} ${isUsada ? 'usada-no-combate' : ''} ${selecionada === habId ? 'selecionada-combate' : ''} tipo-${hab.tipo}">
                         ${delHtml}
                         <div class="skill-icon-container">
                             <div style="width:100%;height:100%;background-image:url('${iconUrl}');background-size:cover;background-position:center;position:absolute;top:0;left:0;z-index:2;border-radius:50%;"></div>
@@ -4868,10 +5567,11 @@ window.toggleSidebarJogador = function(numSlot) {
                         <div class="skill-data-visual">
                             <div class="skill-title-visual">${nomeHabHtml}</div>
                             <div class="skill-stats-visual" style="font-size: 11px; color:#dcd0ba; margin-bottom:5px;">
-                                <span>${hab.tipo === 'passiva' ? '🔒 Passiva' : (hab.tipo === 'melhoria' ? '+ Melhoria' : '⚡ Ativa')} · Efeito: ${effectKindHtml} · Alvo: ${alvoHtml}</span>
+                                <span>${hab.tipo === 'passiva' ? `🔒 Passiva · ${escapeHtml(categoriaPassiva)}` : (hab.tipo === 'melhoria' ? '+ Melhoria' : `⚡ Ativa${hab.freeAction ? ' gratuita' : ''}`)} · Efeito: ${effectKindHtml} · Alvo: ${alvoHtml}</span>
                                 ${hab.formula ? `<span style="display:block; color:#d4af37; margin-top:3px;">Fórmula: ${formulaHtml}</span>` : ''}
-                                ${(toNumber(hab.ap, 0) || toNumber(hab.mana, 0)) ? `<span style="display:block; color:#b89c72; margin-top:3px;">Custo: ${toNumber(hab.ap, 0)} AP · ${toNumber(hab.mana, 0)} ${dadosFicha.classe === 'Monge' ? 'Ki' : 'Mana'}</span>` : ''}
+                                ${hab.tipo !== 'passiva' && hab.tipo !== 'melhoria' ? `<span style="display:block; color:#b89c72; margin-top:3px;">Custo: ${hab.freeAction ? 0 : 1} Ação · ${toNumber(hab.mana, 0)} ${dadosFicha.classe === 'Monge' ? 'Ki' : 'Mana'}${hab.oncePerCombat ? ' · 1× por combate' : ''}</span>` : ''}
                                 ${recargaRestante > 0 ? `<span style="display:block; color:#d78973; margin-top:3px;">Recarga: ${recargaRestante} turno(s) restante(s)</span>` : ''}
+                                ${isUsada ? `<span class="grimorio-usada-aviso">Usada neste combate — disponível novamente no próximo</span>` : ''}
                             </div>
                             <div class="skill-desc-visual">${descHabHtml}</div>
                             ${mecanicaHtml ? `<div class="skill-desc-visual" style="color:#d4af37; margin-top:6px;">${mecanicaHtml}</div>` : ''}
@@ -4898,112 +5598,319 @@ window.toggleSidebarJogador = function(numSlot) {
             });
         };
 
+        function getIdsJogadoresNoCombate(iniciativa = iniciativaAtual) {
+            const ids = Object.values(iniciativa?.participantes || {})
+                .filter(participante => participante.tipo === 'jogador' && playersList.includes(participante.id))
+                .map(participante => participante.id);
+            return ids.length ? [...new Set(ids)] : [...playersList];
+        }
+
+        function getChaveEfeitoCombate(habId) {
+            return habId;
+        }
+
+        function isEfeitoNegativoPurificavel(efeito = {}) {
+            if(efeito.purificavel === false) return false;
+            if(efeito.positivo === false || efeito.polaridade === 'negativo' || efeito.tipo === 'debuff') return true;
+            return toNumber(efeito.modHp, 0) < 0
+                || toNumber(efeito.modMana, 0) < 0
+                || toNumber(efeito.modAttr, 0) < 0
+                || toNumber(efeito.danoPorTurno, 0) > 0
+                || toNumber(efeito.damageOverTime, 0) > 0;
+        }
+
+        function getDebuffsPurificaveis(dados = {}, combateId = getCombateIdAtivo()) {
+            const genericos = (Array.isArray(dados.efeitos) ? dados.efeitos : []).filter(isEfeitoNegativoPurificavel);
+            const combate = Object.entries(getEfeitosCombateAtivos(dados, combateId))
+                .filter(([, efeito]) => isEfeitoNegativoPurificavel(efeito));
+            return { genericos, combate, total: genericos.length + combate.length };
+        }
+
+        async function purificarAlvo(pathAlvo, combateId) {
+            let removidos = [];
+            const resultado = await safeTransaction(pathAlvo, dadosAtuais => {
+                if(!dadosAtuais) return;
+                const debuffs = getDebuffsPurificaveis(dadosAtuais, combateId);
+                if(debuffs.total === 0) return;
+                removidos = [
+                    ...debuffs.genericos.map(efeito => efeito.nome || 'Debuff'),
+                    ...debuffs.combate.map(([, efeito]) => efeito.nome || 'Debuff')
+                ];
+                const proximo = { ...dadosAtuais };
+                const idsRemovidos = new Set(debuffs.genericos.map(efeito => efeito.idUnico));
+                proximo.efeitos = (Array.isArray(dadosAtuais.efeitos) ? dadosAtuais.efeitos : []).filter(efeito => !idsRemovidos.has(efeito.idUnico));
+                debuffs.genericos.forEach(efeito => {
+                    if(efeito.attrDestino && toNumber(efeito.modAttr, 0) < 0) {
+                        proximo[efeito.attrDestino] = toNumber(proximo[efeito.attrDestino], 0) - toNumber(efeito.modAttr, 0);
+                    }
+                });
+                if(dadosAtuais.combate?.combateId === combateId) {
+                    const combate = normalizarCombateFicha(dadosAtuais, combateId);
+                    debuffs.combate.forEach(([efeitoId]) => { delete combate.efeitos[efeitoId]; });
+                    proximo.combate = combate;
+                }
+                return proximo;
+            });
+            return resultado.committed ? removidos : [];
+        }
+
+        async function aplicarProtecaoEspiritual(fonteId, combateId, turnoToken) {
+            const efeitoBase = criarEfeitoCombate('cur_protecao', fonteId, turnoToken);
+            if(!efeitoBase) return [];
+            const protegidos = [];
+            for(const idFicha of getIdsJogadoresNoCombate()) {
+                const resultado = await safeTransaction(`fichas/${idFicha}`, dadosAtuais => {
+                    if(!dadosAtuais || dadosAtuais.combate?.combateId !== combateId) return;
+                    const combate = normalizarCombateFicha(dadosAtuais, combateId);
+                    combate.efeitos[getChaveEfeitoCombate('cur_protecao')] = { ...efeitoBase };
+                    return { ...dadosAtuais, combate };
+                });
+                if(resultado.committed) protegidos.push(idFicha);
+            }
+            return protegidos;
+        }
+
+        async function prepararAcaoDoAtor(options = {}) {
+            const {
+                idFicha,
+                feiticoId,
+                tipoEfeito,
+                manaCusto = 0,
+                cooldownCusto = 0,
+                valorBase = 0,
+                bonusExtras = [],
+                habilidade = null
+            } = options;
+            const combateId = getCombateIdAtivo();
+            const participante = getParticipanteAtual();
+            const turnoToken = getTokenTurno(iniciativaAtual, participante);
+            let falha = 'A ação não pôde ser concluída.';
+            let resumo = null;
+            const resultado = await safeTransaction(`fichas/${idFicha}`, dadosAtuais => {
+                if(!dadosAtuais || !combateId || dadosAtuais.combate?.combateId !== combateId) {
+                    falha = 'Esta ação mecânica só pode ser usada durante um combate ativo.';
+                    return;
+                }
+                const manaAtual = toNumber(dadosAtuais['mana-atual'], 0);
+                const acoesAtuais = toNumber(dadosAtuais.ap, 0);
+                if(manaCusto > manaAtual) {
+                    falha = `${dadosAtuais.classe === 'Monge' ? 'Ki' : 'Mana'} insuficiente.`;
+                    return;
+                }
+                if(acoesAtuais < 1) {
+                    falha = 'Você não possui Ações restantes neste turno.';
+                    return;
+                }
+                if(getRecargaRestante(dadosAtuais, feiticoId) > 0) {
+                    falha = 'Esta técnica ainda está em recarga.';
+                    return;
+                }
+
+                const combate = normalizarCombateFicha(dadosAtuais, combateId);
+                const bonusOfensivos = (bonusExtras || []).map(bonus => ({ nome: bonus.nome, valor: Math.max(0, toNumber(bonus.valor, 0)) })).filter(bonus => bonus.valor > 0);
+                if(feiticoId === 'fisico' && dadosAtuais.raca === 'Khajiit') {
+                    bonusOfensivos.push({ nome: 'Garras Naturais', valor: 2 });
+                }
+                const bonusDeEfeitos = consumirBonusDanoDeEfeitos(combate.efeitos, turnoToken, tipoEfeito);
+                combate.efeitos = bonusDeEfeitos.efeitos;
+                bonusOfensivos.push(...bonusDeEfeitos.bonusOfensivos);
+
+                if(habilidade?.combatEffect === 'mon_ki') {
+                    combate.efeitos[getChaveEfeitoCombate('mon_ki')] = criarEfeitoCombate('mon_ki', idFicha, turnoToken);
+                }
+
+                const recargas = { ...(dadosAtuais.recargas || {}) };
+                if(cooldownCusto > 0) recargas[feiticoId] = cooldownCusto + 1;
+                resumo = {
+                    valorBase: Math.max(0, toNumber(valorBase, 0)),
+                    bonusOfensivos,
+                    bonusTotal: bonusOfensivos.reduce((total, bonus) => total + bonus.valor, 0),
+                    combateId,
+                    turnoToken
+                };
+                return {
+                    ...dadosAtuais,
+                    'mana-atual': manaAtual - manaCusto,
+                    ap: acoesAtuais - 1,
+                    recargas,
+                    combate
+                };
+            });
+            return { ok: Boolean(resultado.committed), falha, resumo, dados: resultado.snapshot?.val?.() || null };
+        }
+
+        window.ativarHabilidadeRapida = async function(numSlot, habId) {
+            const habilidade = getHabilidadeSistemaPorId(habId);
+            const idFicha = slotsDeVisao[Number(numSlot)]?.idFicha;
+            if(!habilidade?.freeAction || !idFicha) return;
+            if(!getCombateIdAtivo()) {
+                adicionarCombatLog(`${getNomeAtorDoSlot(numSlot)} evocou ${habilidade.nome} apenas de forma narrativa.`, 'info');
+                mostrarCombatToast('Uso narrativo: nenhum efeito ou recurso foi alterado.');
+                return;
+            }
+            if(!podeUsuarioAgirAgora(numSlot, { acao: habId })) return alert('Esta habilidade só pode ser ativada no seu turno.');
+
+            const combateId = getCombateIdAtivo();
+            const turnoToken = getTokenTurno(iniciativaAtual, getParticipanteAtual());
+            let falha = 'Não foi possível ativar a habilidade.';
+            const resultado = await safeTransaction(`fichas/${idFicha}`, dadosAtuais => {
+                if(!dadosAtuais || dadosAtuais.combate?.combateId !== combateId) return;
+                const combate = normalizarCombateFicha(dadosAtuais, combateId);
+                const habilidadeDisponivel = Boolean(
+                    HABILIDADES_SISTEMA[dadosAtuais.raca || '']?.[habId]
+                    || HABILIDADES_SISTEMA[dadosAtuais.classe || '']?.[habId]
+                );
+                if(!habilidadeDisponivel || !dadosAtuais.grimorio?.[habId]?.equipada) {
+                    falha = `${habilidade.nome} precisa pertencer à ficha e estar equipada.`;
+                    return;
+                }
+                if(combate.usos[habId]) {
+                    falha = `${habilidade.nome} já foi usada neste combate.`;
+                    return;
+                }
+                const efeito = criarEfeitoCombate(habId, idFicha, turnoToken);
+                if(!efeito) return;
+                combate.usos[habId] = true;
+                combate.efeitos[getChaveEfeitoCombate(habId)] = efeito;
+                return { ...dadosAtuais, combate };
+            });
+            if(!resultado.committed) return alert(falha);
+            adicionarCombatLog(`${getNomeAtorDoSlot(numSlot)} ativou ${habilidade.nome}. ${habilidade.mecanica || habilidade.desc}`, 'buff');
+            mostrarCombatToast(`${habilidade.nome} ativada.`);
+        };
+
         window.jogadorLancarFeitico = async function(numSlot) {
-            if(!podeUsuarioAgirAgora(numSlot, { acao: 'ataque-jogador' })) return;
+            numSlot = Number(numSlot);
+            if(!getCombateIdAtivo()) return alert('Ataques e habilidades mecânicas só podem ser usados durante um combate ativo.');
+            if(!podeUsuarioAgirAgora(numSlot, { acao: 'ataque-jogador' })) return alert('Aguarde o seu turno para agir.');
             const radioSelecionado = document.querySelector(`input[name="feitico-selecionado-slot${numSlot}"]:checked`);
-            if(!radioSelecionado) return alert("Selecione um ataque ou magia primeiro.");
+            if(!radioSelecionado) return alert('Selecione o Ataque Básico ou uma habilidade equipada.');
 
             const feiticoId = radioSelecionado.value;
             const inputDano = document.getElementById(`slot${numSlot}-jogador-ataque-dano`);
-            let valorEfeito = Number(inputDano.value) || 0;
-            const idFicha = slotsDeVisao[numSlot].idFicha;
-            const dadosAtor = slotsDeVisao[numSlot].dados || {};
+            const idFicha = slotsDeVisao[numSlot]?.idFicha;
+            if(!idFicha) return;
+            const snapshotAtor = await safeGet(`fichas/${idFicha}`);
+            const dadosAtor = snapshotAtor.val() || {};
             const checkboxes = document.querySelectorAll(`#alvos-combate-slot${numSlot} input[type="checkbox"]:checked`);
+            let valorEfeito = Number(inputDano?.value) || 0;
             let manaCusto = 0;
-            let apCusto = 0;
             let cooldownCusto = 0;
             let tipoFeitico = 'dano';
             let targetMode = 'enemy';
             let habSelecionada = null;
             let formulaRolada = null;
+            const bonusExtras = [];
 
             if(feiticoId !== 'fisico') {
-                let snap = await safeGet(`fichas/${idFicha}/grimorio/${feiticoId}`);
-                if(snap.exists()) {
-                    habSelecionada = enrichHab(feiticoId, snap.val());
-                    manaCusto = toNumber(habSelecionada.mana, 0);
-                    apCusto = toNumber(habSelecionada.ap, 0);
-                    cooldownCusto = Math.max(0, Math.trunc(toNumber(habSelecionada.cooldown, 0)));
-                    tipoFeitico = inferirTipoEfeito(feiticoId, habSelecionada);
-                    targetMode = habSelecionada.targetMode || habSelecionada.alvo || 'self';
+                const entrada = dadosAtor.grimorio?.[feiticoId];
+                if(!entrada?.equipada) return alert('Esta habilidade não está equipada no Grimório.');
+                habSelecionada = enrichHab(feiticoId, entrada);
+                if(habSelecionada.tipo === 'passiva' || habSelecionada.tipo === 'melhoria') return alert('Passivas não são lançadas como ataques.');
+                if(habSelecionada.freeAction) return alert('Use o botão rápido desta habilidade; ela não substitui o Ataque Básico.');
+                manaCusto = toNumber(habSelecionada.mana, 0);
+                cooldownCusto = Math.max(0, Math.trunc(toNumber(habSelecionada.cooldown, 0)));
+                tipoFeitico = inferirTipoEfeito(feiticoId, habSelecionada);
+                targetMode = habSelecionada.targetMode || habSelecionada.alvo || 'self';
 
-                    if(habSelecionada.formula) {
-                        try {
-                            formulaRolada = rolarFormulaMagica(habSelecionada.formula, dadosAtor);
-                            valorEfeito = formulaRolada.total;
-                            const skill = getTreeSkillById(dadosAtor.classe || '', feiticoId);
-                            if(skill?.tags?.includes('punho')) valorEfeito += toNumber(getArvoreModifiers(dadosAtor).punchDamage, 0);
-                            if(inputDano) inputDano.value = valorEfeito;
-                        } catch (err) {
-                            console.error(err);
-                            return alert("A fórmula dessa magia está inválida. Revise o grimório antes de lançar.");
-                        }
+                if(habSelecionada.formula) {
+                    try {
+                        formulaRolada = rolarFormulaMagica(habSelecionada.formula, dadosAtor);
+                        valorEfeito = tipoFeitico === 'cura' ? Math.max(1, formulaRolada.total) : formulaRolada.total;
+                        const skill = getTreeSkillById(dadosAtor.classe || '', feiticoId);
+                        const bonusPunho = skill?.tags?.includes('punho') ? toNumber(getArvoreModifiers(dadosAtor).punchDamage, 0) : 0;
+                        if(bonusPunho > 0) bonusExtras.push({ nome: 'Técnica do Punho', valor: bonusPunho });
+                        if(inputDano) inputDano.value = valorEfeito;
+                    } catch (err) {
+                        console.error(err);
+                        return alert('A fórmula desta habilidade está inválida.');
                     }
                 }
             }
 
             const efeitoAutomatico = ['dano', 'cura', 'escudo'].includes(tipoFeitico);
-            if(efeitoAutomatico && valorEfeito <= 0) return alert("Insira um valor de dano, cura ou escudo válido!");
-            const recargaAtual = getRecargaRestante(dadosAtor, feiticoId);
-            if(recargaAtual > 0) return alert(`Esta técnica ainda precisa de ${recargaAtual} turno(s) para recarregar.`);
+            if(efeitoAutomatico && valorEfeito <= 0) return alert('Insira um valor válido para a ação.');
+            if(getRecargaRestante(dadosAtor, feiticoId) > 0) return alert(`Esta técnica ainda precisa de ${getRecargaRestante(dadosAtor, feiticoId)} turno(s) para recarregar.`);
 
-            let alvos = targetMode === 'self' ? [idFicha] : Array.from(checkboxes).map(cb => cb.value);
-            if(alvos.length === 0) return alert("Selecione pelo menos um alvo!");
-            if(targetMode === 'enemy' && alvos.some(alvo => playersList.includes(alvo))) return alert("Esta técnica só pode atingir inimigos.");
-            if(targetMode === 'ally' && alvos.some(alvo => !playersList.includes(alvo))) return alert("Esta técnica só pode atingir você ou aliados.");
+            let alvos = targetMode === 'self'
+                ? [idFicha]
+                : targetMode === 'allPlayers'
+                    ? getIdsJogadoresNoCombate()
+                    : Array.from(checkboxes).map(cb => cb.value);
+            if(!['self', 'allPlayers'].includes(targetMode) && alvos.length !== 1) return alert('Escolha exatamente um alvo para esta ação.');
+            if(alvos.length === 0) return alert('Nenhum alvo válido está disponível.');
+            if(targetMode === 'enemy' && alvos.some(alvo => playersList.includes(alvo))) return alert('Esta ação só pode atingir um inimigo.');
+            if(targetMode === 'ally' && alvos.some(alvo => !playersList.includes(alvo))) return alert('Esta ação só pode atingir você ou um aliado.');
 
-            let manaAtual = Number(document.getElementById(`slot${numSlot}-mana-atual`)?.value) || 0;
-            let apAtual = Number(document.getElementById(`slot${numSlot}-ap`)?.value) || 0;
-            const resourceName = dadosAtor.classe === 'Monge' ? 'Ki' : 'Mana';
-
-            if(manaCusto > manaAtual) return alert(`${resourceName} insuficiente para usar esta técnica!`);
-            if(apCusto > apAtual) return alert("AP insuficiente!");
-
-            if(manaCusto > 0 || apCusto > 0 || cooldownCusto > 0) {
-                const gasto = await safeTransaction(`fichas/${idFicha}`, (dadosAtuais) => {
-                    if(!dadosAtuais) return;
-                    const manaDB = toNumber(dadosAtuais['mana-atual'], 0);
-                    const apDB = toNumber(dadosAtuais.ap, 0);
-                    if(manaCusto > manaDB || apCusto > apDB || getRecargaRestante(dadosAtuais, feiticoId) > 0) return;
-                    const recargas = { ...(dadosAtuais.recargas || {}) };
-                    if(cooldownCusto > 0) recargas[feiticoId] = cooldownCusto + 1;
-                    return {
-                        ...dadosAtuais,
-                        'mana-atual': manaDB - manaCusto,
-                        'ap': apDB - apCusto,
-                        recargas
-                    };
-                });
-                if(!gasto.committed) return alert(`${resourceName}, AP ou recarga mudou antes da ação. Confira os valores e tente novamente.`);
-            }
-
-            const ator = getNomeAtorDoSlot(numSlot);
-            const habilidadeLog = feiticoId === 'fisico' ? null : (habSelecionada?.nome || feiticoId);
-            if(!efeitoAutomatico) {
-                adicionarCombatLog(`${ator} usou ${habilidadeLog}. ${habSelecionada?.mecanica || habSelecionada?.desc || 'O Mestre resolve o efeito narrativo.'}`, 'info');
-                mostrarCombatToast(`${habilidadeLog} ativada.`);
-                checkboxes.forEach(cb => cb.checked = false);
-                destacarAlvosSelecionados();
-                return;
-            }
-            for(let alvo of alvos) {
-                if(alvo.startsWith("horda_") && ameacaEmCombateGlobal && alvo.startsWith(ameacaEmCombateGlobal + "_")) {
-                    let hordaId = ameacaEmCombateGlobal;
-                    let mId = alvo.replace(hordaId + "_", "");
-                    const pathAlvo = `hordas/${hordaId}/membros/${mId}`;
-                    const meta = await aplicarEfeitoVidaPath(pathAlvo, valorEfeito, tipoFeitico);
-                    registrarFeedbackELog(pathAlvo, meta, { ator, habilidade: habilidadeLog });
-                } else {
-                    const pathAlvo = `fichas/${alvo}`;
-                    const meta = await aplicarEfeitoVidaPath(pathAlvo, valorEfeito, tipoFeitico);
-                    registrarFeedbackELog(pathAlvo, meta, { ator, habilidade: habilidadeLog });
+            const pathPurificacao = tipoFeitico === 'purificacao' ? pathFromValorAlvo(alvos[0]) : '';
+            if(pathPurificacao) {
+                const alvoSnap = await safeGet(pathPurificacao);
+                if(getDebuffsPurificaveis(alvoSnap.val() || {}, getCombateIdAtivo()).total === 0) {
+                    return alert('O alvo não possui efeitos negativos purificáveis. Nenhuma Ação ou Mana foi gasta.');
                 }
             }
 
-            inputDano.value = '';
-            checkboxes.forEach(cb => cb.checked = false);
-            destacarAlvosSelecionados();
-            if(formulaRolada) mostrarCombatToast(`Rolagem: ${habSelecionada.formula} = ${valorEfeito}.`);
+            const preparacao = await prepararAcaoDoAtor({
+                idFicha,
+                feiticoId,
+                tipoEfeito: tipoFeitico,
+                manaCusto,
+                cooldownCusto,
+                valorBase: valorEfeito,
+                bonusExtras,
+                habilidade: habSelecionada
+            });
+            if(!preparacao.ok) return alert(preparacao.falha);
+
+            const ator = getNomeAtorDoSlot(numSlot);
+            const habilidadeLog = feiticoId === 'fisico' ? null : (habSelecionada?.nome || feiticoId);
+            const limparSelecao = () => {
+                checkboxes.forEach(cb => cb.checked = false);
+                destacarAlvosSelecionados();
+                if(inputDano) inputDano.value = '';
+            };
+
+            if(tipoFeitico === 'purificacao') {
+                const removidos = await purificarAlvo(pathPurificacao, preparacao.resumo.combateId);
+                adicionarCombatLog(`${ator} usou ${habilidadeLog} em ${getNomeAlvoPorPath(pathPurificacao)} e removeu: ${removidos.join(', ')}.`, 'cura');
+                mostrarCombatToast(`${removidos.length} efeito(s) negativo(s) removido(s).`);
+                limparSelecao();
+                return;
+            }
+
+            if(tipoFeitico === 'buff_grupo' && habSelecionada?.combatEffect === 'cur_protecao') {
+                const protegidos = await aplicarProtecaoEspiritual(idFicha, preparacao.resumo.combateId, preparacao.resumo.turnoToken);
+                adicionarCombatLog(`${ator} ativou ${habilidadeLog}: ${protegidos.length} jogador(es) recebem -2 de dano por 2 turnos do Curandeiro.`, 'buff');
+                mostrarCombatToast('Proteção Espiritual envolveu o grupo.');
+                limparSelecao();
+                return;
+            }
+
+            if(tipoFeitico === 'buff' && habSelecionada?.combatEffect === 'mon_ki') {
+                adicionarCombatLog(`${ator} ativou ${habilidadeLog}: -2 de dano recebido até o próximo turno.`, 'buff');
+                mostrarCombatToast('Ki Interior em vigor.');
+                limparSelecao();
+                return;
+            }
+
+            if(!efeitoAutomatico) {
+                adicionarCombatLog(`${ator} usou ${habilidadeLog || 'uma habilidade'}. ${habSelecionada?.mecanica || habSelecionada?.desc || 'O Mestre resolve o efeito narrativo.'}`, 'info');
+                mostrarCombatToast(`${habilidadeLog || 'Habilidade'} ativada.`);
+                limparSelecao();
+                return;
+            }
+
+            const valorFinal = valorEfeito + preparacao.resumo.bonusTotal;
+            const pathAlvo = pathFromValorAlvo(alvos[0]);
+            const meta = await aplicarEfeitoVidaPath(pathAlvo, valorFinal, tipoFeitico, {
+                combateId: preparacao.resumo.combateId,
+                tipoAtaque: feiticoId === 'fisico' ? 'basico' : 'habilidade',
+                valorBase: valorEfeito,
+                bonusOfensivos: preparacao.resumo.bonusOfensivos
+            });
+            registrarFeedbackELog(pathAlvo, meta, { ator, habilidade: habilidadeLog });
+            limparSelecao();
+            if(formulaRolada) mostrarCombatToast(`Rolagem: ${habSelecionada.formula} = ${valorEfeito}${preparacao.resumo.bonusTotal ? ` + ${preparacao.resumo.bonusTotal} bônus` : ''}.`);
         };
 
         window.adicionarHabilidade = function(numSlot) {
@@ -5097,12 +6004,14 @@ window.toggleSidebarJogador = function(numSlot) {
                 const habBase = normalizeHabV1(k, habFonte);
                 const existente = grimorioAntigo[k] ? normalizeHabV1(k, grimorioAntigo[k]) : null;
                 novoGrimorio[k] = {
-                    ...habBase,
                     ...(existente || {}),
+                    ...habBase,
                     isSystemObj: true,
-                    equipada: existente && Object.prototype.hasOwnProperty.call(existente, 'equipada')
-                        ? Boolean(existente.equipada)
-                        : habBase.tipo === 'passiva'
+                    equipada: habBase.tipo === 'passiva' || habBase.tipo === 'melhoria'
+                        ? true
+                        : existente && Object.prototype.hasOwnProperty.call(existente, 'equipada')
+                            ? Boolean(existente.equipada)
+                            : false
                 };
             });
 
@@ -5133,6 +6042,22 @@ window.toggleSidebarJogador = function(numSlot) {
             if(!dados.raca && !dados.classe) return;
             const resultado = montarGrimorioSistemaSincronizado(dados);
             if(resultado.mudou) await safeUpdate(`fichas/${idFicha}`, { grimorio: resultado.grimorio });
+        }
+
+        async function sincronizarBonusPassivasAtributosSeNecessario(idFicha, dados = {}) {
+            if(toNumber(dados.passivasAtributosSchemaVersion, 0) >= PASSIVAS_ATRIBUTOS_SCHEMA_VERSION) return;
+            await safeTransaction(`fichas/${idFicha}`, dadosAtuais => {
+                if(!dadosAtuais || toNumber(dadosAtuais.passivasAtributosSchemaVersion, 0) >= PASSIVAS_ATRIBUTOS_SCHEMA_VERSION) return;
+                const bonus = getBonusAtributosPassivos(dadosAtuais.raca || '', dadosAtuais.classe || '');
+                const proximo = {
+                    ...dadosAtuais,
+                    passivasAtributosSchemaVersion: PASSIVAS_ATRIBUTOS_SCHEMA_VERSION
+                };
+                ATTRS.forEach(attr => {
+                    if(bonus[attr]) proximo[attr] = toNumber(dadosAtuais[attr], 0) + bonus[attr];
+                });
+                return proximo;
+            });
         }
 
         window.atualizarHabilidadesSistema = async function(idFicha, numSlot) {
@@ -5205,29 +6130,21 @@ window.toggleSidebarJogador = function(numSlot) {
                     return;
                 }
 
-                let baseAtual = {for:0, des:0, con:0, int:0, sab:0, car:0, per:0};
                 let oldRaca = dadosAntigos.raca || '';
                 let oldClasse = dadosAntigos.classe || '';
-                if(typeof RACES !== 'undefined' && RACES[oldRaca] && !RACES[oldRaca].points) {
-                    for(let a in baseAtual) if(RACES[oldRaca][a]) baseAtual[a] += RACES[oldRaca][a];
-                }
-                if(typeof CLASSES !== 'undefined' && CLASSES[oldClasse]) {
-                    for(let a in baseAtual) if(CLASSES[oldClasse][a]) baseAtual[a] += CLASSES[oldClasse][a];
-                }
+                let baseAtual = getBaseAtributosNaturais(oldRaca, oldClasse);
+                let modsEfeitosAtributos = getModificadoresAtributosEfeitos(dadosAntigos);
 
                 if (tipo === 'heroi' && (chaveDoBanco === 'raca' || chaveDoBanco === 'classe')) {
                     let newRaca = chaveDoBanco === 'raca' ? novoValor : oldRaca;
                     let newClasse = chaveDoBanco === 'classe' ? novoValor : oldClasse;
 
-                    let newBase = {for:0, des:0, con:0, int:0, sab:0, car:0, per:0};
-                    if(typeof RACES !== 'undefined' && RACES[newRaca] && !RACES[newRaca].points) {
-                        for(let a in newBase) if(RACES[newRaca][a]) newBase[a] += RACES[newRaca][a];
-                    }
-                    if(typeof CLASSES !== 'undefined' && CLASSES[newClasse]) {
-                        for(let a in newBase) if(CLASSES[newClasse][a]) newBase[a] += CLASSES[newClasse][a];
-                    }
+                    let newBase = getBaseAtributosNaturais(newRaca, newClasse);
 
-                    let updates = { [chaveDoBanco]: novoValor };
+                    let updates = {
+                        [chaveDoBanco]: novoValor,
+                        passivasAtributosSchemaVersion: PASSIVAS_ATRIBUTOS_SCHEMA_VERSION
+                    };
                     ['for', 'des', 'con', 'int', 'sab', 'car', 'per'].forEach(attr => {
                         let delta = newBase[attr] - baseAtual[attr];
                         if(delta !== 0) {
@@ -5242,7 +6159,7 @@ window.toggleSidebarJogador = function(numSlot) {
 
                 if (tipo === 'heroi' && ATTRS.includes(chaveDoBanco) && novoValor !== "") {
                     novoValor = Number(novoValor);
-                    let minG = baseAtual[chaveDoBanco];
+                    let minG = baseAtual[chaveDoBanco] + (modsEfeitosAtributos[chaveDoBanco] || 0);
                     if (novoValor < minG) novoValor = minG;
 
                     let expT = Number(dadosAntigos['expTotal']) || 0;
@@ -5253,7 +6170,7 @@ window.toggleSidebarJogador = function(numSlot) {
                     let ptsGastos = 0;
                     ['for', 'des', 'con', 'int', 'sab', 'car', 'per'].forEach(a => {
                         let valDaVez = (a === chaveDoBanco) ? novoValor : (Number(dadosAntigos[a]) || 0);
-                        ptsGastos += Math.max(0, valDaVez - baseAtual[a]);
+                        ptsGastos += Math.max(0, (valDaVez - (modsEfeitosAtributos[a] || 0)) - baseAtual[a]);
                     });
 
                     if (ptsGastos > maxA && usuarioAtual.cargo !== "Mestre") {

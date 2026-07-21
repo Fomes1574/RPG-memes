@@ -4584,3 +4584,138 @@ body.arvore-modal-open { overflow: hidden; }
     .node-raiz::before { animation: none !important; }
     .arvore-map { transition: none; }
 }
+
+/* Combate V2: Ações, efeitos persistentes e Grimório */
+.acoes-ficha-control {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 82px;
+    padding: 8px;
+    border: 1px solid rgba(217, 156, 87, .28);
+    background: linear-gradient(180deg, rgba(60, 35, 17, .28), rgba(4, 2, 1, .58));
+}
+.acoes-marcadores { min-height: 24px; display: flex; align-items: center; justify-content: center; gap: 5px; color: #d99c57; }
+.marcador-acao { font-size: 20px; line-height: 1; filter: drop-shadow(0 0 5px rgba(217, 156, 87, .55)); }
+.marcador-acao.gasta { color: #5b4635; filter: none; }
+.acoes-contador { display: flex; align-items: center; justify-content: center; gap: 5px; color: #896b50; font-size: 12px; }
+.acoes-contador input {
+    width: 44px !important;
+    margin: 0 !important;
+    padding: 2px 4px !important;
+    text-align: center;
+    color: #f1b66f !important;
+    border-color: #79532f !important;
+    background: #080503 !important;
+}
+.acoes-contador strong { color: #d99c57; font-size: 15px; }
+body.is-jogador .acoes-contador input:disabled { opacity: 1; cursor: default; }
+
+.acoes-rapidas-combate { margin-top: 13px; padding-top: 10px; border-top: 1px dashed #4d301c; }
+.combate-subtitulo { margin-bottom: 7px; color: #b99a70; font-size: 10px; letter-spacing: 1.2px; text-transform: uppercase; }
+.lista-acoes-rapidas { display: grid; gap: 7px; }
+.acao-rapida {
+    display: grid;
+    grid-template-columns: 28px 1fr;
+    align-items: center;
+    gap: 0 8px;
+    min-height: 48px;
+    padding: 7px 9px;
+    text-align: left;
+    color: #ead8bc;
+    border: 1px solid #74402a;
+    background: linear-gradient(135deg, rgba(92, 24, 19, .74), rgba(20, 9, 5, .95));
+}
+.acao-rapida > span { grid-row: 1 / 3; font-size: 20px; text-align: center; }
+.acao-rapida strong { font: 700 11px/1.2 'Cinzel', serif; }
+.acao-rapida small { color: #c69573; font-size: 9px; }
+.acao-rapida:hover:not(:disabled) { border-color: #d76c3a; box-shadow: 0 0 15px rgba(213, 56, 27, .28); }
+.acao-rapida.ativa { border-color: #e0522f; box-shadow: inset 0 0 16px rgba(190, 28, 18, .25), 0 0 12px rgba(218, 61, 27, .25); }
+.acao-rapida.usada { opacity: .43; filter: grayscale(.65); }
+
+.magia-radio-item span:last-child { display: flex; flex-direction: column; gap: 2px; }
+.magia-radio-item small { color: #8f775d; font-size: 8px; font-weight: 400; }
+.btn-lancar-feitico.sem-acoes { opacity: .42; filter: grayscale(.55); }
+
+.passivas-flex { align-items: stretch; }
+.passivas-grupo { width: 100%; padding-top: 6px; border-top: 1px solid rgba(92, 58, 33, .45); }
+.passivas-grupo:first-child { border-top: 0; }
+.passivas-grupo-titulo { margin: 0 0 7px; color: #806c55; font-size: 8px; letter-spacing: 1px; text-transform: uppercase; }
+.passivas-grupo-itens { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
+.passiva-mini-tipo { margin-top: 3px; padding: 1px 4px; color: #9b866b; border: 1px solid rgba(139, 109, 67, .35); font-size: 7px; text-transform: uppercase; }
+.passiva-mini.categoria-automatica .passiva-mini-icon { border-color: #48a978; }
+.passiva-mini.categoria-condicional .passiva-mini-icon { border-color: #c88b42; }
+.passiva-mini.categoria-mista .passiva-mini-icon { border-color: #776fc2; }
+
+.estado-combate-ficha {
+    position: relative;
+    display: grid;
+    gap: 9px;
+    padding: 11px;
+    overflow: hidden;
+    border: 1px solid rgba(127, 48, 27, .5);
+    background: linear-gradient(145deg, rgba(29, 7, 5, .84), rgba(7, 4, 3, .9));
+}
+.estado-combate-ficha[hidden] { display: none; }
+.barras-furia { display: grid; gap: 8px; }
+.furia-medidor { position: relative; padding: 7px 9px; border: 1px solid #7d2119; background: rgba(15, 3, 3, .75); box-shadow: inset 0 0 15px rgba(86, 4, 4, .34); }
+.furia-medidor-cabecalho { display: flex; justify-content: space-between; gap: 12px; margin-bottom: 5px; }
+.furia-medidor-cabecalho strong { color: #ffb079; font: 700 11px/1.2 'Cinzel', serif; letter-spacing: .6px; }
+.furia-medidor-cabecalho span { color: #e97854; font-size: 9px; }
+.furia-trilho { position: relative; height: 13px; overflow: hidden; border: 1px solid #5f1712; background: #160403; box-shadow: inset 0 0 7px #000; }
+.furia-trilho i {
+    position: absolute;
+    inset: 0 auto 0 0;
+    background:
+        radial-gradient(circle at 22% 50%, rgba(255, 187, 91, .88) 0 3%, transparent 4%),
+        linear-gradient(90deg, #6e0608, #d12419 48%, #ff6a25 76%, #9b0b08);
+    box-shadow: 0 0 12px #df2c17, inset 0 0 6px rgba(255, 219, 128, .55);
+    transition: width .48s cubic-bezier(.2,.8,.2,1);
+    animation: furiaSangue 2.4s linear infinite;
+}
+.furia-trilho b { position: absolute; inset: 0; z-index: 2; display: grid; place-items: center; color: #ffe0b2; font-size: 8px; text-shadow: 0 1px 2px #000; }
+.furia-medidor small { display: block; margin-top: 4px; color: #8f6658; font-size: 8px; }
+.furia-medidor.furia-barbara { border-color: #8c4d26; background: linear-gradient(120deg, rgba(35, 7, 5, .85), rgba(33, 25, 16, .9)); }
+.furia-medidor.furia-barbara::after { content: ''; position: absolute; inset: 2px; pointer-events: none; border: 1px dashed rgba(218, 135, 63, .22); }
+.efeitos-atuais-combate { display: flex; flex-wrap: wrap; gap: 7px; }
+.efeito-combate-chip { display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; min-width: 145px; padding: 6px 8px; border: 1px solid #665c50; background: rgba(20, 19, 18, .82); }
+.efeito-combate-chip strong { color: #d7cab8; font-size: 10px; }
+.efeito-combate-chip span { color: #8bc0d0; font-size: 9px; }
+.efeito-combate-chip small { grid-column: 1 / -1; color: #82796c; font-size: 8px; }
+.efeito-combate-chip.postura { border-color: #76838b; box-shadow: inset 0 0 12px rgba(111, 145, 160, .15); }
+.efeito-combate-chip.protecao { border-color: #8070b4; box-shadow: inset 0 0 12px rgba(108, 79, 178, .18); }
+.efeito-combate-chip.ki { border-color: #4f8b9d; box-shadow: inset 0 0 12px rgba(42, 147, 179, .18); }
+.efeito-combate-chip.furia-barbara { border-color: #9f6338; box-shadow: inset 0 0 12px rgba(145, 76, 35, .2); }
+
+.container.em-furia { border-color: #9d2519 !important; box-shadow: 0 0 26px rgba(180, 30, 18, .28), inset 0 0 45px rgba(88, 7, 5, .2) !important; }
+.container.em-furia .foto-personagem { border-color: #c73b20; filter: drop-shadow(0 7px 13px rgba(219, 50, 18, .48)) saturate(1.15); }
+.container.em-furia::after {
+    content: '';
+    position: absolute;
+    inset: 3px;
+    z-index: 0;
+    pointer-events: none;
+    border: 1px solid rgba(232, 56, 20, .2);
+    box-shadow: inset 0 0 28px rgba(173, 20, 12, .17);
+    animation: fichaFuriaPulso 2.7s ease-in-out infinite;
+}
+.container.em-furia > * { position: relative; z-index: 1; }
+.container.em-postura-defensiva #caixa-hp-slot1,
+.container.em-postura-defensiva #caixa-hp-slot2 { box-shadow: 0 0 0 2px rgba(133, 159, 172, .34), inset 0 0 18px rgba(90, 130, 149, .18); }
+.container.em-furia-barbara #caixa-hp-slot1,
+.container.em-furia-barbara #caixa-hp-slot2 { box-shadow: 0 0 0 2px rgba(165, 94, 48, .32), inset 0 0 19px rgba(113, 54, 22, .2); }
+
+.skill-card-visual.selecionada-combate { outline: 1px solid rgba(212, 175, 55, .72); box-shadow: 0 0 18px rgba(212, 175, 55, .2); }
+.skill-card-visual.usada-no-combate { opacity: .46; filter: grayscale(.62); }
+.grimorio-usada-aviso { display: block; margin-top: 5px; color: #d06f58; font-size: 9px; }
+.btn-selecionar-acao { margin: 8px 0 0 6px; border-color: #7c683d; color: #e0c875; background: rgba(35, 26, 12, .9); }
+.grimorio-ataque-basico .skill-icon-glow { display: grid; place-items: center; font-size: 28px; }
+
+@keyframes furiaSangue { 0% { background-position: 0 0; filter: brightness(.92); } 50% { filter: brightness(1.22); } 100% { background-position: 90px 0; filter: brightness(.92); } }
+@keyframes fichaFuriaPulso { 0%,100% { opacity: .4; } 50% { opacity: 1; } }
+
+@media (prefers-reduced-motion: reduce) {
+    .furia-trilho i,
+    .container.em-furia::after { animation: none; }
+}
