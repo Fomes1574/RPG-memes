@@ -228,3 +228,28 @@ test("o piso permanente dos atributos não apaga debuffs temporários", () => {
     assert.match(script, /\(val - modEfeito\) - minVal/);
     assert.match(script, /valDaVez - \(modsEfeitosAtributos\[a\] \|\| 0\)/);
 });
+
+test("Ações fora de combate ficam cheias e consumo só vale no combate correspondente", () => {
+    const inicio = script.indexOf("function getAcoesMaximas");
+    const fim = script.indexOf("\n\n        function getCombateIdAtivo", inicio);
+    assert.ok(inicio >= 0 && fim > inicio, "Normalizador de Ações não encontrado");
+    const calcular = Function(`
+        const toNumber = (value, fallback = 0) => Number.isFinite(Number(value)) ? Number(value) : fallback;
+        const getCombateIdAtivo = () => "";
+        ${script.slice(inicio, fim)}
+        return { getAcoesMaximas, getAcoesAtuais };
+    `)();
+
+    assert.equal(calcular.getAcoesAtuais({ classe: "Monge", ap: 1 }, ""), 2);
+    assert.equal(calcular.getAcoesAtuais({ classe: "Guerreiro", ap: 0 }, ""), 1);
+    assert.equal(calcular.getAcoesAtuais({ classe: "Monge", ap: 1, combate: { combateId: "c1" } }, "c1"), 1);
+    assert.equal(calcular.getAcoesAtuais({ classe: "Monge", ap: 0, combate: { combateId: "c1" } }, "c1"), 0);
+    assert.equal(calcular.getAcoesAtuais({ classe: "Monge", ap: 0, combate: { combateId: "antigo" } }, "c2"), 2);
+
+    const inicioRender = script.indexOf("function renderizarAcoesNoSlot");
+    const fimRender = script.indexOf("\n\n        function renderizarEstadoCombateNoSlot", inicioRender);
+    const render = script.slice(inicioRender, fimRender);
+    assert.match(render, /const atual = getAcoesAtuais\(dados\)/);
+    assert.match(render, /inputElement\.value = atual/);
+    assert.match(script, /sincronizarAcoesForaDeCombateSeNecessario\(idFicha, dados\)/);
+});

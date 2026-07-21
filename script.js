@@ -328,6 +328,19 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
             return dados.classe === 'Monge' ? 2 : 1;
         }
 
+        function getAcoesAtuais(dados = {}, combateId = getCombateIdAtivo()) {
+            const maximo = getAcoesMaximas(dados);
+            const pertenceAoCombateAtivo = Boolean(
+                combateId
+                && dados.combate?.combateId
+                && dados.combate.combateId === combateId
+            );
+            // Fora de combate não existe Ação gasta: a ficha sempre deve aparecer cheia.
+            // O valor persistido só representa consumo durante o combate ao qual pertence.
+            if(!pertenceAoCombateAtivo) return maximo;
+            return Math.max(0, Math.trunc(toNumber(dados.ap, 0)));
+        }
+
         function getCombateIdAtivo() {
             return iniciativaAtual?.estado === INICIATIVA_ESTADOS.ATIVA ? iniciativaAtual.combateId || '' : '';
         }
@@ -1285,7 +1298,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
             const hpMax = Math.max(1, entrada.tipo === 'heroi' ? getHpMaxEfetivo(d, entrada.path) : toNumber(d['hp-max'], 1));
             const manaAtual = toNumber(d['mana-atual'], 0);
             const manaMax = entrada.tipo === 'heroi' ? getManaMaxEfetivo(d, entrada.path) : toNumber(d['mana-max'], 0);
-            const ap = toNumber(d.ap, 0);
+            const ap = getAcoesAtuais(d);
             const escudo = toNumber(d.escudo, 0);
             const hpPerc = clamp((hpAtual / hpMax) * 100, 0, 100);
             const manaPerc = manaMax > 0 ? clamp((manaAtual / manaMax) * 100, 0, 100) : 0;
@@ -4793,6 +4806,7 @@ window.toggleSidebarJogador = function(numSlot) {
                 if(tipo === 'heroi') renderizarGrimorioNoSlot(numSlot, dados.grimorio || {});
                 if(tipo === 'heroi') sincronizarHabilidadesSistemaSeNecessario(idFicha, dados);
                 if(tipo === 'heroi') sincronizarBonusPassivasAtributosSeNecessario(idFicha, dados);
+                if(tipo === 'heroi') sincronizarAcoesForaDeCombateSeNecessario(idFicha, dados);
                 atualizarBarrasEAlertaNoSlot(numSlot, tipo);
                 atualizarTooltipsAtributosNoSlot(numSlot, tipo, dados);
                 if(visaoTaticaMestreAtiva) renderizarVisaoTaticaMestre();
@@ -5330,11 +5344,13 @@ window.toggleSidebarJogador = function(numSlot) {
         };
 
         function renderizarAcoesNoSlot(numSlot, dados = {}) {
-            const atual = Math.max(0, Math.trunc(toNumber(dados.ap, 0)));
+            const atual = getAcoesAtuais(dados);
             const maximo = getAcoesMaximas(dados);
             const maximoVisual = Math.max(maximo, atual);
             const marcadores = document.getElementById(`slot${numSlot}-acoes-marcadores`);
             const maxElement = document.getElementById(`slot${numSlot}-ap-max`);
+            const inputElement = document.getElementById(`slot${numSlot}-ap`);
+            if(inputElement && document.activeElement !== inputElement) inputElement.value = atual;
             if(maxElement) maxElement.textContent = maximo;
             if(marcadores) {
                 marcadores.innerHTML = Array.from({ length: maximoVisual }, (_, index) => `<span class="marcador-acao ${index < atual ? 'disponivel' : 'gasta'}" aria-hidden="true">${index < atual ? '◆' : '◇'}</span>`).join('');
@@ -6057,6 +6073,19 @@ window.toggleSidebarJogador = function(numSlot) {
                     if(bonus[attr]) proximo[attr] = toNumber(dadosAtuais[attr], 0) + bonus[attr];
                 });
                 return proximo;
+            });
+        }
+
+        async function sincronizarAcoesForaDeCombateSeNecessario(idFicha, dados = {}) {
+            if(!idFicha || dados.combate?.combateId) return;
+            const maximo = getAcoesMaximas(dados);
+            if(Math.max(0, Math.trunc(toNumber(dados.ap, 0))) === maximo) return;
+
+            await safeTransaction(`fichas/${idFicha}`, dadosAtuais => {
+                if(!dadosAtuais || dadosAtuais.combate?.combateId) return;
+                const maximoAtual = getAcoesMaximas(dadosAtuais);
+                if(Math.max(0, Math.trunc(toNumber(dadosAtuais.ap, 0))) === maximoAtual) return;
+                return { ...dadosAtuais, ap: maximoAtual };
             });
         }
 
