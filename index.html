@@ -58,23 +58,104 @@
             <span id="seta-sidebar">▶</span>
         </button>
         <div class="sidebar-header">
-            <h3>📖 BESTIÁRIO</h3>
-            <button onclick="invocarMonstro()" class="btn-add-sidebar">+ NOVO</button>
+            <div class="bestiario-header-linha">
+                <div>
+                    <span class="bestiario-suptitulo">Acervo do Mestre</span>
+                    <h3>📖 BESTIÁRIO</h3>
+                </div>
+                <button onclick="invocarMonstro()" class="btn-add-sidebar" title="Criar uma nova ameaça individual">+ NOVA</button>
+            </div>
+            <label class="bestiario-busca-wrap" for="bestiario-busca">
+                <span aria-hidden="true">⌕</span>
+                <input id="bestiario-busca" type="search" placeholder="Pesquisar ameaça..." autocomplete="off" oninput="alterarBuscaBestiario(this.value)">
+                <kbd>Ctrl K</kbd>
+            </label>
+            <div class="bestiario-abas" role="tablist" aria-label="Formato da ameaça">
+                <button type="button" class="bestiario-aba ativa" data-formato="todos" onclick="selecionarAbaBestiario('todos')">Todos</button>
+                <button type="button" class="bestiario-aba" data-formato="monstro" onclick="selecionarAbaBestiario('monstro')">Monstros</button>
+                <button type="button" class="bestiario-aba" data-formato="horda" onclick="selecionarAbaBestiario('horda')">Hordas</button>
+            </div>
+            <div class="bestiario-header-acoes">
+                <button id="btn-toggle-filtros-bestiario" type="button" onclick="toggleFiltrosBestiario()" aria-expanded="false" aria-controls="bestiario-filtros">⚗ Filtros <span id="bestiario-filtros-contagem"></span></button>
+                <button type="button" onclick="limparFiltrosBestiario()">Limpar</button>
+                <span id="bestiario-resultados-contagem" aria-live="polite">0 resultados</span>
+            </div>
+        </div>
+        <div id="bestiario-filtros" class="bestiario-filtros" hidden>
+            <div class="bestiario-filtro-grupo" data-filtro="familia">
+                <label for="bestiario-filtro-familia">Família</label>
+                <select id="bestiario-filtro-familia" onchange="adicionarFiltroBestiario('familia', this.value); this.value = ''"><option value="">Adicionar...</option></select>
+                <div id="bestiario-chips-familia" class="bestiario-filtro-chips"></div>
+            </div>
+            <div class="bestiario-filtro-grupo" data-filtro="subtipo">
+                <label for="bestiario-filtro-subtipo">Subtipo</label>
+                <select id="bestiario-filtro-subtipo" onchange="adicionarFiltroBestiario('subtipo', this.value); this.value = ''"><option value="">Adicionar...</option></select>
+                <div id="bestiario-chips-subtipo" class="bestiario-filtro-chips"></div>
+            </div>
+            <div class="bestiario-filtro-grupo" data-filtro="papel">
+                <label for="bestiario-filtro-papel">Papel tático</label>
+                <select id="bestiario-filtro-papel" onchange="adicionarFiltroBestiario('papel', this.value); this.value = ''"><option value="">Adicionar...</option></select>
+                <div id="bestiario-chips-papel" class="bestiario-filtro-chips"></div>
+            </div>
+            <div class="bestiario-filtro-grupo" data-filtro="patamar">
+                <label for="bestiario-filtro-patamar">Patamar</label>
+                <select id="bestiario-filtro-patamar" onchange="adicionarFiltroBestiario('patamar', this.value); this.value = ''"><option value="">Adicionar...</option></select>
+                <div id="bestiario-chips-patamar" class="bestiario-filtro-chips"></div>
+            </div>
+            <div class="bestiario-filtro-grupo" data-filtro="ambiente">
+                <label for="bestiario-filtro-ambiente">Ambiente</label>
+                <select id="bestiario-filtro-ambiente" onchange="adicionarFiltroBestiario('ambiente', this.value); this.value = ''"><option value="">Adicionar...</option></select>
+                <div id="bestiario-chips-ambiente" class="bestiario-filtro-chips"></div>
+            </div>
+            <div class="bestiario-filtro-grupo" data-filtro="tamanho">
+                <label for="bestiario-filtro-tamanho">Tamanho</label>
+                <select id="bestiario-filtro-tamanho" onchange="adicionarFiltroBestiario('tamanho', this.value); this.value = ''"><option value="">Adicionar...</option></select>
+                <div id="bestiario-chips-tamanho" class="bestiario-filtro-chips"></div>
+            </div>
+            <div class="bestiario-filtro-grupo" data-filtro="faccao">
+                <label for="bestiario-filtro-faccao">Facção</label>
+                <select id="bestiario-filtro-faccao" onchange="adicionarFiltroBestiario('faccao', this.value); this.value = ''"><option value="">Adicionar...</option></select>
+                <div id="bestiario-chips-faccao" class="bestiario-filtro-chips"></div>
+            </div>
+            <div class="bestiario-filtro-grupo" data-filtro="etiquetas">
+                <label for="bestiario-filtro-etiquetas">Etiquetas</label>
+                <select id="bestiario-filtro-etiquetas" onchange="adicionarFiltroBestiario('etiquetas', this.value); this.value = ''"><option value="">Adicionar...</option></select>
+                <div id="bestiario-chips-etiquetas" class="bestiario-filtro-chips"></div>
+            </div>
+            <div class="bestiario-filtros-rapidos">
+                <label><input id="bestiario-so-favoritos" type="checkbox" onchange="alternarFiltroRapidoBestiario('favoritos', this.checked)"> Favoritos</label>
+                <label><input id="bestiario-so-recentes" type="checkbox" onchange="alternarFiltroRapidoBestiario('recentes', this.checked)"> Recentes</label>
+                <label><input id="bestiario-so-em-cena" type="checkbox" onchange="alternarFiltroRapidoBestiario('emCena', this.checked)"> Em cena</label>
+            </div>
         </div>
         <div class="sidebar-content">
-            <div class="acervo-categoria">
-                <button class="btn-categoria" onclick="toggleCategoria('cat-jogadores')">👤 Jogadores <span class="seta">▼</span></button>
+            <section class="bestiario-herois">
+                <button class="btn-categoria" onclick="toggleCategoria('cat-jogadores')">👤 Heróis na Mesa <span class="seta">▼</span></button>
                 <div id="cat-jogadores" class="categoria-lista" style="display: block;"></div>
-            </div>
-            <div class="acervo-categoria">
-                <button class="btn-categoria" onclick="toggleCategoria('cat-monstros')">💀 Monstros <span class="seta">▼</span></button>
-                <div id="cat-monstros" class="categoria-lista" style="display: block;"></div>
-            </div>
-            <div class="acervo-categoria">
-                <button class="btn-categoria" onclick="toggleCategoria('cat-hordas')">🛡️ Hordas <span class="seta">▼</span></button>
-                <div id="cat-hordas" class="categoria-lista" style="display: block;"></div>
-            </div>
+            </section>
+            <section id="bestiario-em-cena" class="bestiario-em-cena" hidden>
+                <div class="bestiario-secao-titulo"><span>⚔ Em cena</span><strong id="bestiario-em-cena-contagem">0</strong></div>
+                <div id="bestiario-em-cena-lista"></div>
+            </section>
+            <section class="bestiario-resultados">
+                <div class="bestiario-secao-titulo"><span>Ameaças encontradas</span><strong id="bestiario-pagina-indicador"></strong></div>
+                <div id="bestiario-lista-resultados" class="categoria-lista"></div>
+                <button id="bestiario-mostrar-mais" class="bestiario-mostrar-mais" type="button" onclick="mostrarMaisBestiario()" hidden>Mostrar mais</button>
+            </section>
         </div>
+        <section id="encontro-montador" class="encontro-montador">
+            <button class="encontro-montador-cabecalho" type="button" onclick="toggleMontadorEncontro()" aria-expanded="true">
+                <span>⚔ Montador de Encontro</span>
+                <strong id="encontro-rascunho-contagem">0</strong>
+            </button>
+            <div id="encontro-montador-corpo" class="encontro-montador-corpo">
+                <div id="encontro-rascunho-lista" class="encontro-rascunho-lista"><p>Adicione ameaças pelo botão <strong>+</strong> do catálogo.</p></div>
+                <div class="encontro-montador-acoes">
+                    <button type="button" onclick="limparRascunhoEncontro()">Limpar</button>
+                    <button id="btn-lancar-encontro" type="button" class="btn-lancar-encontro" onclick="lancarRascunhoEncontro()" disabled>Lançar encontro</button>
+                </div>
+            </div>
+        </section>
     </div>
 
     <div id="tela-app">

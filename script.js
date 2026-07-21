@@ -196,6 +196,26 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
         let hordasNoBanco = {};
         let fichasNoBanco = {};
         let fotosNoBanco = {};
+        let bestiarioPublicoNoBanco = {};
+        let encontroAtivoGlobal = null;
+
+        const BESTIARIO_CAMPOS_FILTRO = ['familia', 'subtipo', 'papel', 'patamar', 'ambiente', 'tamanho', 'faccao', 'etiquetas'];
+        const BESTIARIO_LIMITE_PAGINA = 30;
+        const BESTIARIO_STORAGE_FAVORITOS = 'rpg_bestiario_favoritos_v1';
+        const BESTIARIO_STORAGE_RECENTES = 'rpg_bestiario_recentes_v1';
+        const ENCONTRO_SCHEMA_VERSION = 1;
+        const bestiarioUi = {
+            busca: '',
+            formato: 'todos',
+            pagina: 1,
+            filtros: Object.fromEntries(BESTIARIO_CAMPOS_FILTRO.map(campo => [campo, []])),
+            favoritos: false,
+            recentes: false,
+            emCena: false,
+            favoritosIds: new Set(),
+            recentesIds: [],
+            rascunhoEncontro: []
+        };
 
         let slotsDeVisao = {
             1: { ouvinte: null, idFicha: null, tipo: null, dados: {} },
@@ -213,7 +233,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
         const eventosLocaisPublicados = new Set();
 
         const ATTRS = ['for', 'des', 'con', 'int', 'sab', 'car', 'per'];
-        const INICIATIVA_SCHEMA_VERSION = 1;
+        const INICIATIVA_SCHEMA_VERSION = 2;
         const INICIATIVA_ESTADOS = Object.freeze({ COLETANDO: 'coletando', ORGANIZANDO: 'organizando', ATIVA: 'ativa' });
         const PATH_ESTADO_COMBATE = 'estado_combate';
         const PATH_INICIATIVA = 'estado_combate/iniciativa';
@@ -221,6 +241,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
         const PASSIVAS_ATRIBUTOS_SCHEMA_VERSION = 1;
         let iniciativaAtual = null;
         let unsubscribeIniciativa = null;
+        let ouvintesAmeacasJogador = [];
         let iniciativaTurnoTravado = false;
         const acaoCombateSelecionadaPorSlot = { 1: 'fisico', 2: 'fisico' };
 
@@ -407,6 +428,220 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
                 .replace(/>/g, "&gt;")
                 .replace(/"/g, "&quot;")
                 .replace(/'/g, "&#39;");
+        }
+
+        function normalizarTextoBestiario(value = '') {
+            return String(value ?? '')
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '')
+                .toLocaleLowerCase('pt-BR')
+                .replace(/[^a-z0-9]+/g, ' ')
+                .trim();
+        }
+
+        function normalizarListaCatalogacao(value = []) {
+            const valores = Array.isArray(value) ? value : String(value || '').split(',');
+            const vistos = new Set();
+            return valores
+                .map(item => String(item || '').trim())
+                .filter(item => {
+                    const chave = normalizarTextoBestiario(item);
+                    if(!chave || vistos.has(chave)) return false;
+                    vistos.add(chave);
+                    return true;
+                });
+        }
+
+        function normalizarCatalogacao(dados = {}, tipo = 'monstro') {
+            const catalogacao = dados.catalogacao || {};
+            const formato = tipo === 'horda' || catalogacao.formato === 'horda' ? 'horda' : 'individual';
+            return {
+                schemaVersion: 1,
+                formato,
+                nomePublico: String(catalogacao.nomePublico || '').trim(),
+                familia: String(catalogacao.familia || '').trim(),
+                subtipo: String(catalogacao.subtipo || '').trim(),
+                papel: String(catalogacao.papel || '').trim(),
+                patamar: String(catalogacao.patamar || '').trim(),
+                ambiente: String(catalogacao.ambiente || '').trim(),
+                tamanho: String(catalogacao.tamanho || '').trim(),
+                faccao: String(catalogacao.faccao || '').trim(),
+                etiquetas: normalizarListaCatalogacao(catalogacao.etiquetas),
+                nivelConhecimento: clamp(Math.trunc(toNumber(catalogacao.nivelConhecimento, 0)), 0, 3),
+                descricaoPublica: String(catalogacao.descricaoPublica || '').trim(),
+                notasSecretas: String(catalogacao.notasSecretas || '').trim()
+            };
+        }
+
+        function chaveItemBestiario(tipo, id) {
+            return `${tipo === 'horda' ? 'horda' : 'monstro'}:${String(id || '')}`;
+        }
+
+        function codificarParametroHtml(value = '') {
+            return encodeURIComponent(String(value || '')).replace(/'/g, '%27').replace(/"/g, '%22');
+        }
+
+        function construirItemCatalogo(id, tipo, dados = {}, indice = {}) {
+            const catalogacao = normalizarCatalogacao(dados, tipo);
+            const nomeInterno = String(dados.nome || indice.nome || id || 'Ameaça').trim();
+            return {
+                id,
+                tipo: tipo === 'horda' ? 'horda' : 'monstro',
+                chave: chaveItemBestiario(tipo, id),
+                nomeInterno,
+                nomePublico: catalogacao.nomePublico,
+                catalogacao,
+                dados
+            };
+        }
+
+        function filtrarCatalogoAmeacas(itens = [], estado = {}) {
+            const filtros = estado.filtros || {};
+            const buscaTokens = normalizarTextoBestiario(estado.busca || '').split(' ').filter(Boolean);
+            const favoritos = estado.favoritosIds instanceof Set ? estado.favoritosIds : new Set(estado.favoritosIds || []);
+            const recentes = Array.isArray(estado.recentesIds) ? estado.recentesIds : [];
+            const recentesSet = new Set(recentes);
+            const emCena = estado.emCenaIds instanceof Set ? estado.emCenaIds : new Set(estado.emCenaIds || []);
+
+            return itens.filter(item => {
+                if(estado.formato && estado.formato !== 'todos' && item.tipo !== estado.formato) return false;
+                if(estado.favoritos && !favoritos.has(item.chave)) return false;
+                if(estado.recentes && !recentesSet.has(item.chave)) return false;
+                if(estado.emCena && !emCena.has(item.chave)) return false;
+
+                const catalogacao = item.catalogacao || {};
+                const pesquisa = normalizarTextoBestiario([
+                    item.nomeInterno,
+                    item.nomePublico,
+                    catalogacao.familia,
+                    catalogacao.subtipo,
+                    catalogacao.papel,
+                    catalogacao.patamar,
+                    catalogacao.ambiente,
+                    catalogacao.tamanho,
+                    catalogacao.faccao,
+                    ...(catalogacao.etiquetas || [])
+                ].join(' '));
+                if(buscaTokens.some(token => !pesquisa.includes(token))) return false;
+
+                return BESTIARIO_CAMPOS_FILTRO.every(campo => {
+                    const selecionados = normalizarListaCatalogacao(filtros[campo] || []).map(normalizarTextoBestiario);
+                    if(!selecionados.length) return true;
+                    const valoresItem = campo === 'etiquetas'
+                        ? normalizarListaCatalogacao(catalogacao[campo] || []).map(normalizarTextoBestiario)
+                        : [normalizarTextoBestiario(catalogacao[campo] || '')];
+                    return selecionados.some(valor => valoresItem.includes(valor));
+                });
+            }).sort((a, b) => {
+                const favA = favoritos.has(a.chave) ? 1 : 0;
+                const favB = favoritos.has(b.chave) ? 1 : 0;
+                if(favA !== favB) return favB - favA;
+                const recA = recentes.indexOf(a.chave);
+                const recB = recentes.indexOf(b.chave);
+                if(recA >= 0 || recB >= 0) {
+                    if(recA < 0) return 1;
+                    if(recB < 0) return -1;
+                    if(recA !== recB) return recA - recB;
+                }
+                return a.nomeInterno.localeCompare(b.nomeInterno, 'pt-BR');
+            });
+        }
+
+        function construirVisaoPublicaCatalogacao(id, tipo, dados = {}) {
+            const catalogacao = normalizarCatalogacao(dados, tipo);
+            const nivel = catalogacao.nivelConhecimento;
+            const publico = {
+                schemaVersion: 1,
+                modeloId: id,
+                formato: catalogacao.formato,
+                nivelConhecimento: nivel,
+                nomePublico: catalogacao.nomePublico || 'Ameaça desconhecida'
+            };
+            if(nivel >= 1) {
+                Object.assign(publico, {
+                    familia: catalogacao.familia,
+                    tamanho: catalogacao.tamanho,
+                    ambiente: catalogacao.ambiente,
+                    descricaoPublica: catalogacao.descricaoPublica
+                });
+            }
+            if(nivel >= 2) {
+                Object.assign(publico, {
+                    subtipo: catalogacao.subtipo,
+                    papel: catalogacao.papel,
+                    patamar: catalogacao.patamar
+                });
+            }
+            if(nivel >= 3) {
+                Object.assign(publico, {
+                    faccao: catalogacao.faccao,
+                    etiquetas: [...catalogacao.etiquetas]
+                });
+            }
+            return publico;
+        }
+
+        function clonarDadosSimples(value) {
+            return value === undefined ? undefined : JSON.parse(JSON.stringify(value));
+        }
+
+        function criarInstanciaMonstro(modelo = {}, contexto = {}) {
+            const instancia = clonarDadosSimples(modelo) || {};
+            const hpMax = Math.max(1, toNumber(instancia['hp-max'], 20));
+            const manaMax = Math.max(0, toNumber(instancia['mana-max'], 0));
+            delete instancia.combate;
+            delete instancia.catalogacao;
+            instancia.tipo = 'monstro';
+            instancia.nome = contexto.nomePublico || 'Ameaça desconhecida';
+            instancia['hp-atual'] = hpMax;
+            instancia['hp-max'] = hpMax;
+            instancia['mana-atual'] = manaMax;
+            instancia['mana-max'] = manaMax;
+            instancia.ap = Math.max(1, Math.trunc(toNumber(instancia.ap, 1)));
+            instancia.escudo = 0;
+            instancia.efeitos = [];
+            instancia.recargas = {};
+            instancia.instanciaCombate = {
+                schemaVersion: ENCONTRO_SCHEMA_VERSION,
+                combateId: contexto.combateId || '',
+                modeloId: contexto.modeloId || '',
+                papel: contexto.papel || 'Ameaça',
+                criadoEm: contexto.criadoEm || Date.now()
+            };
+            return instancia;
+        }
+
+        function criarInstanciaHorda(modelo = {}, contexto = {}) {
+            const instancia = clonarDadosSimples(modelo) || {};
+            delete instancia.catalogacao;
+            instancia.tipo = 'horda';
+            instancia.nome = contexto.nomePublico || 'Ameaça desconhecida';
+            instancia.membros = Object.fromEntries(Object.entries(instancia.membros || {}).map(([membroId, membroOriginal]) => {
+                const membro = clonarDadosSimples(membroOriginal) || {};
+                const hpMax = Math.max(1, toNumber(membro['hp-max'], 20));
+                const manaMax = Math.max(0, toNumber(membro['mana-max'], 0));
+                delete membro.combate;
+                return [membroId, {
+                    ...membro,
+                    tipo: 'horda',
+                    nome: `${contexto.nomePublico || 'Ameaça'} ${membroId}`,
+                    'hp-atual': hpMax,
+                    'hp-max': hpMax,
+                    'mana-atual': manaMax,
+                    'mana-max': manaMax,
+                    escudo: 0,
+                    efeitos: [],
+                    recargas: {}
+                }];
+            }));
+            instancia.instanciaCombate = {
+                schemaVersion: ENCONTRO_SCHEMA_VERSION,
+                combateId: contexto.combateId || '',
+                modeloId: contexto.modeloId || '',
+                papel: contexto.papel || 'Horda',
+                criadoEm: contexto.criadoEm || Date.now()
+            };
+            return instancia;
         }
 
         const CAMPOS_NUMERICOS_FICHA = new Set([
@@ -837,10 +1072,23 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
 
         function getNomeAtorDoSlot(numSlot) {
             const slot = slotsDeVisao[numSlot] || {};
+            if(usuarioAtual?.cargo === 'Mestre' && slot.dados?.instanciaCombate?.modeloId) {
+                const modeloId = slot.dados.instanciaCombate.modeloId;
+                const modelo = slot.tipo === 'horda' ? hordasNoBanco[modeloId] : fichasNoBanco[modeloId];
+                if(modelo?.nome) return modelo.nome;
+            }
             return slot.dados?.nome || fichasNoBanco[slot.idFicha]?.nome || slot.idFicha || 'Ação';
         }
 
-        function getNomeAtorHorda(membroId) {
+        function getNomeAtorHorda(membroId, numSlot = null) {
+            if(numSlot && slotsDeVisao[numSlot]?.tipo === 'horda') {
+                const slot = slotsDeVisao[numSlot];
+                const modeloId = slot.dados?.instanciaCombate?.modeloId;
+                const membroModelo = modeloId ? hordasNoBanco[modeloId]?.membros?.[membroId] : null;
+                if(usuarioAtual?.cargo === 'Mestre' && membroModelo) return membroModelo.nome || `${hordasNoBanco[modeloId]?.nome || modeloId} ${membroId}`;
+                const membro = slot.dados?.membros?.[membroId];
+                if(membro) return membro.nome || `${slot.dados?.nome || slot.idFicha || 'Horda'} ${membroId}`;
+            }
             for(const slot of Object.values(slotsDeVisao)) {
                 if(slot.tipo !== 'horda') continue;
                 const membro = slot.dados?.membros?.[membroId];
@@ -857,8 +1105,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
             const cleanPath = String(path || "");
             const parts = cleanPath.split('/');
             if(parts[0] === 'hordas' && parts[3]) {
-                return document.getElementById(`caixa-hp-horda-${parts[3]}`)?.closest('.horda-member-card')
-                    || document.getElementById(`caixa-hp-horda-${parts[3]}`);
+                return Array.from(document.querySelectorAll('.horda-member-card')).find(card => card.dataset.hordaId === parts[1] && card.dataset.membroId === parts[3]) || null;
             }
             if(parts[0] === 'fichas') {
                 const idFicha = parts[1];
@@ -893,6 +1140,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
 
         function pathFromValorAlvo(valor) {
             const alvo = String(valor || '');
+            if(alvo.startsWith('fichas/') || alvo.startsWith('hordas/')) return alvo;
             if(ameacaEmCombateGlobal && alvo.startsWith(`${ameacaEmCombateGlobal}_`)) {
                 return `hordas/${ameacaEmCombateGlobal}/membros/${alvo.replace(`${ameacaEmCombateGlobal}_`, '')}`;
             }
@@ -989,8 +1237,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
             if(!alvo) return;
             let bar = null;
             if(path.startsWith('hordas/')) {
-                const membroId = path.split('/')[3];
-                bar = document.getElementById(`bar-hp-horda-${membroId}`);
+                bar = alvo.querySelector('.bar-fill.hp-fill');
             } else {
                 const idFicha = path.split('/')[1];
                 for(const [numSlot, slot] of Object.entries(slotsDeVisao)) {
@@ -1219,7 +1466,8 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
                 tipo,
                 slotNum,
                 tituloExtra,
-                ativo: ameacaEmCombateGlobal && path.includes(ameacaEmCombateGlobal)
+                ativo: getAmeacasEncontroAtivo().some(ameaca => path.includes(ameaca.id))
+                    || Boolean(ameacaEmCombateGlobal && path.includes(ameacaEmCombateGlobal))
             };
         }
 
@@ -1242,10 +1490,12 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
 
                 if(slot.tipo === 'horda') {
                     const membros = slot.dados.membros || {};
+                    const modeloId = slot.dados.instanciaCombate?.modeloId;
+                    const hordaModelo = modeloId ? hordasNoBanco[modeloId] : null;
                     Object.entries(membros).forEach(([mId, mData]) => {
                         const path = `hordas/${slot.idFicha}/membros/${mId}`;
                         if(pathsIncluidos.has(path)) return;
-                        entradas.push(criarEntradaTatica(path, mData, 'horda', numSlot, slot.dados.nome || slot.idFicha));
+                        entradas.push(criarEntradaTatica(path, { ...mData, nome: hordaModelo?.membros?.[mId]?.nome || mData.nome }, 'horda', numSlot, hordaModelo?.nome || slot.dados.nome || slot.idFicha));
                         pathsIncluidos.add(path);
                     });
                     continue;
@@ -1253,27 +1503,37 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
 
                 const path = `fichas/${slot.idFicha}`;
                 if(pathsIncluidos.has(path)) continue;
-                entradas.push(criarEntradaTatica(path, slot.dados, slot.tipo || 'ficha', numSlot));
+                const modeloId = slot.dados.instanciaCombate?.modeloId;
+                const dadosTaticos = modeloId ? { ...slot.dados, nome: fichasNoBanco[modeloId]?.nome || slot.dados.nome } : slot.dados;
+                entradas.push(criarEntradaTatica(path, dadosTaticos, slot.tipo || 'ficha', numSlot));
                 pathsIncluidos.add(path);
             }
 
-            if(ameacaEmCombateGlobal && !Array.from(pathsIncluidos).some(path => path.includes(ameacaEmCombateGlobal))) {
-                if(ameacaEmCombateGlobal.startsWith('horda_')) {
-                    const horda = hordasNoBanco[ameacaEmCombateGlobal];
+            const ameacasAtivas = getAmeacasEncontroAtivo();
+            if(!ameacasAtivas.length && ameacaEmCombateGlobal) {
+                ameacasAtivas.push({ id: ameacaEmCombateGlobal, tipo: ameacaEmCombateGlobal.startsWith('horda_') ? 'horda' : 'monstro', modeloId: ameacaEmCombateGlobal });
+            }
+            ameacasAtivas.forEach(ameaca => {
+                if(ameaca.tipo === 'horda') {
+                    const horda = hordasNoBanco[ameaca.id];
+                    const nomeHorda = hordasNoBanco[ameaca.modeloId]?.nome || horda?.nome || ameaca.id;
                     Object.entries(horda?.membros || {}).forEach(([mId, mData]) => {
-                        const path = `hordas/${ameacaEmCombateGlobal}/membros/${mId}`;
+                        const path = `hordas/${ameaca.id}/membros/${mId}`;
                         if(pathsIncluidos.has(path)) return;
-                        entradas.push(criarEntradaTatica(path, mData, 'horda', null, horda.nome || ameacaEmCombateGlobal));
+                        const nomeMembro = hordasNoBanco[ameaca.modeloId]?.membros?.[mId]?.nome || mData.nome;
+                        entradas.push(criarEntradaTatica(path, { ...mData, nome: nomeMembro }, 'horda', null, nomeHorda));
                         pathsIncluidos.add(path);
                     });
                 } else {
-                    const path = `fichas/${ameacaEmCombateGlobal}`;
+                    const path = `fichas/${ameaca.id}`;
                     if(!pathsIncluidos.has(path)) {
-                        entradas.push(criarEntradaTatica(path, fichasNoBanco[ameacaEmCombateGlobal] || monstrosNoBanco[ameacaEmCombateGlobal] || { nome: ameacaEmCombateGlobal }, 'monstro', null));
+                        const dados = fichasNoBanco[ameaca.id] || { nome: ameaca.nome || ameaca.id };
+                        const nome = fichasNoBanco[ameaca.modeloId]?.nome || dados.nome;
+                        entradas.push(criarEntradaTatica(path, { ...dados, nome }, 'monstro', null));
                         pathsIncluidos.add(path);
                     }
                 }
-            }
+            });
 
             return entradas;
         }
@@ -1581,6 +1841,146 @@ window.toggleSidebarJogador = function(numSlot) {
     }
 }
 
+        function gerarHtmlCatalogacaoMestre(numSlot, tipo) {
+            const prefixo = `catalogacao-${tipo}-slot${numSlot}`;
+            const formato = tipo === 'horda' ? 'Horda' : 'Individual';
+            return `
+                <section id="${prefixo}" class="catalogacao-mestre esconder-jogador" aria-label="Catalogação do Mestre">
+                    <div class="catalogacao-mestre-header">
+                        <div><strong>Catalogação do Mestre</strong><small>Busca, filtros e informações ocultas da ameaça</small></div>
+                        <span id="${prefixo}-status" class="catalogacao-instancia-aviso"></span>
+                    </div>
+                    <div class="catalogacao-grid">
+                        <label>Formato<input type="text" value="${formato}" readonly disabled></label>
+                        <label>Nome público<input type="text" data-catalogacao-campo="nomePublico" data-catalogacao-tipo="${tipo}" data-num-slot="${numSlot}" placeholder="Ex: Cavaleiro Negro"></label>
+                        <label>Família<input type="text" data-catalogacao-campo="familia" data-catalogacao-tipo="${tipo}" data-num-slot="${numSlot}" placeholder="Ex: Morto-vivo"></label>
+                        <label>Subtipo<input type="text" data-catalogacao-campo="subtipo" data-catalogacao-tipo="${tipo}" data-num-slot="${numSlot}" placeholder="Ex: Vampiro"></label>
+                        <label>Papel tático
+                            <select data-catalogacao-campo="papel" data-catalogacao-tipo="${tipo}" data-num-slot="${numSlot}">
+                                <option value="">Não definido</option><option>Soldado</option><option>Brutamontes</option><option>Atirador</option><option>Controlador</option><option>Suporte</option><option>Assassino</option><option>Comandante</option>
+                            </select>
+                        </label>
+                        <label>Patamar
+                            <select data-catalogacao-campo="patamar" data-catalogacao-tipo="${tipo}" data-num-slot="${numSlot}">
+                                <option value="">Não definido</option><option>Comum</option><option>Veterano</option><option>Elite</option><option>Lendário</option>
+                            </select>
+                        </label>
+                        <label>Ambiente<input type="text" data-catalogacao-campo="ambiente" data-catalogacao-tipo="${tipo}" data-num-slot="${numSlot}" placeholder="Ex: Caverna"></label>
+                        <label>Tamanho
+                            <select data-catalogacao-campo="tamanho" data-catalogacao-tipo="${tipo}" data-num-slot="${numSlot}">
+                                <option value="">Não definido</option><option>Minúsculo</option><option>Pequeno</option><option>Médio</option><option>Grande</option><option>Enorme</option><option>Colossal</option>
+                            </select>
+                        </label>
+                        <label>Facção<input type="text" data-catalogacao-campo="faccao" data-catalogacao-tipo="${tipo}" data-num-slot="${numSlot}" placeholder="Ex: Culto das Cinzas"></label>
+                        <label>Nível conhecido pela mesa
+                            <select data-catalogacao-campo="nivelConhecimento" data-catalogacao-tipo="${tipo}" data-num-slot="${numSlot}">
+                                <option value="0">0 — Desconhecida</option><option value="1">1 — Avistada</option><option value="2">2 — Conhecida</option><option value="3">3 — Catalogada</option>
+                            </select>
+                        </label>
+                        <label class="catalogacao-largo">Etiquetas<input type="text" data-catalogacao-campo="etiquetas" data-catalogacao-tipo="${tipo}" data-num-slot="${numSlot}" placeholder="Voador, Venenoso, Mágico"></label>
+                        <label class="catalogacao-largo">Descrição revelável<textarea data-catalogacao-campo="descricaoPublica" data-catalogacao-tipo="${tipo}" data-num-slot="${numSlot}" placeholder="Aspectos externos que podem ser revelados aos jogadores."></textarea></label>
+                        <label class="catalogacao-largo">Notas secretas<textarea data-catalogacao-campo="notasSecretas" data-catalogacao-tipo="${tipo}" data-num-slot="${numSlot}" placeholder="Somente o Mestre vê estas anotações."></textarea></label>
+                    </div>
+                </section>
+                <section id="conhecimento-publico-${tipo}-slot${numSlot}" class="conhecimento-publico-card mostrar-jogador" aria-live="polite"></section>
+            `;
+        }
+
+        function renderizarConhecimentoPublicoNoSlot(numSlot, tipo, dados = {}) {
+            const container = document.getElementById(`conhecimento-publico-${tipo}-slot${numSlot}`);
+            if(!container) return;
+            const modeloId = dados.instanciaCombate?.modeloId || slotsDeVisao[numSlot]?.idFicha || '';
+            const publico = bestiarioPublicoNoBanco[modeloId] || construirVisaoPublicaCatalogacao(modeloId, tipo, dados);
+            const nivel = clamp(Math.trunc(toNumber(publico.nivelConhecimento, 0)), 0, 3);
+            const nomesNivel = ['Desconhecida', 'Avistada', 'Conhecida', 'Catalogada'];
+            const metadados = [];
+            if(nivel >= 1) metadados.push(publico.familia, publico.tamanho, publico.ambiente);
+            if(nivel >= 2) metadados.push(publico.subtipo, publico.papel, publico.patamar);
+            if(nivel >= 3) metadados.push(publico.faccao, ...(publico.etiquetas || []));
+            container.innerHTML = `
+                <h3>${escapeHtml(publico.nomePublico || 'Ameaça desconhecida')}</h3>
+                <p>Conhecimento da mesa: <strong>${nivel} — ${nomesNivel[nivel]}</strong></p>
+                ${nivel >= 1 && publico.descricaoPublica ? `<p>${escapeHtml(publico.descricaoPublica)}</p>` : (nivel === 0 ? `<p>Vocês ainda não conhecem a verdadeira natureza desta ameaça.</p>` : '')}
+                <div class="conhecimento-publico-meta">${metadados.filter(Boolean).map(valor => `<span>${escapeHtml(valor)}</span>`).join('')}</div>
+            `;
+
+            if(usuarioAtual?.cargo === 'Jogador' && tipo === 'monstro') {
+                const nomeInput = document.getElementById(`slot${numSlot}-monstro-nome`);
+                if(nomeInput && document.activeElement !== nomeInput) nomeInput.value = publico.nomePublico || 'Ameaça desconhecida';
+            }
+        }
+
+        function renderizarCatalogacaoNoSlot(numSlot, tipo, dados = {}) {
+            const modeloId = dados.instanciaCombate?.modeloId || slotsDeVisao[numSlot]?.idFicha || '';
+            const dadosModelo = dados.instanciaCombate
+                ? ((tipo === 'horda' ? hordasNoBanco[modeloId] : fichasNoBanco[modeloId]) || dados)
+                : dados;
+            const catalogacao = normalizarCatalogacao(dadosModelo, tipo);
+            const container = document.getElementById(`catalogacao-${tipo}-slot${numSlot}`);
+            if(container) {
+                container.querySelectorAll('[data-catalogacao-campo]').forEach(campo => {
+                    const chave = campo.dataset.catalogacaoCampo;
+                    const valor = chave === 'etiquetas' ? catalogacao.etiquetas.join(', ') : catalogacao[chave];
+                    if(document.activeElement !== campo && campo.value != valor) campo.value = valor ?? '';
+                    campo.disabled = Boolean(dados.instanciaCombate);
+                });
+                const status = document.getElementById(`catalogacao-${tipo}-slot${numSlot}-status`);
+                if(status) status.textContent = dados.instanciaCombate ? 'Cópia temporária do encontro' : 'Somente o Mestre';
+            }
+            if(usuarioAtual?.cargo === 'Mestre' && tipo === 'monstro' && dados.instanciaCombate) {
+                const nomeInput = document.getElementById(`slot${numSlot}-monstro-nome`);
+                if(nomeInput && document.activeElement !== nomeInput) nomeInput.value = dadosModelo.nome || dados.nome || modeloId;
+            }
+            renderizarConhecimentoPublicoNoSlot(numSlot, tipo, dados);
+        }
+
+        async function sincronizarIndiceCatalogacao(id, tipo, dados = {}) {
+            if(!id || dados.instanciaCombate) return;
+            const catalogacao = normalizarCatalogacao(dados, tipo);
+            const updates = {
+                [`bestiario_publico/${id}`]: construirVisaoPublicaCatalogacao(id, tipo, dados)
+            };
+            if(tipo === 'monstro') {
+                updates[`lista_monstros/${id}`] = {
+                    nome: dados.nome || monstrosNoBanco[id]?.nome || id,
+                    ativo: true,
+                    catalogacaoResumo: {
+                        formato: catalogacao.formato,
+                        nomePublico: catalogacao.nomePublico,
+                        familia: catalogacao.familia,
+                        subtipo: catalogacao.subtipo,
+                        papel: catalogacao.papel,
+                        patamar: catalogacao.patamar,
+                        ambiente: catalogacao.ambiente,
+                        tamanho: catalogacao.tamanho,
+                        faccao: catalogacao.faccao,
+                        etiquetas: catalogacao.etiquetas
+                    }
+                };
+            }
+            await safeUpdate('', updates);
+        }
+
+        async function salvarCatalogacaoDoCampo(campo) {
+            if(usuarioAtual?.cargo !== 'Mestre' || !campo?.dataset?.catalogacaoCampo) return;
+            const numSlot = Number(campo.dataset.numSlot);
+            const tipo = campo.dataset.catalogacaoTipo === 'horda' ? 'horda' : 'monstro';
+            const id = slotsDeVisao[numSlot]?.idFicha;
+            const dadosSlot = slotsDeVisao[numSlot]?.dados || {};
+            if(!id || dadosSlot.instanciaCombate) return;
+            const chave = campo.dataset.catalogacaoCampo;
+            let valor = campo.value;
+            if(chave === 'nivelConhecimento') valor = clamp(Math.trunc(toNumber(valor, 0)), 0, 3);
+            if(chave === 'etiquetas') valor = normalizarListaCatalogacao(valor);
+            const path = tipo === 'horda' ? `hordas/${id}` : `fichas/${id}`;
+            const resultado = await safeTransaction(path, atual => {
+                if(!atual || atual.instanciaCombate) return;
+                const catalogacao = normalizarCatalogacao(atual, tipo);
+                return { ...atual, catalogacao: { ...catalogacao, [chave]: valor, formato: tipo === 'horda' ? 'horda' : 'individual' } };
+            });
+            if(resultado.committed) await sincronizarIndiceCatalogacao(id, tipo, resultado.snapshot.val() || {});
+        }
+
         function gerarHtmlMonstro(numSlot) {
             let alvosHtml = playersList.map(p => `<label class="checkbox-alvo"><input type="checkbox" value="${p}" class="alvo-ataque-slot${numSlot}"> ${p}</label>`).join('');
 
@@ -1601,6 +2001,8 @@ window.toggleSidebarJogador = function(numSlot) {
                         <input type="text" id="slot${numSlot}-monstro-nome" class="editavel-slot${numSlot}" style="font-size: 24px; font-weight: bold; margin-bottom: 10px;">
                     </div>
                 </div>
+
+                ${gerarHtmlCatalogacaoMestre(numSlot, 'monstro')}
 
                 <div class="section-title">Atributos de Combate</div>
                 <div class="status-grid" style="grid-template-columns: 1fr;">
@@ -1629,7 +2031,7 @@ window.toggleSidebarJogador = function(numSlot) {
                             <label style="color: #b89c72;">Alvos (Players)</label>
                             <div style="display: flex; gap: 15px; flex-wrap: wrap; background: rgba(20, 10, 5, 0.8); padding: 10px; border: 1px solid #5c3a21; border-radius: 4px; min-height: 20px; align-items: center;">${alvosHtml}</div>
                         </div>
-                        <button class="editavel-slot${numSlot}" data-acao-combate="ataque-monstro" onclick="executarAtaque(${numSlot})" style="background: linear-gradient(to bottom, #8c1c13, #4a1111); border-color:#d95757; color: #fff; padding: 10px 20px; font-weight: bold; text-shadow: 1px 1px 2px black;">⚔️ ATACAR</button>
+                        <button class="editavel-slot${numSlot}" data-acao-combate="ataque-monstro" data-slot="${numSlot}" onclick="executarAtaque(${numSlot})" style="background: linear-gradient(to bottom, #8c1c13, #4a1111); border-color:#d95757; color: #fff; padding: 10px 20px; font-weight: bold; text-shadow: 1px 1px 2px black;">⚔️ ATACAR</button>
                     </div>
                 </div>
 
@@ -1719,11 +2121,89 @@ window.toggleSidebarJogador = function(numSlot) {
         function ordenarParticipantesIniciativa(participantes = {}) { return Object.values(participantes).sort((a,b)=>{ const ia=toNumber(a.iniciativa,0), ib=toNumber(b.iniciativa,0); if(ia===0&&ib!==0)return 1; if(ib===0&&ia!==0)return -1; if(ib!==ia)return ib-ia; return toNumber(a.ordemEntrada,0)-toNumber(b.ordemEntrada,0); }).map(p=>p.chave); }
         function getParticipanteAtual(iniciativa = iniciativaAtual) { const ch=(iniciativa?.ordem||[])[toNumber(iniciativa?.indiceAtual,0)]; return iniciativa?.participantes?.[ch] || null; }
         function membrosVivosHorda(hordaId) { const membros=hordasNoBanco?.[hordaId]?.membros||{}; return Object.keys(membros).filter(id=>toNumber(membros[id]?.['hp-atual'],0)>0).sort((a,b)=>toNumber(a.replace(/\D/g,''),0)-toNumber(b.replace(/\D/g,''),0)); }
-        function isParticipanteValidoIniciativa(p) { if(!p)return false; if(p.tipo==='jogador')return Boolean(usuarios[p.id]); if(p.tipo==='monstro')return Boolean(fichasNoBanco[p.id])&&toNumber(fichasNoBanco[p.id]?.['hp-atual'],0)>0; if(p.tipo==='horda')return membrosVivosHorda(p.id).length>0; return false; }
+        function isParticipanteValidoIniciativa(p) {
+            if(!p) return false;
+            if(p.tipo === 'jogador') return Boolean(usuarios[p.id]);
+            if(p.tipo === 'monstro') {
+                const dados = fichasNoBanco[p.id];
+                if(!dados) return Boolean(p.modeloId && p.modeloId !== p.id);
+                return toNumber(dados['hp-atual'], 0) > 0;
+            }
+            if(p.tipo === 'horda') {
+                if(!hordasNoBanco[p.id]) return Boolean(p.modeloId && p.modeloId !== p.id);
+                return membrosVivosHorda(p.id).length > 0;
+            }
+            return false;
+        }
         function normalizarHordaTurno(iniciativa) { const atual=getParticipanteAtual(iniciativa); if(!atual||atual.tipo!=='horda')return { hordaId:'', membroAtualId:'', membrosConcluidos:{} }; const vivos=membrosVivosHorda(atual.id); const concl=iniciativa.hordaTurno?.hordaId===atual.id ? {...(iniciativa.hordaTurno?.membrosConcluidos||{})} : {}; return { hordaId: atual.id, membroAtualId: vivos.find(id=>!concl[id]) || '', membrosConcluidos: concl }; }
         function normalizarEstadoIniciativa(iniciativa, contextoAtual = {}) { if(!iniciativa||iniciativa.estado!==INICIATIVA_ESTADOS.ATIVA)return null; const antes=JSON.stringify({o:iniciativa.ordem,i:iniciativa.indiceAtual,r:iniciativa.rodada,h:iniciativa.hordaTurno,e:iniciativa.estadoInterno}); const participantes={...(iniciativa.participantes||{})}; let ordem=[...(iniciativa.ordem||[])].filter(ch=>participantes[ch]&&isParticipanteValidoIniciativa(participantes[ch])); let indiceAtual=Math.max(0,Math.min(toNumber(iniciativa.indiceAtual,0),Math.max(ordem.length-1,0))); let rodada=Math.max(1,toNumber(iniciativa.rodada,1)); if(ordem.length && indiceAtual>=ordem.length){ indiceAtual=0; rodada++; } const prox={...iniciativa, participantes, ordem, indiceAtual, rodada, estadoInterno: ordem.length?'normal':'sem_participantes'}; prox.hordaTurno=normalizarHordaTurno(prox); return antes===JSON.stringify({o:prox.ordem,i:prox.indiceAtual,r:prox.rodada,h:prox.hordaTurno,e:prox.estadoInterno}) ? null : prox; }
         async function persistirNormalizacaoIniciativa() { if(usuarioAtual?.cargo!=='Mestre'||!iniciativaAtual?.combateId)return; const combateId=iniciativaAtual.combateId; try { await safeTransaction(PATH_INICIATIVA, atual=>{ if(!atual||atual.combateId!==combateId||atual.estado!==INICIATIVA_ESTADOS.ATIVA)return; return normalizarEstadoIniciativa(atual,{}) || atual; }); } catch(err) { console.error('Erro ao normalizar iniciativa.', err); } }
-        async function criarEstadoInicialIniciativa(ameacaId, tipoAmeaca) { const participantes={}; let ordemEntrada=0; playersList.forEach(id=>{ if(fichasNoBanco[id]||usuarios[id]){ const ch=chaveParticipanteIniciativa('jogador',id); participantes[ch]={chave:ch,id,tipo:'jogador',nome:usuarios[id]?.nome||id,iniciativa:0,confirmado:false,ordemEntrada:ordemEntrada++}; } }); const dados=tipoAmeaca==='horda'?hordasNoBanco[ameacaId]:fichasNoBanco[ameacaId]; const ch=chaveParticipanteIniciativa(tipoAmeaca,ameacaId); participantes[ch]={chave:ch,id:ameacaId,tipo:tipoAmeaca,nome:dados?.nome||ameacaId,iniciativa:0,confirmado:true,ordemEntrada:ordemEntrada++}; return { schemaVersion: INICIATIVA_SCHEMA_VERSION, combateId: gerarIdIniciativa('combate'), ameacaId, ameacaTipo: tipoAmeaca, estado: INICIATIVA_ESTADOS.COLETANDO, estadoInterno: 'normal', rodada: 1, indiceAtual: 0, versaoTurno: 0, participantes, ordem: ordenarParticipantesIniciativa(participantes), hordaTurno: { hordaId:'', membroAtualId:'', membrosConcluidos:{} }, ultimaAcaoId: '', criadoEm: Date.now() }; }
+        async function criarEstadoInicialIniciativa(ameacasEntrada, tipoAmeaca, options = {}) {
+            const ameacas = (Array.isArray(ameacasEntrada) ? ameacasEntrada : [{ id: ameacasEntrada, tipo: tipoAmeaca }])
+                .filter(ameaca => ameaca?.id && ['monstro', 'horda'].includes(ameaca.tipo));
+            if(!ameacas.length) throw new Error('O encontro precisa de ao menos uma ameaça válida.');
+
+            const participantes = {};
+            let ordemEntrada = 0;
+            playersList.forEach(id => {
+                if(fichasNoBanco[id] || usuarios[id]) {
+                    const chave = chaveParticipanteIniciativa('jogador', id);
+                    participantes[chave] = {
+                        chave,
+                        id,
+                        tipo: 'jogador',
+                        nome: fichasNoBanco[id]?.nome || usuarios[id]?.nome || id,
+                        iniciativa: 0,
+                        confirmado: false,
+                        ordemEntrada: ordemEntrada++
+                    };
+                }
+            });
+
+            ameacas.forEach(ameaca => {
+                const dados = ameaca.dados || (ameaca.tipo === 'horda' ? hordasNoBanco[ameaca.id] : fichasNoBanco[ameaca.id]) || {};
+                const chave = chaveParticipanteIniciativa(ameaca.tipo, ameaca.id);
+                participantes[chave] = {
+                    chave,
+                    id: ameaca.id,
+                    tipo: ameaca.tipo,
+                    nome: ameaca.nome || dados.nome || ameaca.id,
+                    modeloId: ameaca.modeloId || dados.instanciaCombate?.modeloId || ameaca.id,
+                    papel: ameaca.papel || dados.instanciaCombate?.papel || (ameaca.tipo === 'horda' ? 'Horda' : 'Ameaça'),
+                    comandaId: ameaca.comandaId || '',
+                    iniciativa: 0,
+                    confirmado: true,
+                    ordemEntrada: ordemEntrada++
+                };
+            });
+
+            const primeira = ameacas[0];
+            const combateId = options.combateId || gerarIdIniciativa('combate');
+            return {
+                schemaVersion: INICIATIVA_SCHEMA_VERSION,
+                combateId,
+                ameacaId: primeira.id,
+                ameacaTipo: primeira.tipo,
+                ameacas: Object.fromEntries(ameacas.map(ameaca => [ameaca.id, {
+                    id: ameaca.id,
+                    tipo: ameaca.tipo,
+                    modeloId: ameaca.modeloId || ameaca.id,
+                    nome: ameaca.nome || ameaca.id,
+                    papel: ameaca.papel || (ameaca.tipo === 'horda' ? 'Horda' : 'Ameaça'),
+                    comandaId: ameaca.comandaId || ''
+                }])),
+                estado: INICIATIVA_ESTADOS.COLETANDO,
+                estadoInterno: 'normal',
+                rodada: 1,
+                indiceAtual: 0,
+                versaoTurno: 0,
+                participantes,
+                ordem: ordenarParticipantesIniciativa(participantes),
+                hordaTurno: { hordaId: '', membroAtualId: '', membrosConcluidos: {} },
+                ultimaAcaoId: '',
+                criadoEm: options.criadoEm || Date.now()
+            };
+        }
         async function prepararFichasParaCombate(combateId) {
             await Promise.all(playersList.map(idFicha => safeTransaction(`fichas/${idFicha}`, dadosAtuais => {
                 if(!dadosAtuais) return;
@@ -1910,30 +2390,170 @@ window.toggleSidebarJogador = function(numSlot) {
             return { efeitos, bonusOfensivos };
         }
 
-        async function ativarCombateComIniciativa(ameacaId, tipoAmeaca) {
-            if(usuarioAtual?.cargo !== 'Mestre') throw new Error('Somente o Mestre pode iniciar combate.');
-            const existe = tipoAmeaca === 'horda'
-                ? (hordasNoBanco[ameacaId] || (await safeGet(`hordas/${ameacaId}`)).val())
-                : (fichasNoBanco[ameacaId] || (await safeGet(`fichas/${ameacaId}`)).val());
-            if(!ameacaId || !existe) throw new Error(`Ameaça inexistente para iniciativa: ${ameacaId}`);
-            const iniciativa = await criarEstadoInicialIniciativa(ameacaId, tipoAmeaca);
-            await prepararFichasParaCombate(iniciativa.combateId);
-            await safeUpdate(PATH_ESTADO_COMBATE, { ativo: ameacaId, iniciativa });
-            return iniciativa;
+        async function carregarModeloAmeaca(tipo, modeloId) {
+            const cache = tipo === 'horda' ? hordasNoBanco[modeloId] : fichasNoBanco[modeloId];
+            if(cache && !cache.instanciaCombate) return cache;
+            const path = tipo === 'horda' ? `hordas/${modeloId}` : `fichas/${modeloId}`;
+            const snapshot = await safeGet(path);
+            const dados = snapshot.val();
+            return dados?.instanciaCombate ? null : dados;
         }
 
+        async function iniciarEncontroComSelecoes(selecoes = []) {
+            if(usuarioAtual?.cargo !== 'Mestre') throw new Error('Somente o Mestre pode iniciar combate.');
+            if(encontroAtivoGlobal?.combateId || iniciativaAtual?.combateId || ameacaEmCombateGlobal) throw new Error('Já existe um encontro ativo. Finalize-o antes de lançar outro.');
+            const validas = selecoes.filter(selecao => selecao?.modeloId && ['monstro', 'horda'].includes(selecao.tipo));
+            if(!validas.length) throw new Error('Adicione pelo menos uma ameaça ao encontro.');
+
+            const combateId = gerarIdIniciativa('combate');
+            const criadoEm = Date.now();
+            const token = String(combateId).replace(/[^a-zA-Z0-9]/g, '').slice(0, 14);
+            const modelos = [];
+            for(const selecao of validas) {
+                const dados = await carregarModeloAmeaca(selecao.tipo, selecao.modeloId);
+                if(!dados) throw new Error(`A ficha ${selecao.nome || selecao.modeloId} não está mais disponível no Bestiário.`);
+                modelos.push({ selecao, dados });
+            }
+
+            const instanciaPorSelecao = {};
+            const instancias = modelos.map(({ selecao, dados }, index) => {
+                const id = selecao.tipo === 'horda' ? `horda_enc_${token}_${index + 1}` : `monstro_enc_${token}_${index + 1}`;
+                instanciaPorSelecao[selecao.chave] = id;
+                const visaoPublica = construirVisaoPublicaCatalogacao(selecao.modeloId, selecao.tipo, dados);
+                const nomePublico = visaoPublica.nomePublico || 'Ameaça desconhecida';
+                const contexto = { combateId, modeloId: selecao.modeloId, papel: selecao.papel, criadoEm, nomePublico };
+                return {
+                    id,
+                    tipo: selecao.tipo,
+                    modeloId: selecao.modeloId,
+                    nomeInterno: dados.nome || selecao.nome || selecao.modeloId,
+                    nomePublico,
+                    papel: selecao.tipo === 'horda' ? 'Horda' : (selecao.papel || 'Ameaça'),
+                    comandaChave: selecao.comandaChave || '',
+                    dados: selecao.tipo === 'horda' ? criarInstanciaHorda(dados, contexto) : criarInstanciaMonstro(dados, contexto)
+                };
+            });
+
+            instancias.forEach(instancia => {
+                instancia.comandaId = instanciaPorSelecao[instancia.comandaChave] || '';
+                instancia.comandaNome = instancias.find(item => item.id === instancia.comandaId)?.nomePublico || '';
+                instancia.dados.instanciaCombate.comandaId = instancia.comandaId;
+            });
+
+            const ameacasIniciativa = instancias.map(instancia => ({
+                id: instancia.id,
+                tipo: instancia.tipo,
+                modeloId: instancia.modeloId,
+                nome: instancia.nomePublico,
+                papel: instancia.papel,
+                comandaId: instancia.comandaId,
+                dados: instancia.dados
+            }));
+            const iniciativa = await criarEstadoInicialIniciativa(ameacasIniciativa, null, { combateId, criadoEm });
+            const encontro = {
+                schemaVersion: ENCONTRO_SCHEMA_VERSION,
+                combateId,
+                criadoEm,
+                ameacas: Object.fromEntries(instancias.map(instancia => [instancia.id, {
+                    id: instancia.id,
+                    tipo: instancia.tipo,
+                    modeloId: instancia.modeloId,
+                    nome: instancia.nomePublico,
+                    papel: instancia.papel,
+                    comandaId: instancia.comandaId,
+                    comandaNome: instancia.comandaNome
+                }]))
+            };
+
+            await prepararFichasParaCombate(combateId);
+            const updates = {
+                [`${PATH_ESTADO_COMBATE}/ativo`]: instancias[0].id,
+                [`${PATH_ESTADO_COMBATE}/encontro`]: encontro,
+                [PATH_INICIATIVA]: iniciativa
+            };
+            instancias.forEach(instancia => {
+                const raiz = instancia.tipo === 'horda' ? 'hordas' : 'fichas';
+                updates[`${raiz}/${instancia.id}`] = instancia.dados;
+                if(fotosNoBanco[instancia.modeloId]) updates[`fotos/${instancia.id}`] = fotosNoBanco[instancia.modeloId];
+            });
+            try {
+                await safeUpdate('', updates);
+            } catch(err) {
+                await limparFichasDepoisCombate(combateId);
+                throw err;
+            }
+            encontroAtivoGlobal = encontro;
+            iniciativaAtual = iniciativa;
+            ameacaEmCombateGlobal = instancias[0].id;
+            return { encontro, iniciativa, instancias };
+        }
+
+        async function ativarCombateComIniciativa(ameacaId, tipoAmeaca) {
+            const tipo = tipoAmeaca === 'horda' ? 'horda' : 'monstro';
+            const item = getItemCatalogo(tipo, ameacaId);
+            if(!ameacaId || !item) throw new Error(`Ameaça inexistente no Bestiário: ${ameacaId}`);
+            const resultado = await iniciarEncontroComSelecoes([{
+                chave: gerarIdIniciativa('selecao'),
+                modeloId: ameacaId,
+                tipo,
+                nome: item.nomeInterno,
+                papel: tipo === 'horda' ? 'Horda' : 'Ameaça',
+                comandaChave: ''
+            }]);
+            return resultado;
+        }
+
+        window.lancarRascunhoEncontro = async function() {
+            const botao = document.getElementById('btn-lancar-encontro');
+            if(botao) botao.disabled = true;
+            try {
+                const resultado = await iniciarEncontroComSelecoes(bestiarioUi.rascunhoEncontro);
+                bestiarioUi.rascunhoEncontro = [];
+                const [primeira, segunda] = resultado.instancias;
+                if(primeira) mestreAbrir(1, primeira.tipo, primeira.id);
+                if(segunda) mestreAbrir(2, segunda.tipo, segunda.id);
+                adicionarCombatLog(`${resultado.instancias.length} ameaça(s) entraram em cena no mesmo encontro.`, 'info');
+                mostrarCombatToast('Encontro lançado. Colete as iniciativas.');
+                atualizarSidebarMestre();
+            } catch(err) {
+                console.error(err);
+                alert(err.message || 'Não foi possível lançar o encontro.');
+                renderizarRascunhoEncontro();
+            }
+        };
+
         async function encerrarCombateComIniciativa() {
-            const combateId = iniciativaAtual?.combateId || '';
+            const combateId = iniciativaAtual?.combateId || encontroAtivoGlobal?.combateId || '';
+            const ameacas = getAmeacasEncontroAtivo().length
+                ? getAmeacasEncontroAtivo()
+                : Object.values(iniciativaAtual?.ameacas || {});
             await limparFichasDepoisCombate(combateId);
-            await safeUpdate(PATH_ESTADO_COMBATE, { ativo: null, iniciativa: null });
+            const updates = {
+                [`${PATH_ESTADO_COMBATE}/ativo`]: null,
+                [`${PATH_ESTADO_COMBATE}/encontro`]: null,
+                [PATH_INICIATIVA]: null
+            };
+            ameacas.forEach(ameaca => {
+                if(!ameaca.modeloId || ameaca.modeloId === ameaca.id) return;
+                const raiz = ameaca.tipo === 'horda' ? 'hordas' : 'fichas';
+                updates[`${raiz}/${ameaca.id}`] = null;
+                updates[`fotos/${ameaca.id}`] = null;
+            });
+            await safeUpdate('', updates);
+            Object.entries(slotsDeVisao).forEach(([numSlot, slot]) => {
+                if(ameacas.some(ameaca => ameaca.id === slot.idFicha)) limparSlot(Number(numSlot));
+            });
+            encontroAtivoGlobal = null;
+            ameacaEmCombateGlobal = null;
             limparInterfaceIniciativa();
+            if(usuarioAtual?.cargo === 'Mestre') atualizarSidebarMestre();
         }
         function limparInterfaceIniciativa() { iniciativaAtual=null; iniciativaTurnoTravado=false; ['initiative-player-modal','initiative-master-modal'].forEach(id=>{ const el=document.getElementById(id); if(el){ el.classList.remove('is-open'); el.setAttribute('aria-hidden','true'); } }); const board=document.getElementById('initiative-turn-board'); if(board) board.hidden=true; document.querySelectorAll('[data-acao-combate]').forEach(el=>{ el.disabled = el.dataset.acaoCombate === 'ataque-jogador'; }); }
         function abrirModalIniciativa(el){ if(el){ el.classList.add('is-open'); el.setAttribute('aria-hidden','false'); setTimeout(()=>el.querySelector('input,button')?.focus(),0); } }
         function fecharModalIniciativa(el){ if(el){ el.classList.remove('is-open'); el.setAttribute('aria-hidden','true'); } }
         function renderizarIniciativa(){ try{ if(!iniciativaAtual)return limparInterfaceIniciativa(); renderizarModalJogadorIniciativa(); renderizarModalMestreIniciativa(); renderizarQuadroTurnosIniciativa(); atualizarPermissoesAcoesCombate(); }catch(err){ console.error('Erro ao renderizar iniciativa.',err); } }
         function renderizarModalJogadorIniciativa(){ const modal=document.getElementById('initiative-player-modal'); if(!modal||usuarioAtual?.cargo!=='Jogador'||iniciativaAtual?.estado!==INICIATIVA_ESTADOS.COLETANDO)return fecharModalIniciativa(modal); const ch=chaveParticipanteIniciativa('jogador',usuarioAtual.idFicha); const p=iniciativaAtual.participantes?.[ch]; if(!p||p.confirmado)return fecharModalIniciativa(modal); const input=document.getElementById('initiative-player-input'), btn=document.getElementById('initiative-player-confirm'); const validar=()=>{const v=Number(input.value); btn.disabled=!(Number.isInteger(v)&&v>=1&&v<=20);}; input.oninput=validar; input.onkeydown=e=>{ if(e.key==='Enter'&&!btn.disabled)btn.click(); if(e.key==='Escape')e.preventDefault(); }; btn.onclick=async()=>{ const v=Number(input.value); if(!(Number.isInteger(v)&&v>=1&&v<=20))return; btn.disabled=true; const combateId=iniciativaAtual.combateId; const r=await safeTransaction(PATH_INICIATIVA, atual=>{ if(!atual||atual.combateId!==combateId||atual.estado!==INICIATIVA_ESTADOS.COLETANDO)return; const part=atual.participantes?.[ch]; if(!part||part.confirmado)return; const participantes={...atual.participantes,[ch]:{...part,iniciativa:v,confirmado:true,confirmadoEm:Date.now()}}; return {...atual,participantes,ordem:ordenarParticipantesIniciativa(participantes)}; }); if(r.committed)fecharModalIniciativa(modal); else btn.disabled=false; }; validar(); abrirModalIniciativa(modal); }
-        function renderizarModalMestreIniciativa(){ const modal=document.getElementById('initiative-master-modal'); if(!modal||usuarioAtual?.cargo!=='Mestre')return fecharModalIniciativa(modal); if(![INICIATIVA_ESTADOS.COLETANDO,INICIATIVA_ESTADOS.ORGANIZANDO].includes(iniciativaAtual?.estado))return fecharModalIniciativa(modal); const lista=document.getElementById('initiative-master-list'), action=document.getElementById('initiative-master-action'); lista.textContent=''; const ordem=iniciativaAtual.estado===INICIATIVA_ESTADOS.COLETANDO?ordenarParticipantesIniciativa(iniciativaAtual.participantes):(iniciativaAtual.ordem||[]); ordem.forEach((ch,idx)=>{ const p=iniciativaAtual.participantes[ch]; if(!p)return; const row=document.createElement('div'); row.className='initiative-row'; const up=document.createElement('button'); up.type='button'; up.textContent='↑'; up.disabled=iniciativaAtual.estado!==INICIATIVA_ESTADOS.ORGANIZANDO||idx===0; up.onclick=()=>moverParticipanteIniciativa(idx,-1); const name=document.createElement('div'); name.className='initiative-row-name'; name.textContent=p.nome||p.id; const st=document.createElement('div'); st.className='initiative-row-status'; st.textContent=p.confirmado?'enviado':'pendente'; name.appendChild(st); const inp=document.createElement('input'); inp.type='number'; inp.value=toNumber(p.iniciativa,0); inp.disabled=iniciativaAtual.estado===INICIATIVA_ESTADOS.COLETANDO&&p.tipo==='jogador'; inp.onchange=()=>editarIniciativaParticipante(ch,Number(inp.value)||0); const down=document.createElement('button'); down.type='button'; down.textContent='↓'; down.disabled=iniciativaAtual.estado!==INICIATIVA_ESTADOS.ORGANIZANDO||idx===ordem.length-1; down.onclick=()=>moverParticipanteIniciativa(idx,1); row.append(up,name,inp,down); lista.appendChild(row); }); action.textContent=iniciativaAtual.estado===INICIATIVA_ESTADOS.COLETANDO?'ORGANIZAR ORDEM':'CONFIRMAR ORDEM'; action.onclick=iniciativaAtual.estado===INICIATIVA_ESTADOS.COLETANDO?organizarOrdemIniciativa:confirmarOrdemIniciativa; abrirModalIniciativa(modal); }
+        function renderizarModalMestreIniciativa(){ const modal=document.getElementById('initiative-master-modal'); if(!modal||usuarioAtual?.cargo!=='Mestre')return fecharModalIniciativa(modal); if(![INICIATIVA_ESTADOS.COLETANDO,INICIATIVA_ESTADOS.ORGANIZANDO].includes(iniciativaAtual?.estado))return fecharModalIniciativa(modal); const lista=document.getElementById('initiative-master-list'), action=document.getElementById('initiative-master-action'); lista.textContent=''; const ordem=iniciativaAtual.estado===INICIATIVA_ESTADOS.COLETANDO?ordenarParticipantesIniciativa(iniciativaAtual.participantes):(iniciativaAtual.ordem||[]); ordem.forEach((ch,idx)=>{ const p=iniciativaAtual.participantes[ch]; if(!p)return; const row=document.createElement('div'); row.className='initiative-row'; const up=document.createElement('button'); up.type='button'; up.textContent='↑'; up.disabled=iniciativaAtual.estado!==INICIATIVA_ESTADOS.ORGANIZANDO||idx===0; up.onclick=()=>moverParticipanteIniciativa(idx,-1); const name=document.createElement('div'); name.className='initiative-row-name'; name.textContent=getNomeParticipanteVisivel(p); const st=document.createElement('div'); st.className='initiative-row-status'; st.textContent=p.confirmado?'enviado':'pendente'; name.appendChild(st); const inp=document.createElement('input'); inp.type='number'; inp.value=toNumber(p.iniciativa,0); inp.disabled=iniciativaAtual.estado===INICIATIVA_ESTADOS.COLETANDO&&p.tipo==='jogador'; inp.onchange=()=>editarIniciativaParticipante(ch,Number(inp.value)||0); const down=document.createElement('button'); down.type='button'; down.textContent='↓'; down.disabled=iniciativaAtual.estado!==INICIATIVA_ESTADOS.ORGANIZANDO||idx===ordem.length-1; down.onclick=()=>moverParticipanteIniciativa(idx,1); row.append(up,name,inp,down); lista.appendChild(row); }); action.textContent=iniciativaAtual.estado===INICIATIVA_ESTADOS.COLETANDO?'ORGANIZAR ORDEM':'CONFIRMAR ORDEM'; action.onclick=iniciativaAtual.estado===INICIATIVA_ESTADOS.COLETANDO?organizarOrdemIniciativa:confirmarOrdemIniciativa; abrirModalIniciativa(modal); }
         async function editarIniciativaParticipante(ch,valor){ const combateId=iniciativaAtual?.combateId; await safeTransaction(PATH_INICIATIVA,atual=>{ if(!atual||atual.combateId!==combateId||![INICIATIVA_ESTADOS.COLETANDO,INICIATIVA_ESTADOS.ORGANIZANDO].includes(atual.estado)||!atual.participantes?.[ch])return; const participantes={...atual.participantes,[ch]:{...atual.participantes[ch],iniciativa:Math.max(0,Math.trunc(valor))}}; return {...atual,participantes,ordem:atual.estado===INICIATIVA_ESTADOS.COLETANDO?ordenarParticipantesIniciativa(participantes):atual.ordem}; }); }
         async function organizarOrdemIniciativa(){ const combateId=iniciativaAtual?.combateId; await safeTransaction(PATH_INICIATIVA,atual=>!atual||atual.combateId!==combateId||atual.estado!==INICIATIVA_ESTADOS.COLETANDO?undefined:{...atual,estado:INICIATIVA_ESTADOS.ORGANIZANDO,ordem:ordenarParticipantesIniciativa(atual.participantes)}); }
         async function moverParticipanteIniciativa(idx,delta){ const combateId=iniciativaAtual?.combateId; await safeTransaction(PATH_INICIATIVA,atual=>{ if(!atual||atual.combateId!==combateId||atual.estado!==INICIATIVA_ESTADOS.ORGANIZANDO)return; const ordem=[...(atual.ordem||[])], j=idx+delta; if(j<0||j>=ordem.length)return; [ordem[idx],ordem[j]]=[ordem[j],ordem[idx]]; return {...atual,ordem}; }); }
@@ -1957,10 +2577,34 @@ window.toggleSidebarJogador = function(numSlot) {
                 await processarInicioTurnoIndividual(getParticipanteAtual(iniciativa), { iniciativa });
             }
         }
-        function getFotoParticipante(p){ if(!p)return ''; const foto=fotosNoBanco[p.id]; return foto?.base64 || foto || ''; }
-        function renderizarQuadroTurnosIniciativa(){ const board=document.getElementById('initiative-turn-board'); if(!board)return; const atual=getParticipanteAtual(); if(!ameacaEmCombateGlobal||iniciativaAtual?.estado!==INICIATIVA_ESTADOS.ATIVA||!atual||iniciativaAtual.estadoInterno==='sem_participantes'){ board.hidden=true; return; } board.hidden=false; document.getElementById('initiative-round').textContent=`Rodada ${toNumber(iniciativaAtual.rodada,1)}`; const cont=document.getElementById('initiative-portraits'); cont.textContent=''; (iniciativaAtual.ordem||[]).slice(toNumber(iniciativaAtual.indiceAtual,0),toNumber(iniciativaAtual.indiceAtual,0)+5).forEach((ch,i)=>{ const p=iniciativaAtual.participantes[ch]; if(!p)return; const item=document.createElement('div'); item.className='initiative-portrait'+(i===0?' is-current':''); item.tabIndex=0; if(i===0)item.setAttribute('aria-current','true'); const foto=getFotoParticipante(p); if(foto){ const img=document.createElement('img'); img.src=foto; img.alt=''; item.appendChild(img); } const tip=document.createElement('div'); tip.className='initiative-tooltip'; let texto=p.nome||p.id; if(p.tipo==='horda'){ const vivos=membrosVivosHorda(p.id); texto += ` - membro ${iniciativaAtual.hordaTurno?.membroAtualId || vivos[0] || '-'} - vivos ${vivos.length}`; } tip.textContent=texto; item.appendChild(tip); cont.appendChild(item); }); const btn=document.getElementById('initiative-end-turn'); btn.disabled=iniciativaTurnoTravado||!podeEncerrarTurno(usuarioAtual,atual); btn.onclick=encerrarTurnoIniciativa; }
+        function getNomeParticipanteVisivel(p) {
+            if(!p) return '';
+            if(p.tipo === 'jogador') return p.nome || p.id;
+            if(usuarioAtual?.cargo === 'Mestre') {
+                const modelo = p.tipo === 'horda' ? hordasNoBanco[p.modeloId] : fichasNoBanco[p.modeloId];
+                return modelo?.nome || p.nome || p.id;
+            }
+            return bestiarioPublicoNoBanco[p.modeloId || p.id]?.nomePublico || p.nome || 'Ameaça desconhecida';
+        }
+        function getFotoParticipante(p){ if(!p)return ''; const foto=fotosNoBanco[p.id] || fotosNoBanco[p.modeloId]; return foto?.base64 || foto || ''; }
+        function renderizarQuadroTurnosIniciativa(){ const board=document.getElementById('initiative-turn-board'); if(!board)return; const atual=getParticipanteAtual(); if(!ameacaEmCombateGlobal||iniciativaAtual?.estado!==INICIATIVA_ESTADOS.ATIVA||!atual||iniciativaAtual.estadoInterno==='sem_participantes'){ board.hidden=true; return; } board.hidden=false; document.getElementById('initiative-round').textContent=`Rodada ${toNumber(iniciativaAtual.rodada,1)}`; const cont=document.getElementById('initiative-portraits'); cont.textContent=''; (iniciativaAtual.ordem||[]).slice(toNumber(iniciativaAtual.indiceAtual,0),toNumber(iniciativaAtual.indiceAtual,0)+5).forEach((ch,i)=>{ const p=iniciativaAtual.participantes[ch]; if(!p)return; const item=document.createElement('div'); item.className='initiative-portrait'+(i===0?' is-current':''); item.tabIndex=0; if(i===0)item.setAttribute('aria-current','true'); const foto=getFotoParticipante(p); if(foto){ const img=document.createElement('img'); img.src=foto; img.alt=''; item.appendChild(img); } const tip=document.createElement('div'); tip.className='initiative-tooltip'; let texto=getNomeParticipanteVisivel(p); if(p.tipo==='horda'){ const vivos=membrosVivosHorda(p.id); texto += ` - membro ${iniciativaAtual.hordaTurno?.membroAtualId || vivos[0] || '-'} - vivos ${vivos.length}`; } tip.textContent=texto; item.appendChild(tip); cont.appendChild(item); }); const btn=document.getElementById('initiative-end-turn'); btn.disabled=iniciativaTurnoTravado||!podeEncerrarTurno(usuarioAtual,atual); btn.onclick=encerrarTurnoIniciativa; }
         function podeEncerrarTurno(usuario,participanteAtual){ if(!usuario||!participanteAtual)return false; if(usuario.cargo==='Mestre')return true; return participanteAtual.tipo==='jogador'&&usuario.idFicha===participanteAtual.id; }
-        function podeUsuarioAgirAgora(slotNum=null,contexto={}){ if(!iniciativaAtual||iniciativaAtual.estado!==INICIATIVA_ESTADOS.ATIVA)return true; const atual=getParticipanteAtual(); if(!atual)return false; if(usuarioAtual?.cargo==='Mestre')return atual.tipo!=='jogador'; return atual.tipo==='jogador'&&usuarioAtual?.idFicha===atual.id; }
+        function podeUsuarioAgirAgora(slotNum = null, contexto = {}) {
+            if(!iniciativaAtual || iniciativaAtual.estado !== INICIATIVA_ESTADOS.ATIVA) return true;
+            const atual = getParticipanteAtual();
+            if(!atual) return false;
+            if(usuarioAtual?.cargo === 'Mestre') {
+                if(atual.tipo === 'jogador') return false;
+                const idAtor = contexto.ameacaId || slotsDeVisao[Number(slotNum)]?.idFicha || '';
+                if(idAtor && atual.id !== idAtor) return false;
+                if(atual.tipo === 'horda' && contexto.membroId) {
+                    return iniciativaAtual.hordaTurno?.hordaId === atual.id
+                        && iniciativaAtual.hordaTurno?.membroAtualId === contexto.membroId;
+                }
+                return true;
+            }
+            return atual.tipo === 'jogador' && usuarioAtual?.idFicha === atual.id;
+        }
         function atualizarPermissoesAcoesCombate() {
             document.querySelectorAll('[data-acao-combate]').forEach(elemento => {
                 if(elemento.dataset.acaoCombate === 'ataque-jogador') {
@@ -1969,7 +2613,8 @@ window.toggleSidebarJogador = function(numSlot) {
                     const dados = slotsDeVisao[numSlot]?.dados || {};
                     elemento.disabled = !getCombateIdAtivo() || !podeUsuarioAgirAgora(numSlot) || toNumber(dados.ap, 0) < 1;
                 } else {
-                    elemento.disabled = !podeUsuarioAgirAgora();
+                    const numSlot = Number(elemento.dataset.slot || 0);
+                    elemento.disabled = !podeUsuarioAgirAgora(numSlot, { membroId: elemento.dataset.membroId || '' });
                 }
             });
             Object.entries(slotsDeVisao).forEach(([numSlot, slot]) => {
@@ -2053,37 +2698,114 @@ window.toggleSidebarJogador = function(numSlot) {
             iniciativaTurnoTravado = false;
             renderizarIniciativa();
         }
-        function iniciarOuvinteIniciativa(){ if(unsubscribeIniciativa)unsubscribeIniciativa(); unsubscribeIniciativa=onValue(dbRef(PATH_INICIATIVA),snap=>{ iniciativaAtual=snap.val(); renderizarIniciativa(); persistirNormalizacaoIniciativa(); if(iniciativaAtual?.estado===INICIATIVA_ESTADOS.ATIVA) processarInicioTurnoIndividual(getParticipanteAtual(iniciativaAtual),{iniciativa:iniciativaAtual}).catch(err=>console.error('Erro ao garantir o início do turno.',err)); }); }
+        function iniciarOuvinteIniciativa(){ if(unsubscribeIniciativa)unsubscribeIniciativa(); unsubscribeIniciativa=onValue(dbRef(PATH_INICIATIVA),snap=>{ iniciativaAtual=snap.val(); renderizarIniciativa(); if(usuarioAtual?.cargo==='Mestre')atualizarSidebarMestre(); persistirNormalizacaoIniciativa(); if(iniciativaAtual?.estado===INICIATIVA_ESTADOS.ATIVA) processarInicioTurnoIndividual(getParticipanteAtual(iniciativaAtual),{iniciativa:iniciativaAtual}).catch(err=>console.error('Erro ao garantir o início do turno.',err)); }); }
+
+        function reiniciarOuvintesAmeacasJogador() {
+            ouvintesAmeacasJogador.forEach(cancelar => { if(typeof cancelar === 'function') cancelar(); });
+            ouvintesAmeacasJogador = [];
+            if(usuarioAtual?.cargo !== 'Jogador') return;
+            const ameacas = getAmeacasEncontroAtivo();
+            if(!ameacas.length && ameacaEmCombateGlobal) {
+                ameacas.push({ id: ameacaEmCombateGlobal, tipo: ameacaEmCombateGlobal.startsWith('horda_') ? 'horda' : 'monstro' });
+            }
+            ameacas.forEach(ameaca => {
+                const raiz = ameaca.tipo === 'horda' ? 'hordas' : 'fichas';
+                const cancelar = onValue(dbRef(`${raiz}/${ameaca.id}`), snapshot => {
+                    if(ameaca.tipo === 'horda') {
+                        if(snapshot.exists()) hordasNoBanco[ameaca.id] = snapshot.val();
+                        else delete hordasNoBanco[ameaca.id];
+                    } else {
+                        if(snapshot.exists()) fichasNoBanco[ameaca.id] = snapshot.val();
+                        else delete fichasNoBanco[ameaca.id];
+                    }
+                    sincronizarCenaJogador();
+                    renderizarIniciativa();
+                });
+                ouvintesAmeacasJogador.push(cancelar);
+            });
+        }
+
+        function sincronizarCenaJogador() {
+            if(usuarioAtual?.cargo !== 'Jogador') return;
+            const ameacasDoEncontro = getAmeacasEncontroAtivo();
+            const ameacas = ameacasDoEncontro.filter(isAmeacaViva);
+            if(!ameacasDoEncontro.length && ameacaEmCombateGlobal) {
+                ameacas.push({ id: ameacaEmCombateGlobal, tipo: ameacaEmCombateGlobal.startsWith('horda_') ? 'horda' : 'monstro' });
+            }
+            if(!ameacas.length) {
+                if(slotsDeVisao[2]?.tipo === 'monstro' || slotsDeVisao[2]?.tipo === 'horda') limparSlot(2);
+                atualizarAlvosJogador(null);
+                return;
+            }
+            const atualNoSlot = ameacas.some(ameaca => ameaca.id === slotsDeVisao[2]?.idFicha);
+            if(!atualNoSlot) abrirFichaNoSlot(2, ameacas[0].tipo, ameacas[0].id);
+            atualizarAlvosJogador(ameacaEmCombateGlobal);
+        }
 
         function iniciarOuvintesGerais() {
             iniciarOuvinteIniciativa();
             onValue(dbRef('fotos'), (snapshot) => { fotosNoBanco = snapshot.val() || {}; renderizarQuadroTurnosIniciativa(); });
-            onValue(dbRef('fichas'), (snapshot) => { fichasNoBanco = snapshot.val() || {}; atualizarPermissoesAcoesCombate(); persistirNormalizacaoIniciativa(); });
-            onValue(dbRef('lista_monstros'), (snapshot) => {
-                monstrosNoBanco = snapshot.val() || {};
-                if(usuarioAtual.cargo === "Mestre") atualizarSidebarMestre();
+            if(usuarioAtual?.cargo === 'Mestre') {
+                onValue(dbRef('fichas'), (snapshot) => {
+                    fichasNoBanco = snapshot.val() || {};
+                    atualizarPermissoesAcoesCombate();
+                    persistirNormalizacaoIniciativa();
+                    atualizarSidebarMestre();
+                });
+                onValue(dbRef('lista_monstros'), (snapshot) => {
+                    monstrosNoBanco = snapshot.val() || {};
+                    atualizarSidebarMestre();
+                });
+                onValue(dbRef('hordas'), (snapshot) => {
+                    hordasNoBanco = snapshot.val() || {};
+                    atualizarSidebarMestre();
+                });
+            } else {
+                playersList.forEach(id => {
+                    onValue(dbRef(`fichas/${id}`), snapshot => {
+                        if(snapshot.exists()) fichasNoBanco[id] = snapshot.val();
+                        else delete fichasNoBanco[id];
+                        atualizarPermissoesAcoesCombate();
+                        sincronizarCenaJogador();
+                    });
+                });
+            }
+
+            onValue(dbRef('bestiario_publico'), (snapshot) => {
+                bestiarioPublicoNoBanco = snapshot.val() || {};
+                Object.entries(slotsDeVisao).forEach(([numSlot, slot]) => {
+                    const numero = Number(numSlot);
+                    if(slot?.tipo === 'horda') {
+                        const container = document.getElementById(`container-slot${numero}-horda`);
+                        if(container) {
+                            container.innerHTML = renderizarHtmlHordaDinamico(slot.idFicha, slot.dados?.membros || {}, numero);
+                            container.dataset.chaves = Object.keys(slot.dados?.membros || {}).join(',');
+                            renderizarCatalogacaoNoSlot(numero, 'horda', slot.dados || {});
+                        }
+                    } else if(slot?.tipo === 'monstro') {
+                        renderizarConhecimentoPublicoNoSlot(numero, slot.tipo, slot.dados || {});
+                    }
+                });
+                atualizarPermissoesAcoesCombate();
+                if(usuarioAtual?.cargo === 'Jogador') atualizarAlvosJogador(ameacaEmCombateGlobal);
             });
 
-            onValue(dbRef('hordas'), (snapshot) => {
-                hordasNoBanco = snapshot.val() || {};
-                if(usuarioAtual.cargo === "Mestre") atualizarSidebarMestre();
+            onValue(dbRef('estado_combate/encontro'), (snapshot) => {
+                encontroAtivoGlobal = snapshot.val();
+                if(usuarioAtual?.cargo === 'Mestre') atualizarSidebarMestre();
+                else {
+                    reiniciarOuvintesAmeacasJogador();
+                    sincronizarCenaJogador();
+                }
             });
 
             onValue(dbRef('estado_combate/ativo'), (snapshot) => {
                 const ameacaAnterior = ameacaEmCombateGlobal;
                 ameacaEmCombateGlobal = snapshot.val();
 
-                if (usuarioAtual.cargo === "Jogador") {
-                    if (ameacaEmCombateGlobal) {
-                        if (ameacaEmCombateGlobal.startsWith('horda_')) abrirFichaNoSlot(2, 'horda', ameacaEmCombateGlobal);
-                        else abrirFichaNoSlot(2, 'monstro', ameacaEmCombateGlobal);
-                    } else {
-                        limparSlot(2);
-                    }
-                    atualizarAlvosJogador(ameacaEmCombateGlobal);
-                }
-                if (usuarioAtual.cargo === "Mestre") {
-                    // Sem ação no momento, estado combate livre para Mestre
+                if (usuarioAtual?.cargo === "Jogador") {
+                    reiniciarOuvintesAmeacasJogador();
+                    sincronizarCenaJogador();
                 }
 
                 if(ameacaAnterior && !ameacaEmCombateGlobal) {
@@ -2105,121 +2827,403 @@ window.toggleSidebarJogador = function(numSlot) {
         let refAlvoJogador = null;
 
         function atualizarAlvosJogador(ameacaId) {
-            let nomeSpan1 = document.getElementById(`nome-ameaca-ativa-slot1`);
-            let nomeSpan2 = document.getElementById(`nome-ameaca-ativa-slot2`);
-            let alvosDiv1 = document.getElementById(`alvos-combate-slot1`);
-            let alvosDiv2 = document.getElementById(`alvos-combate-slot2`);
+            const nomeSpan1 = document.getElementById('nome-ameaca-ativa-slot1');
+            const nomeSpan2 = document.getElementById('nome-ameaca-ativa-slot2');
+            const alvosDiv1 = document.getElementById('alvos-combate-slot1');
+            const alvosDiv2 = document.getElementById('alvos-combate-slot2');
+            if(typeof ouvinteAlvoJogador === 'function') ouvinteAlvoJogador();
+            ouvinteAlvoJogador = null;
+            refAlvoJogador = null;
 
-            if(typeof ouvinteAlvoJogador === 'function') {
-                ouvinteAlvoJogador();
+            const ameacas = getAmeacasEncontroAtivo();
+            if(!ameacas.length && ameacaId) {
+                ameacas.push({ id: ameacaId, tipo: ameacaId.startsWith('horda_') ? 'horda' : 'monstro', modeloId: ameacaId });
             }
 
-            const renderizarTodos = (nomeAmeaca, htmlInimigos) => {
-                let htmlPlayers = '';
-                playersList.forEach(p => {
-                    htmlPlayers += `<label class="checkbox-alvo" style="color:#dcd0ba; font-size:12px; margin-bottom:2px;"><input type="checkbox" value="${p}"> Aliado: ${p.toUpperCase()}</label>`;
-                });
+            const aliadosHtml = playersList.map(id => {
+                const nome = fichasNoBanco[id]?.nome || usuarios[id]?.nome || id;
+                return `<label class="checkbox-alvo" style="color:#dcd0ba; font-size:12px; margin-bottom:2px;"><input type="checkbox" value="${escapeHtml(id)}"> Aliado: ${escapeHtml(nome)}</label>`;
+            }).join('');
+            const inimigosHtml = ameacas.map(ameaca => {
+                const dados = ameaca.tipo === 'horda' ? hordasNoBanco[ameaca.id] : fichasNoBanco[ameaca.id];
+                if(!dados) return `<div style="color:#7f6b55; font-size:10px;">Carregando ${escapeHtml(ameaca.nome || ameaca.id)}...</div>`;
+                const modeloId = ameaca.modeloId || dados.instanciaCombate?.modeloId || ameaca.id;
+                const publico = bestiarioPublicoNoBanco[modeloId] || construirVisaoPublicaCatalogacao(modeloId, ameaca.tipo, dados);
+                const nome = publico.nomePublico || 'Ameaça desconhecida';
+                if(ameaca.tipo === 'horda') {
+                    return Object.entries(dados.membros || {}).map(([membroId, membro]) => {
+                        const hpAtual = toNumber(membro?.['hp-atual'], 0);
+                        if(hpAtual <= 0) return '';
+                        const valor = `hordas/${ameaca.id}/membros/${membroId}`;
+                        return `<label class="checkbox-alvo" style="color:#d95757; font-size:12px; margin-bottom:2px;"><input type="checkbox" value="${escapeHtml(valor)}"> Inimigo: ${escapeHtml(nome)} #${escapeHtml(membroId)} (HP: ${hpAtual})</label>`;
+                    }).join('');
+                }
+                const hpAtual = toNumber(dados['hp-atual'], 0);
+                if(hpAtual <= 0) return '';
+                return `<label class="checkbox-alvo" style="color:#d95757; font-size:12px; margin-bottom:2px;"><input type="checkbox" value="fichas/${escapeHtml(ameaca.id)}"> Inimigo: ${escapeHtml(nome)} (HP: ${hpAtual})</label>`;
+            }).join('');
+            const separador = `<div style="border-bottom: 1px dashed #5c1818; margin: 5px 0;"></div>`;
+            const finalHtml = aliadosHtml + separador + (inimigosHtml || `<div style="color:#5c3a21; font-size:10px; font-style:italic;">Nenhum inimigo ativo.</div>`);
+            const titulo = ameacas.length > 1
+                ? `${ameacas.length} ameaças neste encontro`
+                : (ameacas.length === 1
+                    ? (bestiarioPublicoNoBanco[ameacas[0].modeloId || ameacas[0].id]?.nomePublico || 'Ameaça desconhecida')
+                    : 'Nenhuma ameaça na mesa no momento...');
+            if(nomeSpan1) nomeSpan1.textContent = titulo;
+            if(nomeSpan2) nomeSpan2.textContent = titulo;
+            if(alvosDiv1) alvosDiv1.innerHTML = finalHtml;
+            if(alvosDiv2) alvosDiv2.innerHTML = finalHtml;
+        }
 
-                let separator = `<div style="border-bottom: 1px dashed #5c1818; margin: 5px 0;"></div>`;
-                let finalHtml = htmlPlayers + separator + htmlInimigos;
+        function lerPreferenciaLocal(chave, fallback) {
+            try {
+                const valor = globalThis.localStorage?.getItem(chave);
+                return valor ? JSON.parse(valor) : fallback;
+            } catch(err) {
+                return fallback;
+            }
+        }
 
-                if(nomeSpan1) nomeSpan1.innerText = nomeAmeaca;
-                if(nomeSpan2) nomeSpan2.innerText = nomeAmeaca;
-                if(alvosDiv1) alvosDiv1.innerHTML = finalHtml;
-                if(alvosDiv2) alvosDiv2.innerHTML = finalHtml;
-            };
+        function salvarPreferenciaLocal(chave, valor) {
+            try { globalThis.localStorage?.setItem(chave, JSON.stringify(valor)); }
+            catch(err) { console.warn('Não foi possível salvar uma preferência local do Bestiário.', err); }
+        }
 
-            if(!ameacaId) {
-                renderizarTodos("Nenhuma ameaça na mesa no momento...", `<div style="color:#5c3a21; font-size:10px; font-style:italic;">Nenhum inimigo ativo.</div>`);
+        function carregarPreferenciasBestiario() {
+            bestiarioUi.favoritosIds = new Set(lerPreferenciaLocal(BESTIARIO_STORAGE_FAVORITOS, []));
+            bestiarioUi.recentesIds = lerPreferenciaLocal(BESTIARIO_STORAGE_RECENTES, []).slice(0, 20);
+        }
+
+        function obterItensCatalogo() {
+            const itens = [];
+            Object.entries(monstrosNoBanco || {}).forEach(([id, indice]) => {
+                if(indice?.ativo === false) return;
+                const dados = fichasNoBanco[id] || {};
+                if(dados.instanciaCombate) return;
+                itens.push(construirItemCatalogo(id, 'monstro', dados, indice));
+            });
+            Object.entries(hordasNoBanco || {}).forEach(([id, dados]) => {
+                if(dados?.instanciaCombate) return;
+                itens.push(construirItemCatalogo(id, 'horda', dados, dados));
+            });
+            return itens;
+        }
+
+        function getAmeacasEncontroAtivo() {
+            return Object.values(encontroAtivoGlobal?.ameacas || {}).filter(ameaca => ameaca?.id && ameaca?.tipo);
+        }
+
+        function isAmeacaViva(ameaca) {
+            if(!ameaca?.id) return false;
+            if(ameaca.tipo === 'horda') {
+                const dados = hordasNoBanco[ameaca.id];
+                if(!dados) return true;
+                return Object.values(dados.membros || {}).some(membro => toNumber(membro?.['hp-atual'], 0) > 0);
+            }
+            const dados = fichasNoBanco[ameaca.id];
+            return dados ? toNumber(dados['hp-atual'], 0) > 0 : true;
+        }
+
+        function getIdsCatalogoEmCena() {
+            return new Set(getAmeacasEncontroAtivo().map(ameaca => chaveItemBestiario(ameaca.tipo, ameaca.modeloId || ameaca.id)));
+        }
+
+        function getItemCatalogo(tipo, id) {
+            return obterItensCatalogo().find(item => item.tipo === tipo && item.id === id) || null;
+        }
+
+        function registrarItemRecente(tipo, id) {
+            const chave = chaveItemBestiario(tipo, id);
+            bestiarioUi.recentesIds = [chave, ...bestiarioUi.recentesIds.filter(item => item !== chave)].slice(0, 20);
+            salvarPreferenciaLocal(BESTIARIO_STORAGE_RECENTES, bestiarioUi.recentesIds);
+        }
+
+        function getValoresFiltroBestiario(itens, campo) {
+            const valores = [];
+            itens.forEach(item => {
+                const valor = item.catalogacao?.[campo];
+                if(campo === 'etiquetas') valores.push(...normalizarListaCatalogacao(valor));
+                else if(String(valor || '').trim()) valores.push(String(valor).trim());
+            });
+            return normalizarListaCatalogacao(valores).sort((a, b) => a.localeCompare(b, 'pt-BR'));
+        }
+
+        function renderizarOpcoesFiltrosBestiario(itens) {
+            BESTIARIO_CAMPOS_FILTRO.forEach(campo => {
+                const select = document.getElementById(`bestiario-filtro-${campo}`);
+                if(!select || document.activeElement === select) return;
+                const opcoes = getValoresFiltroBestiario(itens, campo);
+                select.innerHTML = `<option value="">Adicionar...</option>${opcoes.map(valor => `<option value="${escapeHtml(valor)}">${escapeHtml(valor)}</option>`).join('')}`;
+                const chips = document.getElementById(`bestiario-chips-${campo}`);
+                if(chips) {
+                    chips.innerHTML = (bestiarioUi.filtros[campo] || []).map(valor => `
+                        <span class="bestiario-filtro-chip">${escapeHtml(valor)}<button type="button" onclick="removerFiltroBestiario('${campo}', '${codificarParametroHtml(valor)}')" aria-label="Remover ${escapeHtml(valor)}">×</button></span>
+                    `).join('');
+                }
+            });
+            const totalAtivos = BESTIARIO_CAMPOS_FILTRO.reduce((total, campo) => total + (bestiarioUi.filtros[campo] || []).length, 0)
+                + Number(bestiarioUi.favoritos) + Number(bestiarioUi.recentes) + Number(bestiarioUi.emCena);
+            const contador = document.getElementById('bestiario-filtros-contagem');
+            if(contador) contador.textContent = totalAtivos ? `(${totalAtivos})` : '';
+        }
+
+        function renderizarResultadosBestiario(itensFiltrados) {
+            const lista = document.getElementById('bestiario-lista-resultados');
+            if(!lista) return;
+            const limite = bestiarioUi.pagina * BESTIARIO_LIMITE_PAGINA;
+            const visiveis = itensFiltrados.slice(0, limite);
+            const contagem = document.getElementById('bestiario-resultados-contagem');
+            if(contagem) contagem.textContent = `${itensFiltrados.length} ${itensFiltrados.length === 1 ? 'resultado' : 'resultados'}`;
+            const indicador = document.getElementById('bestiario-pagina-indicador');
+            if(indicador) indicador.textContent = itensFiltrados.length ? `${visiveis.length}/${itensFiltrados.length}` : '';
+            const mostrarMais = document.getElementById('bestiario-mostrar-mais');
+            if(mostrarMais) mostrarMais.hidden = visiveis.length >= itensFiltrados.length;
+
+            if(!visiveis.length) {
+                lista.innerHTML = `<div class="bestiario-vazio">Nenhuma ameaça corresponde à busca e aos filtros atuais.</div>`;
                 return;
             }
 
-            if(ameacaId.startsWith('horda_')) {
-                refAlvoJogador = dbRef('hordas/' + ameacaId);
-                ouvinteAlvoJogador = onValue(refAlvoJogador, (snap) => {
-                    if(snap.exists()) {
-                        let horda = snap.val();
-                        let nomeHorda = horda.nome || 'Horda';
-                        let nomeHordaHtml = escapeHtml(nomeHorda);
-                        let html = '';
-                        for(let mId in horda.membros) {
-                            let hpAtual = Number(horda.membros[mId]['hp-atual']) || 0;
-                            if(hpAtual > 0) {
-                                html += `<label class="checkbox-alvo" style="color:#d95757; font-size:12px; margin-bottom:2px;"><input type="checkbox" value="${ameacaId}_${mId}"> Inimigo: ${nomeHordaHtml} #${escapeHtml(mId)} (HP: ${hpAtual})</label>`;
-                            }
-                        }
-                        renderizarTodos(nomeHorda, html);
-                    } else {
-                        renderizarTodos("Ameaça removida.", "");
-                    }
-                });
-            } else {
-                refAlvoJogador = dbRef('fichas/' + ameacaId);
-                ouvinteAlvoJogador = onValue(refAlvoJogador, (snap) => {
-                    if(snap.exists()) {
-                        let m = snap.val();
-                        let hpAtual = Number(m['hp-atual']) || 0;
-                        let nomeMonstro = m.nome || 'Monstro';
-                        if(hpAtual > 0) {
-                            renderizarTodos(nomeMonstro, `<label class="checkbox-alvo" style="color:#d95757; font-size:12px;"><input type="checkbox" value="${ameacaId}"> Inimigo: ${escapeHtml(nomeMonstro)} (HP: ${hpAtual})</label>`);
-                        } else {
-                            renderizarTodos(nomeMonstro + " (Derrotado)", "");
-                        }
-                    } else {
-                        renderizarTodos("Ameaça removida.", "");
-                    }
-                });
+            lista.innerHTML = visiveis.map(item => {
+                const encodedId = codificarParametroHtml(item.id);
+                const catalogacao = item.catalogacao || {};
+                const selos = [
+                    item.tipo === 'horda' ? 'Horda' : '',
+                    catalogacao.familia,
+                    catalogacao.papel,
+                    catalogacao.patamar
+                ].filter(Boolean).slice(0, 3);
+                const favorito = bestiarioUi.favoritosIds.has(item.chave);
+                return `
+                    <article class="bestiario-card">
+                        <div class="bestiario-card-corpo" onclick="mestreAbrirCatalogo(1, '${item.tipo}', '${encodedId}')" title="Abrir no painel esquerdo">
+                            <div class="bestiario-card-titulo"><strong>${escapeHtml(item.nomeInterno)}</strong>${item.nomePublico ? `<span>“${escapeHtml(item.nomePublico)}”</span>` : ''}</div>
+                            <div class="bestiario-card-selos">${selos.map((selo, index) => `<span class="bestiario-selo ${index === 0 && item.tipo === 'horda' ? 'formato-horda' : ''}">${escapeHtml(selo)}</span>`).join('')}</div>
+                        </div>
+                        <div class="bestiario-card-acoes">
+                            <button type="button" class="${favorito ? 'is-favorito' : ''}" onclick="toggleFavoritoBestiario('${item.tipo}', '${encodedId}')" title="${favorito ? 'Remover dos favoritos' : 'Adicionar aos favoritos'}">${favorito ? '★' : '☆'}</button>
+                            <button type="button" class="btn-add-encontro" onclick="adicionarAmeacaAoEncontro('${item.tipo}', '${encodedId}')" title="Adicionar ao encontro">＋</button>
+                            <button type="button" onclick="mestreAbrirCatalogo(1, '${item.tipo}', '${encodedId}')" title="Abrir à esquerda">1</button>
+                            <button type="button" onclick="mestreAbrirCatalogo(2, '${item.tipo}', '${encodedId}')" title="Abrir à direita">2</button>
+                        </div>
+                    </article>
+                `;
+            }).join('');
+        }
+
+        function renderizarAmeacasEmCena() {
+            const secao = document.getElementById('bestiario-em-cena');
+            const lista = document.getElementById('bestiario-em-cena-lista');
+            const ameacas = getAmeacasEncontroAtivo();
+            if(!secao || !lista) return;
+            secao.hidden = ameacas.length === 0;
+            const contador = document.getElementById('bestiario-em-cena-contagem');
+            if(contador) contador.textContent = ameacas.length;
+            lista.innerHTML = ameacas.map(ameaca => {
+                const itemModelo = getItemCatalogo(ameaca.tipo, ameaca.modeloId || ameaca.id);
+                const nome = itemModelo?.nomeInterno || ameaca.nome || ameaca.id;
+                const comandada = ameacas.find(item => item.id === ameaca.comandaId);
+                const nomeComandada = comandada ? (getItemCatalogo(comandada.tipo, comandada.modeloId || comandada.id)?.nomeInterno || comandada.nome) : '';
+                const comando = nomeComandada ? ` · comanda ${nomeComandada}` : '';
+                return `<div class="bestiario-em-cena-item"><strong>${escapeHtml(nome)}</strong><button type="button" onclick="focarAmeacaEmCena('${ameaca.tipo}', '${codificarParametroHtml(ameaca.id)}')">Abrir</button><small>${escapeHtml(ameaca.papel || 'Ameaça')}${escapeHtml(comando)}</small></div>`;
+            }).join('');
+        }
+
+        function renderizarRascunhoEncontro() {
+            const lista = document.getElementById('encontro-rascunho-lista');
+            const contador = document.getElementById('encontro-rascunho-contagem');
+            const botao = document.getElementById('btn-lancar-encontro');
+            if(contador) contador.textContent = bestiarioUi.rascunhoEncontro.length;
+            if(botao) botao.disabled = !bestiarioUi.rascunhoEncontro.length || Boolean(encontroAtivoGlobal?.combateId || iniciativaAtual?.combateId || ameacaEmCombateGlobal);
+            if(!lista) return;
+            if(!bestiarioUi.rascunhoEncontro.length) {
+                lista.innerHTML = `<p>Adicione ameaças pelo botão <strong>+</strong> do catálogo.</p>`;
+                return;
             }
+
+            const hordas = bestiarioUi.rascunhoEncontro.filter(item => item.tipo === 'horda');
+            lista.innerHTML = bestiarioUi.rascunhoEncontro.map(item => {
+                const opcoesPapel = item.tipo === 'horda'
+                    ? `<option value="Horda" selected>Horda</option>`
+                    : ['Ameaça', 'General', 'Chefe'].map(papel => `<option value="${papel}" ${item.papel === papel ? 'selected' : ''}>${papel}</option>`).join('');
+                const opcoesComando = `<option value="">Não comanda</option>${hordas.map(horda => `<option value="${horda.chave}" ${item.comandaChave === horda.chave ? 'selected' : ''}>${escapeHtml(horda.nome)}</option>`).join('')}`;
+                return `
+                    <div class="encontro-item">
+                        <strong class="encontro-item-nome">${escapeHtml(item.nome)}</strong>
+                        <button type="button" class="encontro-item-remover" onclick="removerAmeacaDoEncontro('${item.chave}')" title="Remover">×</button>
+                        <div class="encontro-item-config">
+                            <select aria-label="Papel no encontro" onchange="atualizarAmeacaDoEncontro('${item.chave}', 'papel', this.value)" ${item.tipo === 'horda' ? 'disabled' : ''}>${opcoesPapel}</select>
+                            <select aria-label="Horda comandada" onchange="atualizarAmeacaDoEncontro('${item.chave}', 'comandaChave', this.value)" ${item.papel !== 'General' || !hordas.length ? 'disabled' : ''}>${opcoesComando}</select>
+                        </div>
+                    </div>
+                `;
+            }).join('');
         }
 
         function atualizarSidebarMestre() {
-            if(usuarioAtual.cargo !== "Mestre") return;
-
-            // Popula Jogadores
-            let htmlJogadores = '';
-            playersList.forEach(p => {
-                htmlJogadores += `
+            if(usuarioAtual?.cargo !== "Mestre") return;
+            const jogadores = document.getElementById('cat-jogadores');
+            if(jogadores) {
+                jogadores.innerHTML = playersList.map(p => `
                     <div class="item-acervo">
-                        <span class="item-acervo-nome">${p.toUpperCase()}</span>
-                        <div class="item-acervo-botoes">
-                            <button class="btn-slot-acervo" onclick="mestreAbrir(1, 'heroi', '${p}')">1</button>
-                            <button class="btn-slot-acervo" onclick="mestreAbrir(2, 'heroi', '${p}')">2</button>
-                        </div>
+                        <span class="item-acervo-nome" onclick="mestreAbrir(1, 'heroi', '${p}')">${escapeHtml(fichasNoBanco[p]?.nome || p.toUpperCase())}</span>
+                        <div class="item-acervo-botoes"><button class="btn-slot-acervo" onclick="mestreAbrir(1, 'heroi', '${p}')">1</button><button class="btn-slot-acervo" onclick="mestreAbrir(2, 'heroi', '${p}')">2</button></div>
                     </div>
-                `;
+                `).join('');
+            }
+
+            const itens = obterItensCatalogo();
+            const itensFiltrados = filtrarCatalogoAmeacas(itens, {
+                ...bestiarioUi,
+                emCenaIds: getIdsCatalogoEmCena()
             });
-            document.getElementById('cat-jogadores').innerHTML = htmlJogadores;
-
-            // Popula Monstros
-            let htmlMonstros = '';
-            for(let id in monstrosNoBanco) {
-                htmlMonstros += `
-                    <div class="item-acervo">
-                        <span class="item-acervo-nome">${escapeHtml(monstrosNoBanco[id].nome || id)}</span>
-                        <div class="item-acervo-botoes">
-                            <button class="btn-slot-acervo" onclick="mestreAbrir(1, 'monstro', '${id}')">1</button>
-                            <button class="btn-slot-acervo" onclick="mestreAbrir(2, 'monstro', '${id}')">2</button>
-                        </div>
-                    </div>
-                `;
-            }
-            document.getElementById('cat-monstros').innerHTML = htmlMonstros;
-
-            // Popula Hordas
-            let htmlHordas = '';
-            for(let id in hordasNoBanco) {
-                htmlHordas += `
-                    <div class="item-acervo">
-                        <span class="item-acervo-nome">${escapeHtml(hordasNoBanco[id].nome || id)}</span>
-                        <div class="item-acervo-botoes">
-                            <button class="btn-slot-acervo" onclick="mestreAbrir(1, 'horda', '${id}')">1</button>
-                            <button class="btn-slot-acervo" onclick="mestreAbrir(2, 'horda', '${id}')">2</button>
-                        </div>
-                    </div>
-                `;
-            }
-            document.getElementById('cat-hordas').innerHTML = htmlHordas;
+            renderizarOpcoesFiltrosBestiario(itens);
+            renderizarResultadosBestiario(itensFiltrados);
+            renderizarAmeacasEmCena();
+            renderizarRascunhoEncontro();
+            document.querySelectorAll('.bestiario-aba').forEach(botao => botao.classList.toggle('ativa', botao.dataset.formato === bestiarioUi.formato));
         }
+
+        window.alterarBuscaBestiario = function(valor) {
+            bestiarioUi.busca = valor || '';
+            bestiarioUi.pagina = 1;
+            atualizarSidebarMestre();
+        };
+
+        window.selecionarAbaBestiario = function(formato) {
+            bestiarioUi.formato = ['todos', 'monstro', 'horda'].includes(formato) ? formato : 'todos';
+            bestiarioUi.pagina = 1;
+            atualizarSidebarMestre();
+        };
+
+        window.toggleFiltrosBestiario = function() {
+            const painel = document.getElementById('bestiario-filtros');
+            const botao = document.getElementById('btn-toggle-filtros-bestiario');
+            if(!painel) return;
+            painel.hidden = !painel.hidden;
+            if(botao) botao.setAttribute('aria-expanded', String(!painel.hidden));
+        };
+
+        window.adicionarFiltroBestiario = function(campo, valor) {
+            const limpo = String(valor || '').trim();
+            if(!BESTIARIO_CAMPOS_FILTRO.includes(campo) || !limpo) return;
+            const atuais = bestiarioUi.filtros[campo] || [];
+            if(!atuais.some(item => normalizarTextoBestiario(item) === normalizarTextoBestiario(limpo))) atuais.push(limpo);
+            bestiarioUi.pagina = 1;
+            atualizarSidebarMestre();
+        };
+
+        window.removerFiltroBestiario = function(campo, valorCodificado) {
+            if(!BESTIARIO_CAMPOS_FILTRO.includes(campo)) return;
+            const valor = decodeURIComponent(valorCodificado || '');
+            bestiarioUi.filtros[campo] = (bestiarioUi.filtros[campo] || []).filter(item => normalizarTextoBestiario(item) !== normalizarTextoBestiario(valor));
+            bestiarioUi.pagina = 1;
+            atualizarSidebarMestre();
+        };
+
+        window.alternarFiltroRapidoBestiario = function(campo, ativo) {
+            if(!['favoritos', 'recentes', 'emCena'].includes(campo)) return;
+            bestiarioUi[campo] = Boolean(ativo);
+            bestiarioUi.pagina = 1;
+            atualizarSidebarMestre();
+        };
+
+        window.limparFiltrosBestiario = function() {
+            bestiarioUi.busca = '';
+            bestiarioUi.formato = 'todos';
+            bestiarioUi.pagina = 1;
+            BESTIARIO_CAMPOS_FILTRO.forEach(campo => { bestiarioUi.filtros[campo] = []; });
+            bestiarioUi.favoritos = false;
+            bestiarioUi.recentes = false;
+            bestiarioUi.emCena = false;
+            const busca = document.getElementById('bestiario-busca');
+            if(busca) busca.value = '';
+            ['favoritos', 'recentes', 'em-cena'].forEach(sufixo => {
+                const input = document.getElementById(`bestiario-so-${sufixo}`);
+                if(input) input.checked = false;
+            });
+            atualizarSidebarMestre();
+        };
+
+        window.mostrarMaisBestiario = function() {
+            bestiarioUi.pagina += 1;
+            atualizarSidebarMestre();
+        };
+
+        window.mestreAbrirCatalogo = function(numSlot, tipo, idCodificado) {
+            const id = decodeURIComponent(idCodificado || '');
+            if(!id) return;
+            registrarItemRecente(tipo, id);
+            mestreAbrir(Number(numSlot), tipo, id);
+            atualizarSidebarMestre();
+        };
+
+        window.toggleFavoritoBestiario = function(tipo, idCodificado) {
+            const id = decodeURIComponent(idCodificado || '');
+            const chave = chaveItemBestiario(tipo, id);
+            if(bestiarioUi.favoritosIds.has(chave)) bestiarioUi.favoritosIds.delete(chave);
+            else bestiarioUi.favoritosIds.add(chave);
+            salvarPreferenciaLocal(BESTIARIO_STORAGE_FAVORITOS, [...bestiarioUi.favoritosIds]);
+            atualizarSidebarMestre();
+        };
+
+        window.adicionarAmeacaAoEncontro = function(tipo, idCodificado) {
+            const id = decodeURIComponent(idCodificado || '');
+            const item = getItemCatalogo(tipo, id);
+            if(!item) return;
+            bestiarioUi.rascunhoEncontro.push({
+                chave: gerarIdIniciativa('selecao'),
+                modeloId: id,
+                tipo,
+                nome: item.nomeInterno,
+                papel: tipo === 'horda' ? 'Horda' : 'Ameaça',
+                comandaChave: ''
+            });
+            renderizarRascunhoEncontro();
+        };
+
+        window.removerAmeacaDoEncontro = function(chave) {
+            bestiarioUi.rascunhoEncontro = bestiarioUi.rascunhoEncontro
+                .filter(item => item.chave !== chave)
+                .map(item => item.comandaChave === chave ? { ...item, comandaChave: '' } : item);
+            renderizarRascunhoEncontro();
+        };
+
+        window.atualizarAmeacaDoEncontro = function(chave, campo, valor) {
+            if(!['papel', 'comandaChave'].includes(campo)) return;
+            bestiarioUi.rascunhoEncontro = bestiarioUi.rascunhoEncontro.map(item => item.chave === chave ? { ...item, [campo]: valor, ...(campo === 'papel' && valor !== 'General' ? { comandaChave: '' } : {}) } : item);
+            renderizarRascunhoEncontro();
+        };
+
+        window.limparRascunhoEncontro = function() {
+            bestiarioUi.rascunhoEncontro = [];
+            renderizarRascunhoEncontro();
+        };
+
+        window.toggleMontadorEncontro = function() {
+            const corpo = document.getElementById('encontro-montador-corpo');
+            const botao = document.querySelector('.encontro-montador-cabecalho');
+            if(!corpo) return;
+            corpo.hidden = !corpo.hidden;
+            if(botao) botao.setAttribute('aria-expanded', String(!corpo.hidden));
+        };
+
+        window.focarAmeacaEmCena = function(tipo, idCodificado) {
+            const id = decodeURIComponent(idCodificado || '');
+            if(id) mestreAbrir(1, tipo, id);
+        };
+
+        carregarPreferenciasBestiario();
+
+        document.addEventListener('keydown', event => {
+            if((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k' && usuarioAtual?.cargo === 'Mestre') {
+                event.preventDefault();
+                const busca = document.getElementById('bestiario-busca');
+                if(document.getElementById('sidebar-mestre')?.classList.contains('sidebar-fechada')) toggleSidebarMestre();
+                busca?.focus();
+                busca?.select();
+            }
+        });
 
         window.mudarQtdItem = async function(numSlot, i, delta) {
             if(usuarioAtual.cargo !== "Mestre" && usuarioAtual.idFicha !== slotsDeVisao[numSlot].idFicha) return;
@@ -2303,7 +3307,11 @@ window.toggleSidebarJogador = function(numSlot) {
         }
 
         function renderizarHtmlHordaDinamico(idHorda, membros, numSlot) {
-            let nomeHorda = hordasNoBanco[idHorda] ? hordasNoBanco[idHorda].nome : "Horda";
+            const dadosHorda = hordasNoBanco[idHorda] || {};
+            const modeloId = dadosHorda.instanciaCombate?.modeloId || idHorda;
+            const nomePublico = bestiarioPublicoNoBanco[modeloId]?.nomePublico;
+            const nomeInterno = dadosHorda.instanciaCombate ? hordasNoBanco[modeloId]?.nome : dadosHorda.nome;
+            let nomeHorda = usuarioAtual?.cargo === 'Jogador' ? (nomePublico || 'Ameaça desconhecida') : (nomeInterno || dadosHorda.nome || "Horda");
             const nomeHordaHtml = escapeHtml(nomeHorda);
             let h = `
             <div style="position: relative;">
@@ -2314,12 +3322,14 @@ window.toggleSidebarJogador = function(numSlot) {
                 </div>
                 <div class="section-title" style="color:#d4af37; border-color:#8b6d43; margin-top:0;">🛡️ ${nomeHordaHtml}</div>
             </div>
+            ${gerarHtmlCatalogacaoMestre(numSlot, 'horda')}
             `;
             h += `<div style="display:flex; flex-direction:column; gap:15px; margin-top:15px;">`;
 
             for(let mId in membros) {
                 let m = membros[mId];
-                const nomeMembroHtml = escapeHtml(m.nome || mId);
+                const nomeMembroInterno = dadosHorda.instanciaCombate ? hordasNoBanco[modeloId]?.membros?.[mId]?.nome : m.nome;
+                const nomeMembroHtml = escapeHtml(usuarioAtual?.cargo === 'Jogador' ? `${nomeHorda} ${mId}` : (nomeMembroInterno || m.nome || mId));
 
                 let hpAtual = Number(m['hp-atual']) || 0;
                 let hpMax = Number(m['hp-max']) || 1;
@@ -2334,34 +3344,34 @@ window.toggleSidebarJogador = function(numSlot) {
                 let isAlertaMorte = (percHp <= 10 && hpMax > 0 && hpAtual > 0) ? 'alerta-morte' : '';
 
                 h += `
-                <div class="horda-member-card" style="display: flex; flex-direction: column; background: rgba(0,0,0,0.3); border: 1px solid #4a2e1b; border-radius: 4px; padding: 10px;">
+                <div class="horda-member-card" data-horda-id="${escapeHtml(idHorda)}" data-membro-id="${escapeHtml(mId)}" data-num-slot="${numSlot}" style="display: flex; flex-direction: column; background: rgba(0,0,0,0.3); border: 1px solid #4a2e1b; border-radius: 4px; padding: 10px;">
                     <div style="display:flex; justify-content: space-between; align-items:center; gap: 20px; flex-wrap: wrap;">
                         <h4 style="color:#a84242; margin:0; text-transform: uppercase; font-size: 14px; min-width: 100px;">${nomeMembroHtml}</h4>
 
                         <div style="display:flex; gap:15px; flex: 1;">
-                            <div id="caixa-hp-horda-${mId}" class="caixa-status ${isAlertaMorte}" style="padding: 2px; flex: 1;">
+                            <div id="caixa-hp-horda-${numSlot}-${mId}" class="caixa-status ${isAlertaMorte}" style="padding: 2px; flex: 1;">
                                 <div style="color:#27ae60; font-size:11px; font-weight:bold; display: flex; justify-content: center; align-items: center; gap: 3px;">
                                     HP:
-                                    <input type="number" id="horda-${mId}-hp-atual" class="horda-compact-input editavel-slot${numSlot}" value="${hpAtual}" style="width:50px; color:#27ae60; padding:2px; font-size: 12px; text-align: center;"> /
-                                    <input type="number" id="horda-${mId}-hp-max" class="horda-compact-input mestre-unlocked" value="${hpMax}" style="width:50px; color:#27ae60; padding:2px; font-size: 12px; text-align: center;" disabled>
+                                    <input type="number" id="horda-${numSlot}-${mId}-hp-atual" data-horda-membro="${escapeHtml(mId)}" data-horda-campo="hp-atual" class="horda-compact-input editavel-slot${numSlot}" value="${hpAtual}" style="width:50px; color:#27ae60; padding:2px; font-size: 12px; text-align: center;"> /
+                                    <input type="number" id="horda-${numSlot}-${mId}-hp-max" data-horda-membro="${escapeHtml(mId)}" data-horda-campo="hp-max" class="horda-compact-input mestre-unlocked editavel-slot${numSlot}" value="${hpMax}" style="width:50px; color:#27ae60; padding:2px; font-size: 12px; text-align: center;" disabled>
                                 </div>
-                                <div class="bar-bg" style="height: 6px; margin-top: 4px;"><div class="bar-fill hp-fill" id="bar-hp-horda-${mId}" style="width: ${percHp}%;"></div><div class="shield-fill" id="bar-shield-horda-${mId}" style="width: 0%;"></div><div class="hp-text-overlay" id="txt-escudo-horda-${mId}" style="font-size: 9px;"></div></div>
+                                <div class="bar-bg" style="height: 6px; margin-top: 4px;"><div class="bar-fill hp-fill" id="bar-hp-horda-${numSlot}-${mId}" style="width: ${percHp}%;"></div><div class="shield-fill" id="bar-shield-horda-${numSlot}-${mId}" style="width: 0%;"></div><div class="hp-text-overlay" id="txt-escudo-horda-${numSlot}-${mId}" style="font-size: 9px;"></div></div>
                             </div>
 
                             <div id="caixa-mana-horda-${mId}" class="caixa-status" style="padding: 2px; flex: 1;">
                                 <div style="color:#2980b9; font-size:11px; font-weight:bold; display: flex; justify-content: center; align-items: center; gap: 3px;">
                                     MP:
-                                    <input type="number" id="horda-${mId}-mana-atual" class="horda-compact-input editavel-slot${numSlot}" value="${manaAtual}" style="width:50px; color:#2980b9; padding:2px; font-size: 12px; text-align: center;"> /
-                                    <input type="number" id="horda-${mId}-mana-max" class="horda-compact-input mestre-unlocked" value="${manaMax}" style="width:50px; color:#2980b9; padding:2px; font-size: 12px; text-align: center;" disabled>
+                                    <input type="number" id="horda-${numSlot}-${mId}-mana-atual" data-horda-membro="${escapeHtml(mId)}" data-horda-campo="mana-atual" class="horda-compact-input editavel-slot${numSlot}" value="${manaAtual}" style="width:50px; color:#2980b9; padding:2px; font-size: 12px; text-align: center;"> /
+                                    <input type="number" id="horda-${numSlot}-${mId}-mana-max" data-horda-membro="${escapeHtml(mId)}" data-horda-campo="mana-max" class="horda-compact-input mestre-unlocked editavel-slot${numSlot}" value="${manaMax}" style="width:50px; color:#2980b9; padding:2px; font-size: 12px; text-align: center;" disabled>
                                 </div>
-                                <div class="bar-bg" style="height: 6px; margin-top: 4px;"><div class="bar-fill mana-fill" id="bar-mana-horda-${mId}" style="width: ${percMana}%;"></div></div>
+                                <div class="bar-bg" style="height: 6px; margin-top: 4px;"><div class="bar-fill mana-fill" id="bar-mana-horda-${numSlot}-${mId}" style="width: ${percMana}%;"></div></div>
                             </div>
                         </div>
 
                         <div class="esconder-jogador" style="display:flex; gap:10px; align-items:center;">
-                            <input type="number" id="ataque-dano-${mId}" placeholder="Dano" style="width: 50px; padding:4px; font-size:11px; background:rgba(0,0,0,0.8); border:1px solid #8c1c13; color:#fff; text-align:center;">
-                            <div style="display:flex; gap:8px;">${alvosHtmlCheckbox(mId)}</div>
-                            <button data-acao-combate="ataque-horda" onclick="atacarMembroHorda('${mId}')" style="padding: 6px 12px; font-size:11px; background: linear-gradient(to bottom, #8c1c13, #4a1111); border-color:#d95757; color: #fff; font-weight: bold;">⚔️ ATACAR</button>
+                            <input type="number" id="ataque-dano-${numSlot}-${mId}" placeholder="Dano" style="width: 50px; padding:4px; font-size:11px; background:rgba(0,0,0,0.8); border:1px solid #8c1c13; color:#fff; text-align:center;">
+                            <div style="display:flex; gap:8px;">${alvosHtmlCheckbox(`${numSlot}-${mId}`)}</div>
+                            <button data-acao-combate="ataque-horda" data-slot="${numSlot}" data-membro-id="${escapeHtml(mId)}" onclick="atacarMembroHorda('${mId}', ${numSlot})" style="padding: 6px 12px; font-size:11px; background: linear-gradient(to bottom, #8c1c13, #4a1111); border-color:#d95757; color: #fff; font-weight: bold;">⚔️ ATACAR</button>
                         </div>
                     </div>
                 </div>`;
@@ -2383,20 +3393,21 @@ window.toggleSidebarJogador = function(numSlot) {
             const existente = await safeGet('fichas/' + id);
             if (existente.exists()) id = `${idOriginal}_${Date.now()}`;
 
-            // Set up basic ficha
-            await safeUpdate('fichas/' + id, {
+            const dadosIniciais = {
                 nome: nome,
                 tipo: 'monstro',
                 'hp-max': 20,
                 'hp-atual': 20,
                 'mana-max': 20,
-                'mana-atual': 20
+                'mana-atual': 20,
+                catalogacao: { ...normalizarCatalogacao({}, 'monstro'), patamar: 'Comum', tamanho: 'Médio' }
+            };
+            await safeUpdate('', {
+                [`fichas/${id}`]: dadosIniciais,
+                [`lista_monstros/${id}`]: { nome, ativo: true },
+                [`bestiario_publico/${id}`]: construirVisaoPublicaCatalogacao(id, 'monstro', dadosIniciais)
             });
-            // Register in the list
-            await safeUpdate('lista_monstros/' + id, {
-                nome: nome,
-                ativo: true
-            });
+            mestreAbrir(1, 'monstro', id);
         }
 
         window.transformarEmHorda = async function(numSlot) {
@@ -2409,9 +3420,23 @@ window.toggleSidebarJogador = function(numSlot) {
             const snap = await safeGet('fichas/' + idMonstroOriginal);
             let mData = snap.val();
             if(!mData) return;
+            if(mData.instanciaCombate) return alert('Crie a Horda a partir da ficha permanente do Bestiário, não de uma cópia em combate.');
 
             const hordaId = "horda_" + Date.now();
-            let hordaData = { nome: mData.nome + " (Esquadrão)", membros: {} };
+            const catalogacaoBase = normalizarCatalogacao(mData, 'monstro');
+            let hordaData = {
+                nome: mData.nome + " (Esquadrão)",
+                tipo: 'horda',
+                modeloBaseId: idMonstroOriginal,
+                catalogacao: {
+                    ...catalogacaoBase,
+                    formato: 'horda',
+                    nomePublico: catalogacaoBase.nomePublico ? `${catalogacaoBase.nomePublico} em formação` : '',
+                    papel: catalogacaoBase.papel || 'Soldado',
+                    etiquetas: normalizarListaCatalogacao([...(catalogacaoBase.etiquetas || []), 'Horda'])
+                },
+                membros: {}
+            };
 
             for(let i=1; i<=qtd; i++) {
                 hordaData.membros['m_' + i] = {
@@ -2423,25 +3448,30 @@ window.toggleSidebarJogador = function(numSlot) {
                 };
             }
 
-            await safeUpdate('hordas/' + hordaId, hordaData);
-            alert(`🛡️ Horda criada com sucesso! ${qtd} lacaios prontos.`);
+            await safeUpdate('', {
+                [`hordas/${hordaId}`]: hordaData,
+                [`bestiario_publico/${hordaId}`]: construirVisaoPublicaCatalogacao(hordaId, 'horda', hordaData)
+            });
+            alert(`🛡️ Horda salva no Bestiário com ${qtd} integrantes. Ela só entrará em combate quando for lançada em um encontro.`);
             document.getElementById(`slot${numSlot}-qtd-horda`).value = '';
 
             const slotDestino = numSlot === 1 ? 2 : numSlot;
             mestreAbrir(slotDestino, 'horda', hordaId);
-            await ativarCombateComIniciativa(hordaId, 'horda');
         }
 
-        window.atacarMembroHorda = async function(membroId) {
-            const inputDano = document.getElementById(`ataque-dano-${membroId}`);
+        window.atacarMembroHorda = async function(membroId, numSlot) {
+            numSlot = Number(numSlot);
+            if(!podeUsuarioAgirAgora(numSlot, { membroId })) return alert('Aguarde o turno desta Horda e deste integrante.');
+            const inputDano = document.getElementById(`ataque-dano-${numSlot}-${membroId}`);
+            if(!inputDano) return;
             const dano = Number(inputDano.value);
             if(!dano || dano <= 0) return alert("Insira um valor de dano válido!");
 
-            const checkboxes = document.querySelectorAll(`.alvo-ataque-${membroId}:checked`);
+            const checkboxes = document.querySelectorAll(`.alvo-ataque-${numSlot}-${membroId}:checked`);
             if(checkboxes.length !== 1) return alert("Selecione exatamente um alvo para o Ataque Básico!");
 
             const alvos = Array.from(checkboxes).map(cb => cb.value);
-            const ator = getNomeAtorHorda(membroId);
+            const ator = getNomeAtorHorda(membroId, numSlot);
             for(let alvo of alvos) {
                 const pathAlvo = 'fichas/' + alvo;
                 const meta = await aplicarEfeitoVidaPath(pathAlvo, dano, 'dano', {
@@ -4637,7 +5667,9 @@ window.toggleSidebarJogador = function(numSlot) {
                     if(el.type !== 'checkbox' && el.type !== 'radio' && el.type !== 'file' && el.id !== `slot${numSlot}-jogador`) el.value = '';
                 });
 
-                safeGet('fotos/' + idFicha).then(snap => {
+                const fotoModeloId = encontroAtivoGlobal?.ameacas?.[idFicha]?.modeloId || idFicha;
+                safeGet('fotos/' + idFicha).then(async snap => {
+                    if(!snap.exists() && fotoModeloId !== idFicha) snap = await safeGet('fotos/' + fotoModeloId);
                     const imgEl = tipo === 'heroi' ? document.getElementById(`img-foto-slot${numSlot}`) : document.getElementById(`img-foto-monstro-slot${numSlot}`);
                     if(snap.exists() && imgEl) imgEl.src = snap.val().base64;
                 });
@@ -4675,7 +5707,7 @@ window.toggleSidebarJogador = function(numSlot) {
                             let mData = dados.membros[mId];
 
                             for(let campo in mData) {
-                                let el = document.getElementById(`horda-${mId}-${campo}`);
+                                let el = document.getElementById(`horda-${numSlot}-${mId}-${campo}`);
                                 if(el && document.activeElement !== el && el.value != mData[campo]) {
                                     el.value = mData[campo];
                                 }
@@ -4691,14 +5723,14 @@ window.toggleSidebarJogador = function(numSlot) {
                             if(percHp > 100) percHp = 100; if(percHp < 0) percHp = 0;
                             if(percMana > 100) percMana = 100; if(percMana < 0) percMana = 0;
 
-                            let barHp = document.getElementById(`bar-hp-horda-${mId}`);
-                            let barMana = document.getElementById(`bar-mana-horda-${mId}`);
+                            let barHp = document.getElementById(`bar-hp-horda-${numSlot}-${mId}`);
+                            let barMana = document.getElementById(`bar-mana-horda-${numSlot}-${mId}`);
                             if(barHp) barHp.style.width = percHp + '%';
                             if(barMana) barMana.style.width = percMana + '%';
 
                             let escudo = Number(mData['escudo']) || 0;
-                            let barShield = document.getElementById(`bar-shield-horda-${mId}`);
-                            let txtEscudo = document.getElementById(`txt-escudo-horda-${mId}`);
+                            let barShield = document.getElementById(`bar-shield-horda-${numSlot}-${mId}`);
+                            let txtEscudo = document.getElementById(`txt-escudo-horda-${numSlot}-${mId}`);
                             if(barShield) {
                                 let percEscudo = (escudo / hpMax) * 100;
                                 if(percEscudo > 100) percEscudo = 100;
@@ -4706,16 +5738,18 @@ window.toggleSidebarJogador = function(numSlot) {
                             }
                             if(txtEscudo) txtEscudo.innerText = escudo > 0 ? `+${escudo}` : '';
 
-                            let caixaHp = document.getElementById(`caixa-hp-horda-${mId}`);
+                            let caixaHp = document.getElementById(`caixa-hp-horda-${numSlot}-${mId}`);
                             if(caixaHp) {
                                 if(percHp <= 10 && hpMax > 0 && hpAtual > 0) caixaHp.classList.add('alerta-morte');
                                 else caixaHp.classList.remove('alerta-morte');
                             }
                         }
                     }
+                    renderizarCatalogacaoNoSlot(numSlot, 'horda', dados);
                     if(usuarioAtual.cargo === 'Jogador') {
                         document.querySelectorAll('.esconder-jogador').forEach(el => el.style.display = 'none');
                     }
+                    atualizarPermissoesAcoesCombate();
                     if(visaoTaticaMestreAtiva) renderizarVisaoTaticaMestre();
                     return;
                 }
@@ -4726,6 +5760,8 @@ window.toggleSidebarJogador = function(numSlot) {
                     let el = document.getElementById(idHTML);
                     if(el && document.activeElement !== el && el.value != dados[chave]) el.value = dados[chave];
                 }
+
+                if(tipo === 'monstro') renderizarCatalogacaoNoSlot(numSlot, 'monstro', dados);
 
                 if(tipo === 'heroi') {
                     renderizarMaximosNarrativosNoSlot(numSlot, dados);
@@ -5110,6 +6146,8 @@ window.toggleSidebarJogador = function(numSlot) {
         }
 
         window.executarAtaque = async function(numSlot) {
+            numSlot = Number(numSlot);
+            if(!podeUsuarioAgirAgora(numSlot)) return alert('Aguarde o turno desta ameaça.');
             const inputDano = document.getElementById(`slot${numSlot}-ataque-dano`);
             const dano = Number(inputDano.value);
 
@@ -5139,11 +6177,18 @@ window.toggleSidebarJogador = function(numSlot) {
 
         window.lancarAmeacaFicha = async function(numSlot) {
             const idAlvo = slotsDeVisao[numSlot].idFicha;
-            if(idAlvo) {
-                const tipo = slotsDeVisao[numSlot].tipo === 'horda' || idAlvo.startsWith('horda_') ? 'horda' : 'monstro';
-                await ativarCombateComIniciativa(idAlvo, tipo);
-                adicionarCombatLog(`${slotsDeVisao[numSlot].dados?.nome || idAlvo} entrou em combate.`, 'info');
+            if(!idAlvo) return;
+            if(slotsDeVisao[numSlot].dados?.instanciaCombate) return alert('Esta é uma cópia temporária que já pertence ao encontro ativo.');
+            const tipo = slotsDeVisao[numSlot].tipo === 'horda' || idAlvo.startsWith('horda_') ? 'horda' : 'monstro';
+            const nomeAlvo = slotsDeVisao[numSlot].dados?.nome || idAlvo;
+            try {
+                const resultado = await ativarCombateComIniciativa(idAlvo, tipo);
+                const instancia = resultado.instancias?.[0];
+                if(instancia) mestreAbrir(numSlot, instancia.tipo, instancia.id);
+                adicionarCombatLog(`${nomeAlvo} entrou em combate.`, 'info');
                 if(visaoTaticaMestreAtiva) renderizarVisaoTaticaMestre();
+            } catch(err) {
+                alert(err.message || 'Não foi possível lançar esta ameaça.');
             }
         }
 
@@ -5174,6 +6219,7 @@ window.toggleSidebarJogador = function(numSlot) {
         window.deletarAmeacaFicha = function(numSlot) {
             const idAlvo = slotsDeVisao[numSlot].idFicha;
             if(!idAlvo) return;
+            if(slotsDeVisao[numSlot].dados?.instanciaCombate) return alert('Cópias de combate são removidas automaticamente ao finalizar o encontro.');
 
             if(confirm("Tem certeza que deseja DELETAR esta ameaça para sempre?")) {
                 if(ameacaEmCombateGlobal === idAlvo) encerrarCombateComIniciativa();
@@ -5185,6 +6231,7 @@ window.toggleSidebarJogador = function(numSlot) {
                     safeRemove('lista_monstros/' + idAlvo);
                     safeRemove('fichas/' + idAlvo);
                 }
+                safeRemove('bestiario_publico/' + idAlvo);
 
                 if(slotsDeVisao[1].idFicha === idAlvo) limparSlot(1);
                 if(slotsDeVisao[2].idFicha === idAlvo) limparSlot(2);
@@ -5207,6 +6254,7 @@ window.toggleSidebarJogador = function(numSlot) {
                     safeRemove('lista_monstros/' + idAlvo);
                     safeRemove('fichas/' + idAlvo);
                 }
+                safeRemove('bestiario_publico/' + idAlvo);
 
                 seletor.value = "";
                 if(slotsDeVisao[1].idFicha === idAlvo) limparSlot(1);
@@ -6102,6 +7150,10 @@ window.toggleSidebarJogador = function(numSlot) {
         // ==========================================
         document.addEventListener('change', async (e) => {
             tratarMudancaAlvoCombate(e.target);
+            if(e.target.dataset?.catalogacaoCampo) {
+                await salvarCatalogacaoDoCampo(e.target);
+                return;
+            }
             if(e.target.classList?.contains('maximo-narrativo-input')) {
                 await salvarMaximoNarrativoDoCampo(e.target);
             }
@@ -6115,10 +7167,11 @@ window.toggleSidebarJogador = function(numSlot) {
             if (classList.contains('horda-compact-input')) {
                 let numSlot = classList.contains('editavel-slot1') ? 1 : (classList.contains('editavel-slot2') ? 2 : null);
                 if(!numSlot || !slotsDeVisao[numSlot].idFicha) return;
-                let parts = e.target.id.split('-');
-                const campoHorda = parts.slice(2).join('-');
+                const membroId = e.target.dataset.hordaMembro;
+                const campoHorda = e.target.dataset.hordaCampo;
+                if(!membroId || !campoHorda) return;
                 const valorHorda = normalizarValorParaSalvar(campoHorda, e.target.value, { compacto: true });
-                await safeTransaction(`hordas/${slotsDeVisao[numSlot].idFicha}/membros/${parts[1]}`, (dadosAtuais) => {
+                await safeTransaction(`hordas/${slotsDeVisao[numSlot].idFicha}/membros/${membroId}`, (dadosAtuais) => {
                     const dados = dadosAtuais || {};
                     return { ...dados, [campoHorda]: valorHorda };
                 });
@@ -6228,7 +7281,10 @@ window.toggleSidebarJogador = function(numSlot) {
                 if (['hp-atual', 'hp-max', 'mana-atual', 'mana-max', 'escudo', 'ap'].includes(chaveDoBanco)) {
                     await safeTransaction(`fichas/${idFicha}/${chaveDoBanco}`, () => valorParaSalvar);
                 } else {
-                    safeUpdate('fichas/' + idFicha, { [chaveDoBanco]: valorParaSalvar });
+                    await safeUpdate('fichas/' + idFicha, { [chaveDoBanco]: valorParaSalvar });
+                    if(tipo === 'monstro' && chaveDoBanco === 'nome' && !dadosAntigos.instanciaCombate) {
+                        await safeUpdate(`lista_monstros/${idFicha}`, { nome: valorParaSalvar, ativo: true });
+                    }
                 }
                 if(chaveDoBanco.includes('hp') || chaveDoBanco.includes('mana')) atualizarBarrasEAlertaNoSlot(numSlot, tipo);
             }

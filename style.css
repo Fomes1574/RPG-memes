@@ -251,7 +251,7 @@
         
         /* SIDEBAR DO MESTRE (BESTIÁRIO) */
         .sidebar-mestre {
-            position: fixed; top: 0; right: 0; width: 300px; height: 100vh;
+            position: fixed; top: 0; right: 0; width: min(370px, 94vw); height: 100vh;
             background: linear-gradient(to bottom, #110a06, #0a0503);
             border-left: 2px solid #5c3a21;
             z-index: 1000; display: flex; flex-direction: column;
@@ -259,7 +259,7 @@
             transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1);
         }
         .sidebar-mestre.sidebar-fechada {
-            transform: translateX(300px);
+            transform: translateX(100%);
         }
         #btn-toggle-sidebar {
             position: absolute; top: 50vh; left: -32px; width: 32px; height: 60px;
@@ -274,14 +274,14 @@
         }
         #btn-toggle-sidebar:hover { background: linear-gradient(to right, #3a1d12, #1a0f09); color: #fff; }
         .sidebar-header {
-            padding: 20px; text-align: center; border-bottom: 2px solid #3a2212;
+            padding: 16px 14px 12px; text-align: left; border-bottom: 1px solid #3a2212;
             background: rgba(0,0,0,0.5);
         }
         .sidebar-header h3 { color: #d4af37; margin: 0; font-family: 'Georgia', serif; font-size: 16px; letter-spacing: 3px; }
-        .btn-add-sidebar { margin-top: 15px; width: 100%; background: #1a0f0a; border: 1px dashed #5c3a21; color: #b89c72; padding: 10px; cursor: pointer; transition: 0.2s; font-weight: bold; }
+        .btn-add-sidebar { margin: 0; width: auto; background: #1a0f0a; border: 1px dashed #5c3a21; color: #b89c72; padding: 8px 10px; cursor: pointer; transition: 0.2s; font-weight: bold; white-space: nowrap; }
         .btn-add-sidebar:hover { background: rgba(92,58,33,0.3); color: #fff; }
-        
-        .sidebar-content { flex: 1; overflow-y: auto; padding: 15px 10px; }
+
+        .sidebar-content { flex: 1; min-height: 0; overflow-y: auto; padding: 10px; scrollbar-width: thin; scrollbar-color: #5c3a21 #0a0503; }
         .acervo-categoria { margin-bottom: 10px; }
         .btn-categoria { width: 100%; background: #2b1a0f; border: 1px solid #4a2e1b; color: #dcd0ba; padding: 12px 10px; text-align: left; font-weight: bold; cursor: pointer; display: flex; justify-content: space-between; align-items: center; text-transform: uppercase; font-size: 11px; letter-spacing: 1px; }
         .btn-categoria:hover { background: #3a2212; border-color: #5c3a21; }
@@ -297,6 +297,90 @@
         .item-acervo-botoes { display: flex; gap: 5px; }
         .btn-slot-acervo { background: #1a0f0a; border: 1px solid #5c3a21; color: #b89c72; padding: 4px 8px; font-size: 10px; cursor: pointer; border-radius: 2px; font-weight: bold; }
         .btn-slot-acervo:hover { background: #d4af37; color: #000; border-color: #fff; }
+
+        .bestiario-header-linha { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+        .bestiario-suptitulo { display: block; margin-bottom: 2px; color: #806d53; font-size: 8px; letter-spacing: 1.8px; text-transform: uppercase; }
+        .bestiario-busca-wrap { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 7px; margin-top: 12px; padding: 7px 8px; background: rgba(0,0,0,.56); border: 1px solid #4a2e1b; color: #8b6d43; }
+        .bestiario-busca-wrap:focus-within { border-color: #b48a42; box-shadow: 0 0 0 2px rgba(212,175,55,.08); }
+        .bestiario-busca-wrap input { min-width: 0; margin: 0; padding: 0; background: transparent; border: 0; box-shadow: none; color: #e2d5c2; font-size: 12px; }
+        .bestiario-busca-wrap input:focus { outline: 0; box-shadow: none; }
+        .bestiario-busca-wrap kbd { padding: 2px 5px; border: 1px solid #38271d; border-radius: 2px; color: #6f604f; font: 8px/1.2 monospace; }
+        .bestiario-abas { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; margin-top: 9px; }
+        .bestiario-aba { padding: 6px 4px; border: 1px solid #372217; background: #140c08; color: #796c5d; font-size: 8px; }
+        .bestiario-aba.ativa { border-color: #8b6d43; background: rgba(139,109,67,.15); color: #d4af37; box-shadow: inset 0 -2px rgba(212,175,55,.22); }
+        .bestiario-header-acoes { display: grid; grid-template-columns: auto auto 1fr; align-items: center; gap: 5px; margin-top: 8px; }
+        .bestiario-header-acoes button { padding: 5px 7px; background: transparent; border: 1px solid #39271c; color: #94816a; font-size: 8px; }
+        .bestiario-header-acoes > span { color: #746450; font-size: 8px; text-align: right; }
+        .bestiario-filtros { max-height: 40vh; overflow-y: auto; padding: 10px 12px; border-bottom: 1px solid #3a2212; background: #0d0805; }
+        .bestiario-filtros[hidden] { display: none; }
+        .bestiario-filtro-grupo { margin-bottom: 8px; }
+        .bestiario-filtro-grupo > label { display: block; margin-bottom: 3px; color: #8f7c63; font-size: 8px; letter-spacing: 1px; text-transform: uppercase; }
+        .bestiario-filtro-grupo select { width: 100%; margin: 0; padding: 5px 7px; border-color: #342319; background: #140c08; color: #b7a58d; font-size: 10px; }
+        .bestiario-filtro-chips { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+        .bestiario-filtro-chip { display: inline-flex; align-items: center; gap: 4px; padding: 3px 5px; border: 1px solid #5c3a21; background: rgba(92,58,33,.14); color: #c7ae86; font-size: 8px; }
+        .bestiario-filtro-chip button { padding: 0; border: 0; background: transparent; color: #b97061; font-size: 10px; line-height: 1; }
+        .bestiario-filtros-rapidos { display: flex; flex-wrap: wrap; gap: 7px 10px; padding-top: 6px; border-top: 1px dashed #322116; }
+        .bestiario-filtros-rapidos label { display: flex; align-items: center; gap: 4px; margin: 0; color: #9d8a71; font-size: 9px; text-transform: none; }
+        .bestiario-filtros-rapidos input { width: 13px; height: 13px; margin: 0; }
+        .bestiario-herois { margin-bottom: 9px; }
+        .bestiario-secao-titulo { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; color: #776650; font-size: 8px; letter-spacing: 1px; text-transform: uppercase; }
+        .bestiario-secao-titulo strong { color: #a99170; }
+        .bestiario-em-cena { margin-bottom: 10px; padding: 8px; border: 1px solid #593a20; background: linear-gradient(135deg, rgba(98,45,19,.18), rgba(0,0,0,.28)); }
+        .bestiario-em-cena[hidden] { display: none; }
+        .bestiario-em-cena-item { display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; padding: 5px 0; border-bottom: 1px dashed #352217; }
+        .bestiario-em-cena-item:last-child { border-bottom: 0; }
+        .bestiario-em-cena-item button { grid-row: span 2; padding: 3px 6px; background: #160c08; border: 1px solid #4a2e1b; color: #c39c62; font-size: 8px; }
+        .bestiario-em-cena-item strong { min-width: 0; overflow: hidden; color: #cbb99f; font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
+        .bestiario-em-cena-item small { color: #806d56; font-size: 8px; }
+        .bestiario-resultados .categoria-lista { padding: 0; border: 0; background: transparent; }
+        .bestiario-card { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 5px 8px; padding: 8px 6px; border: 1px solid transparent; border-bottom-color: #281b13; background: rgba(0,0,0,.2); }
+        .bestiario-card:hover { border-color: #4a2e1b; background: rgba(90,50,25,.1); }
+        .bestiario-card-corpo { min-width: 0; cursor: pointer; }
+        .bestiario-card-titulo { display: flex; align-items: center; gap: 5px; min-width: 0; }
+        .bestiario-card-titulo strong { overflow: hidden; color: #b9a58a; font: 12px 'IM Fell English SC', serif; text-overflow: ellipsis; white-space: nowrap; }
+        .bestiario-card-titulo span { color: #6e5d49; font-size: 8px; }
+        .bestiario-card-selos { display: flex; flex-wrap: wrap; gap: 3px; margin-top: 4px; }
+        .bestiario-selo { padding: 2px 4px; border: 1px solid #473120; background: #140c08; color: #88765e; font-size: 7px; letter-spacing: .4px; text-transform: uppercase; }
+        .bestiario-selo.formato-horda { border-color: #745f2c; color: #b69a4e; }
+        .bestiario-card-acoes { display: grid; grid-template-columns: repeat(2, auto); align-content: center; gap: 3px; }
+        .bestiario-card-acoes button { min-width: 26px; padding: 4px 5px; background: #130b07; border: 1px solid #432b1d; color: #9c8568; font-size: 8px; }
+        .bestiario-card-acoes .is-favorito { color: #d4af37; }
+        .bestiario-card-acoes .btn-add-encontro { border-color: #79602f; color: #d4af37; }
+        .bestiario-vazio { padding: 28px 12px; border: 1px dashed #39261b; color: #756550; font-size: 10px; line-height: 1.5; text-align: center; }
+        .bestiario-mostrar-mais { width: 100%; margin-top: 7px; padding: 7px; border: 1px dashed #49311f; background: #120a06; color: #927a5b; font-size: 8px; }
+        .encontro-montador { flex: 0 0 auto; border-top: 2px solid #4e321d; background: #0c0705; box-shadow: 0 -6px 20px rgba(0,0,0,.45); }
+        .encontro-montador-cabecalho { display: flex; width: 100%; align-items: center; justify-content: space-between; padding: 9px 12px; border: 0; border-bottom: 1px solid #2f2017; background: linear-gradient(to right, #1e110a, #100906); color: #b69259; font-size: 9px; text-transform: uppercase; }
+        .encontro-montador-cabecalho strong { display: grid; min-width: 20px; height: 20px; place-items: center; border: 1px solid #6b5029; border-radius: 50%; color: #d4af37; }
+        .encontro-montador-corpo { max-height: 34vh; overflow-y: auto; padding: 8px 10px 10px; }
+        .encontro-montador-corpo[hidden] { display: none; }
+        .encontro-rascunho-lista > p { margin: 4px 0 8px; color: #6f604d; font-size: 9px; line-height: 1.4; text-align: center; }
+        .encontro-item { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 5px 7px; padding: 7px 0; border-bottom: 1px dashed #342218; }
+        .encontro-item-nome { overflow: hidden; color: #c2ae90; font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
+        .encontro-item-remover { grid-row: span 2; align-self: center; padding: 3px 6px; border: 1px solid #4e211c; background: #160908; color: #b45b50; font-size: 9px; }
+        .encontro-item-config { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+        .encontro-item-config select { min-width: 0; margin: 0; padding: 4px; border-color: #34251b; background: #130c08; color: #9e8a70; font-size: 8px; }
+        .encontro-montador-acoes { display: grid; grid-template-columns: auto 1fr; gap: 6px; margin-top: 8px; }
+        .encontro-montador-acoes button { padding: 7px; border: 1px solid #49311f; background: #150d08; color: #8f7b63; font-size: 8px; }
+        .encontro-montador-acoes .btn-lancar-encontro { border-color: #8b6d43; background: linear-gradient(to bottom, #3b2918, #211309); color: #d4af37; }
+        .encontro-montador-acoes .btn-lancar-encontro:disabled { opacity: .4; cursor: not-allowed; }
+
+        .catalogacao-mestre { margin: 14px 0 18px; padding: 12px; border: 1px solid #5a3b22; background: rgba(16,9,5,.78); }
+        .catalogacao-mestre-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
+        .catalogacao-mestre-header strong { color: #d4af37; font: 13px 'Cinzel', serif; letter-spacing: 1px; }
+        .catalogacao-mestre-header small { display: block; margin-top: 2px; color: #7e6b55; font-size: 8px; }
+        .catalogacao-instancia-aviso { color: #b78056; font-size: 8px; text-align: right; }
+        .catalogacao-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+        .catalogacao-grid label { min-width: 0; margin: 0; color: #8e7a61; font-size: 8px; letter-spacing: .7px; text-transform: uppercase; }
+        .catalogacao-grid input, .catalogacao-grid select, .catalogacao-grid textarea { width: 100%; margin-top: 3px; padding: 7px; border-color: #41291b; background: rgba(0,0,0,.45); color: #cdbda8; font-size: 10px; box-sizing: border-box; }
+        .catalogacao-grid .catalogacao-largo { grid-column: 1 / -1; }
+        .catalogacao-grid textarea { min-height: 62px; resize: vertical; }
+        .mostrar-jogador { display: none; }
+        body.is-jogador .mostrar-jogador { display: block; }
+        .conhecimento-publico-card { margin: 12px 0; padding: 13px; border: 1px solid #54462f; background: linear-gradient(135deg, rgba(61,49,29,.22), rgba(0,0,0,.42)); }
+        .conhecimento-publico-card h3 { margin: 0 0 5px; color: #d1b87d; font: 15px 'IM Fell English SC', serif; }
+        .conhecimento-publico-card p { margin: 5px 0; color: #a89a86; font-size: 10px; line-height: 1.5; }
+        .conhecimento-publico-meta { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; }
+        .conhecimento-publico-meta span { padding: 3px 6px; border: 1px solid #55452d; color: #a99572; font-size: 8px; }
         
         body.mestre-mode #tela-app { padding-right: 320px; transition: padding-right 0.3s; }
         
