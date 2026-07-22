@@ -1640,11 +1640,14 @@ function gerarHtmlHeroi(numSlot) {
     if (numSlot === 1) {
         sidebarHtml = `
     <!-- LATERAL ESQUERDA (GRIMÓRIO E COMBATE) -->
-    <div id="sidebar-jogador-slot${numSlot}" class="sidebar-mestre sidebar-fechada sidebar-jogador-custom">
-        <button id="btn-toggle-jogador-slot${numSlot}" class="btn-toggle-sidebar-jogador" onclick="toggleSidebarJogador(${numSlot})">▶</button>
-        <div class="sidebar-header" style="text-align: center; font-size: 18px; margin-bottom: 20px; color:#d4af37;">Ações e Combate</div>
+    <aside id="sidebar-jogador-slot${numSlot}" class="sidebar-jogador-custom sidebar-fechada" aria-label="Ações e Combate">
+        <button id="btn-toggle-jogador-slot${numSlot}" class="btn-toggle-sidebar-jogador" type="button" onclick="toggleSidebarJogador(${numSlot})" aria-expanded="false" aria-controls="sidebar-jogador-conteudo-slot${numSlot}" aria-label="Abrir Ações e Combate" title="Abrir Ações e Combate">▶</button>
+        <div class="sidebar-header sidebar-jogador-header">
+            <span class="sidebar-jogador-suptitulo">Arsenal do Herói</span>
+            <strong>Ações e Combate</strong>
+        </div>
 
-        <div style="overflow-y:auto; padding:0 15px; flex:1; margin-bottom:20px;">
+        <div id="sidebar-jogador-conteudo-slot${numSlot}" class="sidebar-jogador-scroll">
             <div class="buff-container" style="border-color:#3a2212; background:rgba(0, 0, 0, 0.4); padding: 15px;">
                 <div style="margin-bottom: 15px;">
                     <label style="color:#d95757; font-weight:bold;">Ameaça na Mesa:</label>
@@ -1686,7 +1689,7 @@ function gerarHtmlHeroi(numSlot) {
                 </div>
             </div>
         </div>
-    </div>`;
+    </aside>`;
     }
 
     return sidebarHtml + `
@@ -1838,14 +1841,8 @@ function gerarHtmlHeroi(numSlot) {
 
 window.toggleSidebarJogador = function(numSlot) {
     const sidebar = document.getElementById(`sidebar-jogador-slot${numSlot}`);
-    const btn = document.getElementById(`btn-toggle-jogador-slot${numSlot}`);
-    if (sidebar.classList.contains('sidebar-fechada')) {
-        sidebar.classList.remove('sidebar-fechada');
-        btn.innerText = '<';
-    } else {
-        sidebar.classList.add('sidebar-fechada');
-        btn.innerText = '>';
-    }
+    if(!sidebar) return;
+    definirSidebarJogadorAberta(numSlot, sidebar.classList.contains('sidebar-fechada'));
 }
 
         function gerarHtmlCatalogacaoMestre(numSlot, tipo) {
@@ -2077,6 +2074,89 @@ window.toggleSidebarJogador = function(numSlot) {
         document.getElementById('slot-1').innerHTML = gerarHtmlHeroi(1) + gerarHtmlMonstro(1) + gerarHtmlContainerHorda(1);
         document.getElementById('slot-2').innerHTML = gerarHtmlHeroi(2) + gerarHtmlMonstro(2) + gerarHtmlContainerHorda(2);
 
+        // A gaveta do jogador precisa viver fora dos slots: qualquer ancestral animado
+        // com transform altera o referencial de elementos fixed e deixa a lateral exposta.
+        const sidebarJogadorGlobal = document.getElementById('sidebar-jogador-slot1');
+        if(sidebarJogadorGlobal) document.body.appendChild(sidebarJogadorGlobal);
+
+        const layoutCompactoQuery = window.matchMedia('(max-width: 1279px)');
+
+        function recolherVozPeloLayout() {
+            const panel = document.getElementById('voice-panel');
+            const content = document.getElementById('voice-drawer-content');
+            const toggle = document.getElementById('voice-panel-toggle');
+            if(!panel || !content || !toggle) return;
+            panel.dataset.open = 'false';
+            content.hidden = true;
+            toggle.setAttribute('aria-expanded', 'false');
+            toggle.title = 'Abrir Voz da Mesa';
+            document.body.classList.remove('voice-drawer-open');
+        }
+
+        function definirSidebarJogadorAberta(numSlot, aberta, coordenar = true) {
+            const sidebar = document.getElementById(`sidebar-jogador-slot${numSlot}`);
+            const btn = document.getElementById(`btn-toggle-jogador-slot${numSlot}`);
+            if(!sidebar) return;
+            if(aberta && coordenar) coordenarCamadaCompacta('jogador');
+            sidebar.classList.toggle('sidebar-fechada', !aberta);
+            document.body.classList.toggle('player-sidebar-open', aberta);
+            if(btn) {
+                btn.textContent = aberta ? '◀' : '▶';
+                btn.setAttribute('aria-expanded', String(aberta));
+                btn.setAttribute('aria-label', aberta ? 'Fechar Ações e Combate' : 'Abrir Ações e Combate');
+                btn.title = aberta ? 'Fechar Ações e Combate' : 'Abrir Ações e Combate';
+            }
+        }
+
+        function definirSidebarMestreAberta(aberta, coordenar = true) {
+            const sidebar = document.getElementById('sidebar-mestre');
+            const seta = document.getElementById('seta-sidebar');
+            const btn = document.getElementById('btn-toggle-sidebar');
+            if(!sidebar) return;
+            if(aberta && coordenar) coordenarCamadaCompacta('mestre');
+            sidebar.classList.toggle('sidebar-fechada', !aberta);
+            document.body.classList.toggle('sidebar-collapsed', !aberta);
+            if(seta) seta.textContent = aberta ? '▶' : '◀';
+            if(btn) {
+                btn.setAttribute('aria-expanded', String(aberta));
+                btn.setAttribute('aria-label', aberta ? 'Fechar bestiário' : 'Abrir bestiário');
+                btn.title = aberta ? 'Fechar bestiário' : 'Abrir bestiário';
+            }
+        }
+
+        function definirHudMestreAberto(aberto, coordenar = true) {
+            const hud = document.getElementById('hud-mestre');
+            const btn = document.getElementById('btn-toggle-hud');
+            if(!hud) return;
+            if(aberto && coordenar) coordenarCamadaCompacta('hud');
+            hudVisivel = Boolean(aberto);
+            hud.style.display = aberto ? 'flex' : 'none';
+            document.body.classList.toggle('hud-open', aberto);
+            if(btn) {
+                btn.setAttribute('aria-expanded', String(aberto));
+                btn.setAttribute('aria-label', aberto ? 'Fechar status do grupo' : 'Abrir status do grupo');
+                btn.title = aberto ? 'Fechar status do grupo' : 'Abrir status do grupo';
+            }
+        }
+
+        function coordenarCamadaCompacta(excecao) {
+            if(!layoutCompactoQuery.matches) return;
+            if(excecao !== 'jogador') definirSidebarJogadorAberta(1, false, false);
+            if(excecao !== 'mestre') definirSidebarMestreAberta(false, false);
+            if(excecao !== 'hud') definirHudMestreAberto(false, false);
+            if(excecao !== 'voz') recolherVozPeloLayout();
+        }
+
+        function normalizarCamadasCompactas() {
+            if(!layoutCompactoQuery.matches) return;
+            if(document.body.classList.contains('voice-drawer-open')) coordenarCamadaCompacta('voz');
+            else if(document.body.classList.contains('player-sidebar-open')) coordenarCamadaCompacta('jogador');
+            else if(document.body.classList.contains('hud-open')) coordenarCamadaCompacta('hud');
+            else if(document.body.classList.contains('is-mestre') && !document.body.classList.contains('sidebar-collapsed')) coordenarCamadaCompacta('mestre');
+        }
+
+        layoutCompactoQuery.addEventListener?.('change', normalizarCamadasCompactas);
+
         // ==========================================
         // LÓGICA DE LOGIN E INICIALIZAÇÃO
         // ==========================================
@@ -2119,8 +2199,8 @@ window.toggleSidebarJogador = function(numSlot) {
 
             document.getElementById('usuario-logado').innerText = usuarioAtual.nome;
             document.getElementById('badge-cargo').innerText = usuarioAtual.cargo;
+            document.body.classList.remove('is-mestre', 'is-jogador', 'player-sidebar-open', 'hud-open', 'voice-drawer-open');
             document.body.classList.add(usuarioAtual.cargo === "Mestre" ? 'is-mestre' : 'is-jogador');
-            document.body.classList.remove('sidebar-collapsed');
             initCombatUi();
             initVoicePrototype();
 
@@ -2130,9 +2210,12 @@ window.toggleSidebarJogador = function(numSlot) {
                 document.getElementById('painel-mestre').style.display = "flex";
                 document.getElementById('sidebar-mestre').style.display = "flex";
                 document.getElementById('btn-toggle-hud').style.display = "inline-flex";
+                definirSidebarMestreAberta(!layoutCompactoQuery.matches, false);
+                definirHudMestreAberto(false, false);
                 atualizarSidebarMestre();
                 initHudGlobais();
             } else {
+                definirSidebarJogadorAberta(1, false, false);
                 document.getElementById('seletor-jogador').style.display = "block";
                 onValue(dbRef('fichas/' + usuarioAtual.idFicha), (snapshot) => {
                     const dados = snapshot.val() || {};
@@ -3316,16 +3399,8 @@ window.toggleSidebarJogador = function(numSlot) {
 
         window.toggleSidebarMestre = function() {
             const sidebar = document.getElementById('sidebar-mestre');
-            const seta = document.getElementById('seta-sidebar');
-            if (sidebar.classList.contains('sidebar-fechada')) {
-                sidebar.classList.remove('sidebar-fechada');
-                document.body.classList.remove('sidebar-collapsed');
-                seta.innerText = '▶';
-            } else {
-                sidebar.classList.add('sidebar-fechada');
-                document.body.classList.add('sidebar-collapsed');
-                seta.innerText = '◀';
-            }
+            if(!sidebar) return;
+            definirSidebarMestreAberta(sidebar.classList.contains('sidebar-fechada'));
         }
 
         window.toggleCategoria = function(catId) {
@@ -6422,18 +6497,7 @@ window.toggleSidebarJogador = function(numSlot) {
         }
 
         window.toggleHudMestre = function() {
-            hudVisivel = !hudVisivel;
-            const hud = document.getElementById('hud-mestre');
-            const btn = document.getElementById('btn-toggle-hud');
-            if(hudVisivel) {
-                hud.style.display = 'flex';
-                btn.style.left = '250px';
-                btn.innerText = "〰️";
-            } else {
-                hud.style.display = 'none';
-                btn.style.left = '15px';
-                btn.innerText = "👁️ Grupo";
-            }
+            definirHudMestreAberto(!hudVisivel);
         }
 
         let numSlotGrimorioAberto = null;
@@ -7902,10 +7966,15 @@ window.toggleSidebarJogador = function(numSlot) {
             const toggle = document.getElementById('voice-panel-toggle');
             if (!panel || !content || !toggle) return;
             const open = typeof forceOpen === 'boolean' ? forceOpen : panel.dataset.open !== 'true';
+            if(open) {
+                coordenarCamadaCompacta('voz');
+                if(layoutCompactoQuery.matches) definirCombatLogRecolhido(true);
+            }
             panel.dataset.open = String(open);
             content.hidden = !open;
             toggle.setAttribute('aria-expanded', String(open));
             toggle.title = open ? 'Fechar Voz da Mesa' : 'Abrir Voz da Mesa';
+            document.body.classList.toggle('voice-drawer-open', open);
         }
 
         function getVoiceStretchFactory() {

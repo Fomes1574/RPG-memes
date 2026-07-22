@@ -5991,3 +5991,474 @@ button:hover:not(:disabled) {
     }
     .pacto-backdrop img { transform: scale(1.04); }
 }
+
+/* ========================================================================== */
+/* LAYOUT INTEGRAL — COLUNAS REAIS, GAVETAS ISOLADAS E ÁREA CENTRAL SEGURA    */
+/* ========================================================================== */
+
+:root {
+    --layout-gutter: clamp(14px, 1.35vw, 24px);
+    --layout-ease: cubic-bezier(.22, 1, .36, 1);
+    --player-drawer-width: clamp(320px, 22vw, 370px);
+    --master-drawer-width: clamp(350px, 24vw, 410px);
+    --master-hud-width: 238px;
+    --voice-bar-height: 68px;
+    --voice-open-reserve: calc(min(72vh, 650px) + 70px);
+}
+
+body:is(.is-mestre, .is-jogador) {
+    --layout-left-space: 0px;
+    --layout-right-space: 0px;
+    --voice-safe-bottom: var(--voice-bar-height);
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 0;
+    min-height: 100vh;
+    min-height: 100dvh;
+    padding: var(--layout-gutter) !important;
+    padding-left: calc(var(--layout-gutter) + var(--layout-left-space)) !important;
+    padding-right: calc(var(--layout-gutter) + var(--layout-right-space)) !important;
+    overflow-x: clip;
+    transition:
+        padding-left .38s var(--layout-ease),
+        padding-right .38s var(--layout-ease) !important;
+}
+
+body:is(.is-mestre, .is-jogador).voice-drawer-open {
+    --voice-safe-bottom: var(--voice-open-reserve);
+}
+
+@media (min-width: 1280px) {
+    body.is-jogador.player-sidebar-open {
+        --layout-left-space: calc(var(--player-drawer-width) + var(--layout-gutter));
+    }
+
+    body.is-mestre.hud-open {
+        --layout-left-space: calc(var(--master-hud-width) + var(--layout-gutter));
+    }
+
+    body.is-mestre:not(.sidebar-collapsed) {
+        --layout-right-space: calc(var(--master-drawer-width) + var(--layout-gutter));
+    }
+}
+
+#tela-app {
+    width: 100%;
+    max-width: none;
+    min-width: 0;
+    margin: 0;
+    padding-bottom: var(--voice-safe-bottom);
+    box-sizing: border-box;
+    transition: padding-bottom .32s var(--layout-ease);
+}
+
+.nav-bar {
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.nav-primary {
+    flex: 1 1 300px;
+    min-width: 0;
+}
+
+.nav-actions {
+    flex: 1 1 500px;
+    min-width: 0;
+}
+
+.nav-actions #seletor-jogador {
+    min-width: 0;
+    max-width: 100%;
+}
+
+#nome-heroi-jogador {
+    overflow-wrap: anywhere;
+}
+
+.painel-mestre {
+    max-width: 100%;
+    justify-content: flex-end;
+}
+
+.mesa-de-jogo {
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    justify-content: center;
+    overflow: clip;
+    transition: padding .3s var(--layout-ease), gap .3s var(--layout-ease) !important;
+}
+
+.slot-container {
+    min-width: min(420px, 100%);
+    max-width: 720px;
+    transition:
+        flex-basis .38s var(--layout-ease),
+        max-width .38s var(--layout-ease),
+        opacity .2s ease !important;
+}
+
+/* Laterais independentes: nenhuma delas usa o referencial animado da mesa. */
+#sidebar-mestre,
+.sidebar-jogador-custom {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    height: 100vh;
+    height: 100dvh;
+    box-sizing: border-box;
+    z-index: 1450;
+    overflow: visible;
+    display: flex;
+    flex-direction: column;
+    transition: transform .38s var(--layout-ease) !important;
+    contain: layout style;
+}
+
+#sidebar-mestre {
+    right: 0;
+    left: auto;
+    width: min(var(--master-drawer-width), calc(100vw - 46px));
+    transform: translate3d(0, 0, 0);
+}
+
+#sidebar-mestre.sidebar-fechada {
+    transform: translate3d(100%, 0, 0);
+}
+
+.sidebar-jogador-custom {
+    right: auto;
+    left: 0;
+    width: min(var(--player-drawer-width), calc(100vw - 46px));
+    color: #dcd0ba;
+    border-right: 1px solid rgba(179,132,68,.52);
+    background:
+        radial-gradient(circle at 50% 0, rgba(143,91,37,.11), transparent 27%),
+        repeating-linear-gradient(87deg, rgba(255,255,255,.008) 0 1px, transparent 1px 17px),
+        linear-gradient(180deg, rgba(27,18,12,.995), rgba(8,6,4,.998) 58%, rgba(17,10,7,.998));
+    box-shadow: 18px 0 55px rgba(0,0,0,.62), inset -1px 0 rgba(255,222,153,.045);
+    transform: translate3d(0, 0, 0);
+}
+
+.sidebar-jogador-custom::before {
+    content: '';
+    position: absolute;
+    inset: 7px 8px 7px 7px;
+    z-index: -1;
+    pointer-events: none;
+    border: 1px solid rgba(168,122,62,.08);
+}
+
+.sidebar-jogador-custom.sidebar-fechada {
+    transform: translate3d(-100%, 0, 0);
+}
+
+body:not(.is-jogador) .sidebar-jogador-custom {
+    display: none;
+}
+
+#sidebar-mestre.sidebar-fechada,
+.sidebar-jogador-custom.sidebar-fechada {
+    pointer-events: none;
+    box-shadow: none;
+}
+
+#sidebar-mestre > :not(#btn-toggle-sidebar),
+.sidebar-jogador-custom > :not(.btn-toggle-sidebar-jogador) {
+    transition: visibility 0s linear 0s;
+}
+
+#sidebar-mestre.sidebar-fechada > :not(#btn-toggle-sidebar),
+.sidebar-jogador-custom.sidebar-fechada > :not(.btn-toggle-sidebar-jogador) {
+    visibility: hidden;
+    transition-delay: .38s;
+}
+
+#sidebar-mestre.sidebar-fechada *,
+.sidebar-jogador-custom.sidebar-fechada * {
+    animation-play-state: paused !important;
+}
+
+#btn-toggle-sidebar,
+.btn-toggle-sidebar-jogador {
+    top: 50dvh;
+    width: 40px !important;
+    height: 72px;
+    padding: 0 !important;
+    pointer-events: auto;
+    transform: translateY(-50%);
+    transition:
+        color .2s ease,
+        border-color .2s ease,
+        background-color .2s ease,
+        box-shadow .2s ease,
+        transform .2s ease !important;
+}
+
+#btn-toggle-sidebar {
+    left: -40px;
+}
+
+.btn-toggle-sidebar-jogador {
+    right: -40px;
+}
+
+#btn-toggle-sidebar:hover,
+.btn-toggle-sidebar-jogador:hover {
+    width: 40px !important;
+    transform: translateY(-50%) scaleX(1.04) !important;
+}
+
+.sidebar-jogador-header {
+    flex: 0 0 auto;
+    margin: 0;
+    padding: 20px 18px 15px;
+    text-align: left;
+}
+
+.sidebar-jogador-suptitulo {
+    display: block;
+    margin-bottom: 4px;
+    color: #776650;
+    font: 700 8px/1 'Cinzel', serif;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+}
+
+.sidebar-jogador-header strong {
+    color: #d0ad67;
+    font: 700 15px/1.2 'Cinzel', serif;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+}
+
+.sidebar-jogador-scroll {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: 14px 16px 24px;
+    scrollbar-width: thin;
+    scrollbar-color: #5c3a21 #0a0503;
+}
+
+/* O HUD vira uma coluna esquerda no desktop e uma gaveta exclusiva no compacto. */
+#btn-toggle-hud {
+    top: var(--layout-gutter);
+    left: var(--layout-gutter) !important;
+    min-height: 38px;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    z-index: 1451;
+    box-sizing: border-box;
+}
+
+#hud-mestre {
+    top: calc(var(--layout-gutter) + 48px);
+    left: var(--layout-gutter);
+    width: min(var(--master-hud-width), calc(100vw - 32px));
+    max-height: calc(100dvh - var(--layout-gutter) - 62px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    box-sizing: border-box;
+    z-index: 1450;
+}
+
+/* Voz, iniciativa e registro seguem a largura central disponível. */
+body:is(.is-mestre, .is-jogador) .voice-drawer {
+    left: calc(var(--layout-left-space) + var(--layout-gutter));
+    right: auto;
+    width: min(
+        430px,
+        calc(100vw - var(--layout-left-space) - var(--layout-right-space) - var(--layout-gutter) - var(--layout-gutter))
+    );
+    max-width: none;
+    transition:
+        left .38s var(--layout-ease),
+        right .38s var(--layout-ease),
+        width .38s var(--layout-ease),
+        box-shadow .2s ease !important;
+}
+
+body:is(.is-mestre, .is-jogador) .voice-drawer[data-open="true"] {
+    left: calc(var(--layout-left-space) + var(--layout-gutter));
+    right: calc(var(--layout-right-space) + var(--layout-gutter));
+    width: auto;
+}
+
+body:is(.is-mestre, .is-jogador) .initiative-turn-board {
+    left: calc(var(--layout-left-space) + var(--layout-gutter));
+    right: calc(var(--layout-right-space) + var(--layout-gutter));
+    bottom: calc(var(--voice-safe-bottom) + 10px);
+    width: max-content;
+    max-width: calc(100vw - var(--layout-left-space) - var(--layout-right-space) - var(--layout-gutter) - var(--layout-gutter));
+    margin-inline: auto;
+    box-sizing: border-box;
+    transform: none;
+    transition:
+        left .38s var(--layout-ease),
+        right .38s var(--layout-ease),
+        bottom .32s var(--layout-ease) !important;
+}
+
+.initiative-portraits {
+    min-width: 0;
+    max-width: 100%;
+    overflow-x: auto;
+    scrollbar-width: thin;
+}
+
+body:is(.is-mestre, .is-jogador) > .combat-log-panel:not(.combat-log-panel-sidebar) {
+    right: calc(var(--layout-right-space) + var(--layout-gutter));
+    bottom: calc(var(--voice-safe-bottom) + 10px);
+    max-height: calc(100dvh - var(--voice-safe-bottom) - 28px);
+    transition:
+        right .38s var(--layout-ease),
+        bottom .32s var(--layout-ease) !important;
+}
+
+body:is(.is-mestre, .is-jogador) .combat-toast {
+    bottom: calc(var(--voice-safe-bottom) + 16px);
+}
+
+/* Transições específicas evitam recalcular propriedades sem necessidade. */
+body:is(.is-mestre, .is-jogador) button {
+    transition-property: color, background-color, border-color, box-shadow, transform, opacity, filter !important;
+    transition-duration: .22s !important;
+    transition-timing-function: ease !important;
+}
+
+body:is(.is-mestre, .is-jogador) input,
+body:is(.is-mestre, .is-jogador) textarea,
+body:is(.is-mestre, .is-jogador) select {
+    transition-property: color, background-color, border-color, box-shadow, opacity !important;
+    transition-duration: .22s !important;
+    transition-timing-function: ease !important;
+}
+
+@media (max-width: 1279px) {
+    :root {
+        --player-drawer-width: min(360px, calc(100vw - 46px));
+        --master-drawer-width: min(390px, calc(100vw - 46px));
+    }
+
+    body:is(.is-mestre, .is-jogador) {
+        --layout-left-space: 0px;
+        --layout-right-space: 0px;
+    }
+
+    #sidebar-mestre,
+    .sidebar-jogador-custom {
+        box-shadow: 24px 0 70px rgba(0,0,0,.78);
+    }
+
+    #sidebar-mestre {
+        box-shadow: -24px 0 70px rgba(0,0,0,.78);
+    }
+}
+
+@media (max-width: 900px) {
+    :root { --layout-gutter: 12px; }
+
+    .nav-primary,
+    .nav-actions {
+        width: 100%;
+        flex-basis: 100%;
+        justify-content: space-between;
+    }
+
+    .nav-actions {
+        justify-content: flex-start;
+    }
+
+    .painel-mestre {
+        width: 100%;
+        justify-content: flex-start;
+    }
+
+    .mesa-de-jogo {
+        padding: 14px;
+    }
+
+    .slot-container {
+        min-width: 100%;
+        max-width: 100%;
+    }
+
+    .container {
+        padding: clamp(18px, 4vw, 26px);
+    }
+}
+
+@media (max-width: 680px) {
+    :root {
+        --voice-open-reserve: calc(min(76vh, 650px) + 70px);
+    }
+
+    #sidebar-mestre,
+    .sidebar-jogador-custom {
+        width: calc(100vw - 42px);
+        max-width: none;
+    }
+
+    #btn-toggle-sidebar,
+    .btn-toggle-sidebar-jogador {
+        width: 42px !important;
+    }
+
+    #btn-toggle-sidebar { left: -42px; }
+    .btn-toggle-sidebar-jogador { right: -42px; }
+
+    #btn-toggle-sidebar:hover,
+    .btn-toggle-sidebar-jogador:hover {
+        width: 42px !important;
+    }
+
+    body:is(.is-mestre, .is-jogador) .voice-drawer,
+    body:is(.is-mestre, .is-jogador) .voice-drawer[data-open="true"] {
+        left: 6px;
+        right: 6px;
+        width: auto;
+    }
+
+    .painel-mestre button {
+        flex: 1 1 calc(50% - 5px);
+    }
+
+    .header-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .mesa-de-jogo {
+        padding: 10px;
+    }
+
+    .container {
+        padding: 16px;
+    }
+
+    body:is(.is-mestre, .is-jogador) > .combat-log-panel:not(.combat-log-panel-sidebar) {
+        right: 8px;
+        width: min(320px, calc(100vw - 16px));
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    body:is(.is-mestre, .is-jogador),
+    #tela-app,
+    #sidebar-mestre,
+    .sidebar-jogador-custom,
+    .voice-drawer,
+    .initiative-turn-board,
+    .combat-log-panel,
+    .mesa-de-jogo,
+    .slot-container {
+        transition-duration: .01ms !important;
+    }
+}

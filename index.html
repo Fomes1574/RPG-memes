@@ -32,7 +32,7 @@
         </div>
     </div>
 
-    <button id="btn-toggle-hud" onclick="toggleHudMestre()"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z"/><circle cx="12" cy="12" r="2.7"/></svg><span>Grupo</span></button>
+    <button id="btn-toggle-hud" type="button" onclick="toggleHudMestre()" aria-expanded="false" aria-controls="hud-mestre" aria-label="Abrir status do grupo" title="Abrir status do grupo"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z"/><circle cx="12" cy="12" r="2.7"/></svg><span>Grupo</span></button>
     <div id="hud-mestre">
         <div style="color: #8b6d43; text-align: center; font-size: 10px; font-weight: bold; border-bottom: 1px solid #3a2212; padding-bottom: 8px; margin-bottom: 5px; letter-spacing: 2px;">STATUS DO GRUPO</div>
         <div id="hud-players-list"></div>
@@ -92,7 +92,7 @@
 
     <!-- SIDEBAR DO MESTRE (ACERVO) -->
     <div id="sidebar-mestre" class="sidebar-mestre" style="display: none;">
-        <button id="btn-toggle-sidebar" onclick="toggleSidebarMestre()">
+        <button id="btn-toggle-sidebar" type="button" onclick="toggleSidebarMestre()" aria-expanded="true" aria-controls="sidebar-mestre" aria-label="Fechar bestiário" title="Fechar bestiário">
             <span id="seta-sidebar">▶</span>
         </button>
         <div class="sidebar-header">
