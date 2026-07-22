@@ -36,6 +36,17 @@ test('voz, iniciativa e registro obedecem à área central segura', () => {
     assert.match(script, /classList\.toggle\('voice-drawer-open', open\)/);
 });
 
+test('a alça Grupo reserva uma área própria quando o HUD está fechado', () => {
+    assert.match(css, /--master-hud-toggle-width:\s*92px/);
+    assert.match(css, /body\.is-mestre:not\(\.hud-open\) \.nav-bar\s*\{[^}]*padding-left:\s*calc\(var\(--master-hud-toggle-width\) \+ 10px\)/s);
+    assert.match(css, /#btn-toggle-hud\s*\{[^}]*width:\s*var\(--master-hud-toggle-width\)/s);
+});
+
+test('o Registro do jogador encosta no rodapé quando a Voz está recolhida', () => {
+    assert.match(css, /@media \(min-width: 860px\)[\s\S]*body\.is-jogador:not\(\.voice-drawer-open\) > \.combat-log-panel:not\(\.combat-log-panel-sidebar\)\s*\{[^}]*bottom:\s*0/s);
+    assert.match(css, /body:is\(\.is-mestre, \.is-jogador\) > \.combat-log-panel:not\(\.combat-log-panel-sidebar\)\s*\{[^}]*bottom:\s*calc\(var\(--voice-safe-bottom\) \+ 10px\)/s);
+});
+
 test('no modo compacto apenas uma superfície permanece aberta', () => {
     assert.match(script, /matchMedia\('\(max-width: 1279px\)'\)/);
     assert.match(script, /definirSidebarMestreAberta\(!layoutCompactoQuery\.matches, false\)/);

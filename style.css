@@ -6002,6 +6002,7 @@ button:hover:not(:disabled) {
     --player-drawer-width: clamp(320px, 22vw, 370px);
     --master-drawer-width: clamp(350px, 24vw, 410px);
     --master-hud-width: 238px;
+    --master-hud-toggle-width: 92px;
     --voice-bar-height: 68px;
     --voice-open-reserve: calc(min(72vh, 650px) + 70px);
 }
@@ -6058,6 +6059,12 @@ body:is(.is-mestre, .is-jogador).voice-drawer-open {
     box-sizing: border-box;
     align-items: center;
     flex-wrap: wrap;
+    transition: padding-left .38s var(--layout-ease);
+}
+
+/* Com o HUD recolhido, a alça ganha um espaço próprio no cabeçalho. */
+body.is-mestre:not(.hud-open) .nav-bar {
+    padding-left: calc(var(--master-hud-toggle-width) + 10px) !important;
 }
 
 .nav-primary {
@@ -6250,6 +6257,7 @@ body:not(.is-jogador) .sidebar-jogador-custom {
 #btn-toggle-hud {
     top: var(--layout-gutter);
     left: var(--layout-gutter) !important;
+    width: var(--master-hud-toggle-width);
     min-height: 38px;
     display: none;
     align-items: center;
@@ -6321,6 +6329,14 @@ body:is(.is-mestre, .is-jogador) > .combat-log-panel:not(.combat-log-panel-sideb
     transition:
         right .38s var(--layout-ease),
         bottom .32s var(--layout-ease) !important;
+}
+
+/* No desktop, Voz e Registro cabem lado a lado: o Registro encosta no rodapé. */
+@media (min-width: 860px) {
+    body.is-jogador:not(.voice-drawer-open) > .combat-log-panel:not(.combat-log-panel-sidebar) {
+        bottom: 0;
+        max-height: calc(100dvh - var(--layout-gutter));
+    }
 }
 
 body:is(.is-mestre, .is-jogador) .combat-toast {
