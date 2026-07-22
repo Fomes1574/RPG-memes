@@ -2080,40 +2080,105 @@ window.toggleSidebarJogador = function(numSlot) {
         // ==========================================
         // LÓGICA DE LOGIN E INICIALIZAÇÃO
         // ==========================================
+        let loginEmTransicao = false;
+
+        function prefereMovimentoReduzido() {
+            return window.matchMedia?.('(prefers-reduced-motion: reduce)').matches === true;
+        }
+
+        function iniciarAtmosferaDoPacto() {
+            const tela = document.getElementById('tela-login');
+            const input = document.getElementById('input-senha');
+            const erro = document.getElementById('msg-erro');
+            if(!tela || !input) return;
+
+            const atualizarParallax = (event) => {
+                if(prefereMovimentoReduzido()) return;
+                const x = (event.clientX / Math.max(window.innerWidth, 1) - 0.5) * -14;
+                const y = (event.clientY / Math.max(window.innerHeight, 1) - 0.5) * -9;
+                tela.style.setProperty('--pacto-parallax-x', `${x.toFixed(2)}px`);
+                tela.style.setProperty('--pacto-parallax-y', `${y.toFixed(2)}px`);
+            };
+
+            tela.addEventListener('pointermove', atualizarParallax, { passive: true });
+            tela.addEventListener('pointerleave', () => {
+                tela.style.setProperty('--pacto-parallax-x', '0px');
+                tela.style.setProperty('--pacto-parallax-y', '0px');
+            });
+            input.addEventListener('input', () => {
+                tela.classList.remove('login-denied');
+                if(erro) erro.style.display = 'none';
+            });
+            document.addEventListener('visibilitychange', () => {
+                tela.classList.toggle('pacto-paused', document.hidden);
+            });
+        }
+
+        iniciarAtmosferaDoPacto();
+
+        function entrarNaMesa() {
+            const telaLogin = document.getElementById('tela-login');
+            telaLogin.style.display = "none";
+            document.getElementById('tela-app').style.display = "block";
+
+            document.getElementById('usuario-logado').innerText = usuarioAtual.nome;
+            document.getElementById('badge-cargo').innerText = usuarioAtual.cargo;
+            document.body.classList.add(usuarioAtual.cargo === "Mestre" ? 'is-mestre' : 'is-jogador');
+            document.body.classList.remove('sidebar-collapsed');
+            initCombatUi();
+            initVoicePrototype();
+
+            if(usuarioAtual.cargo === "Mestre") {
+                document.getElementById('badge-cargo').style.borderColor = "#8c1c13";
+                document.getElementById('badge-cargo').style.color = "#a84242";
+                document.getElementById('painel-mestre').style.display = "flex";
+                document.getElementById('sidebar-mestre').style.display = "flex";
+                document.getElementById('btn-toggle-hud').style.display = "inline-flex";
+                atualizarSidebarMestre();
+                initHudGlobais();
+            } else {
+                document.getElementById('seletor-jogador').style.display = "block";
+                onValue(dbRef('fichas/' + usuarioAtual.idFicha), (snapshot) => {
+                    const dados = snapshot.val() || {};
+                    fichasNoBanco[usuarioAtual.idFicha] = dados;
+                    const spanNomeHeroi = document.getElementById('nome-heroi-jogador');
+                    if(spanNomeHeroi) spanNomeHeroi.textContent = dados['nome'] || "Herói Sem Nome";
+                });
+                abrirFichaNoSlot(1, 'heroi', usuarioAtual.idFicha);
+            }
+            iniciarOuvintesGerais();
+        }
+
         window.fazerLogin = function() {
+            if(loginEmTransicao) return;
             const digitado = document.getElementById('input-senha').value.trim().toLowerCase();
             if (usuarios[digitado]) {
                 usuarioAtual = usuarios[digitado];
-                document.getElementById('tela-login').style.display = "none";
-                document.getElementById('tela-app').style.display = "block";
+                loginEmTransicao = true;
+                const tela = document.getElementById('tela-login');
+                const botao = document.getElementById('btn-login-wax');
+                const erro = document.getElementById('msg-erro');
+                const reduzir = prefereMovimentoReduzido();
+                if(erro) erro.style.display = 'none';
+                tela.classList.remove('login-denied');
+                tela.classList.add('login-approved');
+                botao?.classList.add('is-sealing');
 
-                document.getElementById('usuario-logado').innerText = usuarioAtual.nome;
-                document.getElementById('badge-cargo').innerText = usuarioAtual.cargo;
-                document.body.classList.add(usuarioAtual.cargo === "Mestre" ? 'is-mestre' : 'is-jogador');
-                initCombatUi();
-                initVoicePrototype();
-
-                if(usuarioAtual.cargo === "Mestre") {
-                    document.getElementById('badge-cargo').style.borderColor = "#8c1c13";
-                    document.getElementById('badge-cargo').style.color = "#a84242";
-                    document.getElementById('painel-mestre').style.display = "flex";
-                    document.getElementById('sidebar-mestre').style.display = "flex";
-                    document.getElementById('btn-toggle-hud').style.display = "block";
-                    atualizarSidebarMestre();
-                    initHudGlobais();
-                } else {
-                    document.getElementById('seletor-jogador').style.display = "block";
-                    onValue(dbRef('fichas/' + usuarioAtual.idFicha), (snapshot) => {
-                        const dados = snapshot.val() || {};
-                        fichasNoBanco[usuarioAtual.idFicha] = dados;
-                        const spanNomeHeroi = document.getElementById('nome-heroi-jogador');
-                        if(spanNomeHeroi) spanNomeHeroi.textContent = dados['nome'] || "Herói Sem Nome";
-                    });
-                    abrirFichaNoSlot(1, 'heroi', usuarioAtual.idFicha);
+                if(reduzir) {
+                    entrarNaMesa();
+                    return;
                 }
-                iniciarOuvintesGerais();
+
+                setTimeout(() => tela.classList.add('login-exiting'), 170);
+                setTimeout(entrarNaMesa, 900);
             } else {
-                document.getElementById('msg-erro').style.display = "block";
+                const tela = document.getElementById('tela-login');
+                const erro = document.getElementById('msg-erro');
+                tela.classList.remove('login-denied');
+                void tela.offsetWidth;
+                tela.classList.add('login-denied');
+                erro.style.display = "block";
+                document.getElementById('input-senha').focus();
             }
         }
 
@@ -3258,9 +3323,11 @@ window.toggleSidebarJogador = function(numSlot) {
             const seta = document.getElementById('seta-sidebar');
             if (sidebar.classList.contains('sidebar-fechada')) {
                 sidebar.classList.remove('sidebar-fechada');
+                document.body.classList.remove('sidebar-collapsed');
                 seta.innerText = '▶';
             } else {
                 sidebar.classList.add('sidebar-fechada');
+                document.body.classList.add('sidebar-collapsed');
                 seta.innerText = '◀';
             }
         }

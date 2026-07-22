@@ -1954,7 +1954,7 @@ input:focus, textarea:focus {
     color: #b69259;
     background: linear-gradient(to right, #1e110a, #100906);
     font-size: 9px;
-    text-transform: uppercase;
+    text-transform: none;
 }
 
 #sidebar-mestre > .combat-log-panel-sidebar .combat-log-body {
@@ -4851,4 +4851,1143 @@ body.is-jogador .acoes-contador input:disabled { opacity: 1; cursor: default; }
 @media (prefers-reduced-motion: reduce) {
     .furia-trilho i,
     .container.em-furia::after { animation: none; }
+}
+
+/* ========================================================================== */
+/* RPG MEMES — DIREÇÃO DE ARTE DARK FANTASY                                   */
+/* ========================================================================== */
+
+:root {
+    --df-void: #050403;
+    --df-ink: #0b0806;
+    --df-leather: #17100b;
+    --df-leather-light: #24170f;
+    --df-bronze: #9d7742;
+    --df-bronze-bright: #d5b46c;
+    --df-bronze-dim: #594024;
+    --df-blood: #721b18;
+    --df-blood-bright: #b13b2e;
+    --df-vellum: #c7b18a;
+    --df-vellum-dark: #8b714f;
+    --df-text: #e2d5bd;
+    --df-muted: #917e66;
+    --df-panel-border: rgba(181, 139, 75, 0.34);
+    --df-ease: cubic-bezier(.16, 1, .3, 1);
+}
+
+html {
+    min-width: 320px;
+    background: var(--df-void);
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+    min-height: 100vh;
+    min-height: 100dvh;
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden;
+    color: var(--df-text);
+    background: var(--df-void);
+}
+
+/* ── Altar do Pacto ─────────────────────────────────────────────────────── */
+
+#tela-login {
+    --pacto-parallax-x: 0px;
+    --pacto-parallax-y: 0px;
+    position: fixed;
+    inset: 0;
+    z-index: 5000;
+    display: grid;
+    width: 100vw;
+    height: 100vh;
+    height: 100dvh;
+    margin: 0;
+    padding: clamp(18px, 4vw, 56px);
+    place-items: center;
+    overflow: hidden;
+    isolation: isolate;
+    border: 0;
+    border-radius: 0;
+    background: #030302;
+    box-shadow: none;
+    animation: pacto-stage-in 1.3s var(--df-ease) both;
+}
+
+#tela-login::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 6;
+    width: auto;
+    height: auto;
+    opacity: .12;
+    pointer-events: none;
+    border: 0;
+    background:
+        repeating-radial-gradient(circle at 17% 31%, rgba(255,255,255,.17) 0 .35px, transparent .7px 2.2px),
+        repeating-radial-gradient(circle at 73% 61%, rgba(0,0,0,.32) 0 .45px, transparent .8px 2.8px);
+    background-size: 7px 9px, 11px 13px;
+    mix-blend-mode: soft-light;
+}
+
+#tela-login::after {
+    content: '';
+    position: absolute;
+    inset: auto 0 0;
+    z-index: 5;
+    width: auto;
+    height: 44%;
+    pointer-events: none;
+    border: 0;
+    background: linear-gradient(to top, rgba(2,1,1,.76), transparent);
+}
+
+.pacto-backdrop {
+    position: absolute;
+    inset: -3%;
+    z-index: 0;
+    display: block;
+    overflow: hidden;
+    pointer-events: none;
+    background: #080504;
+}
+
+.pacto-backdrop img {
+    width: 100%;
+    height: 100%;
+    display: block;
+    object-fit: cover;
+    object-position: 50% 50%;
+    filter: brightness(.72) contrast(1.09) saturate(.88);
+    transform: translate3d(var(--pacto-parallax-x), var(--pacto-parallax-y), 0) scale(1.07);
+    transform-origin: center;
+    animation: pacto-altar-breathe 18s ease-in-out infinite alternate;
+    transition: filter 1s ease, transform 1.1s var(--df-ease);
+    will-change: transform;
+}
+
+.pacto-vignette,
+.pacto-aurora,
+.pacto-fog,
+.pacto-embers {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+}
+
+.pacto-vignette {
+    z-index: 1;
+    background:
+        radial-gradient(ellipse 45% 42% at 50% 43%, transparent 10%, rgba(3,2,2,.12) 58%, rgba(2,1,1,.62) 100%),
+        linear-gradient(90deg, rgba(0,0,0,.47), transparent 23% 77%, rgba(0,0,0,.47)),
+        linear-gradient(180deg, rgba(0,0,0,.24), transparent 28% 66%, rgba(0,0,0,.38));
+}
+
+.pacto-aurora {
+    z-index: 2;
+    inset: -15% 20% 24%;
+    opacity: .3;
+    filter: blur(38px);
+    background: radial-gradient(ellipse, rgba(148, 34, 27, .34), transparent 64%);
+    mix-blend-mode: screen;
+    animation: pacto-aurora-pulse 7.5s ease-in-out infinite;
+}
+
+.pacto-fog {
+    z-index: 3;
+    top: auto;
+    width: 165%;
+    height: 45%;
+    opacity: .44;
+    filter: blur(18px);
+    background:
+        radial-gradient(ellipse 15% 38% at 8% 60%, rgba(143,127,112,.31), transparent 72%),
+        radial-gradient(ellipse 22% 45% at 29% 48%, rgba(112,103,96,.3), transparent 70%),
+        radial-gradient(ellipse 18% 35% at 54% 72%, rgba(137,118,104,.27), transparent 74%),
+        radial-gradient(ellipse 24% 42% at 81% 54%, rgba(113,103,97,.3), transparent 72%);
+    mask-image: linear-gradient(to top, #000, transparent 88%);
+    will-change: transform;
+}
+
+.pacto-fog-back {
+    bottom: 5%;
+    left: -35%;
+    animation: pacto-fog-drift-back 29s ease-in-out infinite alternate;
+}
+
+.pacto-fog-front {
+    right: -42%;
+    bottom: -4%;
+    opacity: .34;
+    transform: scaleY(.7);
+    animation: pacto-fog-drift-front 23s ease-in-out infinite alternate;
+}
+
+.pacto-embers { z-index: 4; overflow: hidden; }
+
+#tela-login .brasa {
+    position: absolute;
+    bottom: -3%;
+    left: var(--x, 50%);
+    width: 4px;
+    height: 4px;
+    opacity: 0;
+    border-radius: 50%;
+    background: radial-gradient(circle, #fff1ad 0 12%, #e87630 42%, #8b1a0e 73%, transparent 74%);
+    box-shadow: 0 0 7px #dc4b20, 0 0 14px rgba(255,150,56,.55);
+    animation: pacto-ember-rise var(--duracao, 8s) linear var(--atraso, 0s) infinite;
+    transform: scale(var(--escala, 1));
+}
+
+.pacto-card {
+    position: relative;
+    z-index: 10;
+    width: min(470px, calc(100vw - 34px));
+    padding: 2px;
+    color: #24170f;
+    clip-path: polygon(18px 0, calc(100% - 22px) 0, 100% 18px, 100% calc(100% - 23px), calc(100% - 18px) 100%, 20px 100%, 0 calc(100% - 18px), 0 22px);
+    background:
+        linear-gradient(145deg, #e2c984 0%, #7b5229 20%, #d1ad63 47%, #5b381c 75%, #cfab61 100%);
+    box-shadow:
+        0 34px 80px rgba(0,0,0,.76),
+        0 9px 18px rgba(0,0,0,.62),
+        0 0 42px rgba(130,39,24,.13);
+    filter: drop-shadow(0 4px 2px rgba(0,0,0,.82));
+    animation: pacto-card-arrive 1.15s .18s var(--df-ease) both;
+    transform-origin: 50% 78%;
+}
+
+.pacto-card::before {
+    content: '';
+    position: absolute;
+    inset: 8px;
+    z-index: 1;
+    pointer-events: none;
+    border: 1px solid rgba(67,38,19,.48);
+    clip-path: inherit;
+    box-shadow: inset 0 0 0 1px rgba(245,216,154,.17);
+}
+
+.pacto-card::after {
+    content: '';
+    position: absolute;
+    inset: 2px;
+    z-index: 0;
+    pointer-events: none;
+    clip-path: inherit;
+    opacity: .62;
+    background:
+        radial-gradient(circle at 12% 15%, rgba(67,37,16,.3) 0 1%, transparent 8%),
+        radial-gradient(circle at 89% 78%, rgba(64,32,14,.27) 0 2%, transparent 12%),
+        repeating-linear-gradient(104deg, rgba(68,43,22,.025) 0 1px, transparent 1px 7px);
+}
+
+.pacto-card-inner {
+    position: relative;
+    z-index: 2;
+    padding: 30px 45px 27px;
+    text-align: center;
+    clip-path: inherit;
+    background:
+        radial-gradient(ellipse at 50% 4%, rgba(247,226,178,.52), transparent 43%),
+        radial-gradient(circle at 16% 72%, rgba(83,48,23,.15), transparent 25%),
+        linear-gradient(145deg, rgba(203,183,143,.98), rgba(180,151,105,.98) 52%, rgba(155,123,82,.98));
+    box-shadow:
+        inset 0 0 48px rgba(63,34,15,.43),
+        inset 0 0 0 1px rgba(255,237,193,.32);
+}
+
+.pacto-card-runes {
+    position: absolute;
+    inset: 14px;
+    z-index: 4;
+    pointer-events: none;
+    opacity: .22;
+    border: 1px solid rgba(82,44,20,.36);
+    clip-path: polygon(12px 0, calc(100% - 12px) 0, 100% 12px, 100% calc(100% - 12px), calc(100% - 12px) 100%, 12px 100%, 0 calc(100% - 12px), 0 12px);
+    box-shadow: inset 0 0 18px rgba(255,221,142,.08);
+}
+
+.pacto-card-runes::before,
+.pacto-card-runes::after {
+    content: '◆  ◇  ◆';
+    position: absolute;
+    left: 50%;
+    color: #4a2815;
+    font: 9px/1 'Cinzel', serif;
+    letter-spacing: 9px;
+    transform: translateX(-50%);
+}
+.pacto-card-runes::before { top: -5px; }
+.pacto-card-runes::after { bottom: -5px; }
+
+.pacto-emblem {
+    width: 64px;
+    height: 64px;
+    margin: 0 auto 9px;
+    color: #55231b;
+    filter: drop-shadow(0 1px rgba(255,235,186,.34));
+}
+
+.pacto-emblem svg { width: 100%; height: 100%; overflow: visible; }
+.pacto-emblem path,
+.pacto-emblem circle {
+    fill: none;
+    stroke: currentColor;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+.pacto-emblem-ring { stroke-width: 2.2; }
+.pacto-emblem-lines { stroke-width: 1.1; opacity: .56; }
+.pacto-emblem circle { fill: rgba(87,31,24,.1); stroke-width: 2.4; }
+
+#login-title {
+    margin: 0;
+    padding: 0;
+    color: #2c190f;
+    border: 0;
+    font: 900 clamp(29px, 4vw, 38px)/1.08 'Cinzel Decorative', serif !important;
+    letter-spacing: 2.4px !important;
+    text-wrap: balance;
+    text-shadow: 0 1px rgba(255,238,198,.45), 0 3px 9px rgba(61,28,12,.16);
+}
+
+#login-title::after { content: none; }
+
+#login-subtitle {
+    max-width: 350px;
+    margin: 14px auto 0;
+    color: #533b28;
+    font: 400 14px/1.48 'IM Fell English SC', Georgia, serif !important;
+    font-style: normal;
+    letter-spacing: .3px;
+    text-wrap: balance;
+}
+
+.pacto-divider {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    gap: 9px;
+    width: min(285px, 88%);
+    margin: 18px auto 15px;
+    color: #6e3d22;
+    font-size: 8px;
+}
+.pacto-divider span { height: 1px; background: linear-gradient(to right, transparent, currentColor); }
+.pacto-divider span:last-child { background: linear-gradient(to left, transparent, currentColor); }
+.pacto-divider i { font-style: normal; filter: drop-shadow(0 1px rgba(255,235,187,.5)); }
+
+#login-form {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin: 0;
+}
+
+.pacto-input-wrap {
+    position: relative;
+    width: 100%;
+    max-width: 330px;
+}
+
+.pacto-input-wrap > svg {
+    position: absolute;
+    top: 50%;
+    left: 13px;
+    z-index: 2;
+    width: 19px;
+    height: 19px;
+    color: #66462d;
+    fill: currentColor;
+    transform: translateY(-50%);
+    pointer-events: none;
+}
+
+#tela-login #input-senha {
+    width: 100%;
+    height: 47px;
+    margin: 0;
+    padding: 5px 42px;
+    color: #26170f;
+    caret-color: #741f18;
+    border: 1px solid rgba(75,45,25,.58);
+    border-bottom: 2px solid #664024;
+    border-radius: 2px 10px 2px 10px;
+    outline: 0;
+    background:
+        linear-gradient(180deg, rgba(255,242,207,.27), rgba(91,55,28,.06)),
+        rgba(126,91,54,.12);
+    box-shadow:
+        inset 0 1px rgba(255,244,211,.34),
+        inset 0 -7px 13px rgba(81,47,22,.09),
+        0 5px 11px rgba(70,37,17,.11);
+    font: 600 15px/1 'Cinzel', serif !important;
+    letter-spacing: 1.2px;
+    text-align: center;
+    text-transform: none;
+    transition: border-color .28s ease, background .28s ease, box-shadow .28s ease !important;
+}
+
+#tela-login #input-senha::placeholder {
+    color: #80684d;
+    opacity: .86;
+    font-weight: 500;
+}
+
+#tela-login #input-senha:hover {
+    border-color: rgba(92,53,27,.8);
+}
+
+#tela-login #input-senha:focus {
+    color: #1c100a;
+    border-color: #7d4f28 !important;
+    border-bottom-color: #8a251c !important;
+    background: rgba(235,213,168,.34) !important;
+    box-shadow: 0 0 0 3px rgba(102,49,28,.11), inset 0 0 16px rgba(255,236,191,.18) !important;
+    text-shadow: none;
+}
+
+#btn-login-wax {
+    position: relative;
+    width: 104px;
+    height: 104px;
+    margin: 18px 0 0;
+    padding: 0;
+    overflow: visible;
+    display: grid;
+    place-items: center;
+    isolation: isolate;
+    color: #f2d9ae;
+    border: 2px solid #4e1412;
+    border-radius: 49% 51% 47% 53% / 52% 46% 54% 48%;
+    background:
+        radial-gradient(circle at 37% 29%, rgba(255,174,123,.29), transparent 17%),
+        radial-gradient(circle at 52% 55%, #a5332a 0%, #781d19 56%, #4a1110 100%) !important;
+    box-shadow:
+        0 12px 18px rgba(66,25,15,.38),
+        0 3px 2px rgba(37,13,9,.66),
+        inset 0 2px 3px rgba(255,185,142,.29),
+        inset 0 -10px 18px rgba(38,6,6,.39),
+        0 0 0 5px rgba(85,38,21,.12) !important;
+    font: 700 13px/1 'Cinzel', serif !important;
+    letter-spacing: 1.5px !important;
+    text-transform: none;
+    text-shadow: 0 2px 3px #3a0b09;
+    cursor: pointer;
+    transform: translateZ(0);
+    transition: transform .32s var(--df-ease), filter .32s ease, box-shadow .32s ease !important;
+}
+
+#btn-login-wax::before {
+    content: '';
+    position: absolute;
+    inset: 11px;
+    width: auto;
+    height: auto;
+    z-index: -1;
+    border: 1px solid rgba(255,205,160,.26);
+    border-radius: 50%;
+    background: transparent;
+    box-shadow: inset 0 0 0 3px rgba(70,13,12,.2), 0 0 0 1px rgba(65,13,11,.55);
+    transform: none;
+    animation: none;
+}
+
+#btn-login-wax::after {
+    content: '';
+    position: absolute;
+    inset: -11px;
+    z-index: -2;
+    opacity: 0;
+    border: 1px solid rgba(208,76,52,.28);
+    border-radius: 50%;
+    box-shadow: 0 0 24px rgba(163,43,30,.24);
+    transform: scale(.82);
+    transition: opacity .35s ease, transform .55s var(--df-ease);
+}
+
+#btn-login-wax > span { position: relative; z-index: 2; }
+
+#tela-login #btn-login-wax:hover,
+#tela-login #btn-login-wax:focus-visible {
+    color: #ffe9bf !important;
+    border-color: #7c211b !important;
+    background:
+        radial-gradient(circle at 37% 29%, rgba(255,188,142,.37), transparent 18%),
+        radial-gradient(circle at 52% 55%, #b63e32 0%, #81211b 56%, #4c1110 100%) !important;
+    box-shadow:
+        0 15px 23px rgba(57,18,12,.43),
+        inset 0 2px 3px rgba(255,196,150,.35),
+        inset 0 -10px 18px rgba(38,6,6,.39),
+        0 0 27px rgba(177,50,35,.38),
+        0 0 0 5px rgba(85,38,21,.14) !important;
+    filter: brightness(1.08);
+    letter-spacing: 2px !important;
+    outline: none;
+    transform: translateY(-3px) scale(1.025);
+}
+
+#btn-login-wax:hover::after,
+#btn-login-wax:focus-visible::after { opacity: 1; transform: scale(1.08); }
+
+#tela-login #btn-login-wax:active {
+    transform: translateY(2px) scale(.96) !important;
+    filter: brightness(.96);
+}
+
+#msg-erro {
+    display: none;
+    margin: 13px 0 -3px;
+    color: #6d1815;
+    font: 700 11px/1.35 'Cinzel', serif !important;
+    letter-spacing: .5px;
+    text-shadow: 0 1px rgba(255,222,174,.26) !important;
+    animation: pacto-error-appear .35s var(--df-ease) both !important;
+}
+
+#tela-login.login-denied .pacto-card { animation: pacto-denied .46s ease both; }
+#tela-login.login-denied #input-senha {
+    border-color: #801f1a !important;
+    box-shadow: 0 0 0 3px rgba(128,31,26,.13), inset 0 0 13px rgba(112,24,19,.09) !important;
+}
+
+#btn-login-wax.is-sealing { animation: pacto-wax-press .72s var(--df-ease) both; }
+#tela-login.login-approved .pacto-card-runes {
+    opacity: 1;
+    border-color: rgba(151,43,29,.78);
+    box-shadow: inset 0 0 21px rgba(151,43,29,.27), 0 0 24px rgba(151,43,29,.2);
+    transition: opacity .3s, border-color .3s, box-shadow .3s;
+}
+#tela-login.login-approved .pacto-emblem { animation: pacto-sigil-ignite .68s ease both; }
+#tela-login.login-exiting .pacto-card { animation: pacto-card-exit .82s var(--df-ease) both; }
+#tela-login.login-exiting .pacto-backdrop img {
+    filter: brightness(.48) contrast(1.15) saturate(1.02);
+    transform: translate3d(var(--pacto-parallax-x), var(--pacto-parallax-y), 0) scale(1.18);
+}
+#tela-login.login-exiting .pacto-vignette { background: rgba(0,0,0,.52); transition: background .75s ease; }
+#tela-login.pacto-paused * { animation-play-state: paused !important; }
+
+@keyframes pacto-stage-in {
+    from { opacity: 0; background: #000; }
+    to { opacity: 1; background: #030302; }
+}
+
+@keyframes pacto-card-arrive {
+    from { opacity: 0; transform: translateY(38px) scale(.95); filter: blur(6px) drop-shadow(0 4px 2px rgba(0,0,0,.8)); }
+    70% { opacity: 1; transform: translateY(-4px) scale(1.008); filter: blur(0) drop-shadow(0 4px 2px rgba(0,0,0,.8)); }
+    to { opacity: 1; transform: none; filter: blur(0) drop-shadow(0 4px 2px rgba(0,0,0,.8)); }
+}
+
+@keyframes pacto-altar-breathe {
+    from { transform: translate3d(var(--pacto-parallax-x), var(--pacto-parallax-y), 0) scale(1.07); }
+    to { transform: translate3d(var(--pacto-parallax-x), calc(var(--pacto-parallax-y) - 4px), 0) scale(1.095); }
+}
+
+@keyframes pacto-aurora-pulse {
+    0%, 100% { opacity: .2; transform: scale(.94); }
+    50% { opacity: .39; transform: scale(1.08); }
+}
+
+@keyframes pacto-fog-drift-back {
+    from { transform: translate3d(0, 0, 0) scale(1); }
+    to { transform: translate3d(18%, -2%, 0) scale(1.06); }
+}
+
+@keyframes pacto-fog-drift-front {
+    from { transform: translate3d(0, 0, 0) scaleY(.7); }
+    to { transform: translate3d(-20%, 2%, 0) scale(1.05, .77); }
+}
+
+@keyframes pacto-ember-rise {
+    0% { opacity: 0; transform: translate3d(0, 0, 0) scale(.35); }
+    8% { opacity: .88; }
+    48% { opacity: .64; transform: translate3d(var(--desvio, 14px), -48vh, 0) scale(var(--escala, 1)); }
+    100% { opacity: 0; transform: translate3d(var(--desvio2, -8px), -102vh, 0) scale(.12); }
+}
+
+@keyframes pacto-denied {
+    0%, 100% { transform: translateX(0); }
+    20% { transform: translateX(-9px) rotate(-.25deg); }
+    42% { transform: translateX(8px) rotate(.2deg); }
+    65% { transform: translateX(-4px); }
+    82% { transform: translateX(3px); }
+}
+
+@keyframes pacto-error-appear {
+    from { opacity: 0; transform: translateY(-5px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pacto-wax-press {
+    0% { transform: translateY(0) scale(1); filter: brightness(1); }
+    35% { transform: translateY(7px) scale(.86); filter: brightness(1.3); box-shadow: 0 0 35px rgba(185,47,31,.56), inset 0 0 24px rgba(255,176,125,.28) !important; }
+    70% { transform: translateY(2px) scale(1.05); filter: brightness(1.12); }
+    100% { transform: translateY(0) scale(1); filter: brightness(1); }
+}
+
+@keyframes pacto-sigil-ignite {
+    0% { color: #55231b; filter: drop-shadow(0 1px rgba(255,235,186,.34)); }
+    42% { color: #c54a32; filter: drop-shadow(0 0 13px rgba(197,65,42,.92)); transform: scale(1.12) rotate(3deg); }
+    100% { color: #6b231a; filter: drop-shadow(0 0 5px rgba(144,40,28,.45)); transform: none; }
+}
+
+@keyframes pacto-card-exit {
+    0% { opacity: 1; transform: none; filter: blur(0) brightness(1); }
+    42% { opacity: 1; transform: translateY(-5px) scale(1.025); filter: blur(0) brightness(1.14); }
+    100% { opacity: 0; transform: translateY(-22px) scale(.91); filter: blur(9px) brightness(.65); }
+}
+
+/* ── Mesa de Guerra Amaldiçoada ─────────────────────────────────────────── */
+
+body:is(.is-mestre, .is-jogador) {
+    display: block;
+    padding: 22px;
+    background:
+        radial-gradient(ellipse 54% 38% at 50% 18%, rgba(91,55,28,.16), transparent 74%),
+        radial-gradient(circle at 11% 81%, rgba(111,30,22,.08), transparent 25%),
+        radial-gradient(circle at 89% 24%, rgba(122,84,37,.07), transparent 22%),
+        repeating-linear-gradient(93deg, rgba(255,255,255,.008) 0 1px, transparent 1px 22px),
+        linear-gradient(145deg, #110c08, #050403 58%, #0d0806);
+    background-attachment: fixed;
+    transition: padding-right .4s var(--df-ease);
+}
+
+body:is(.is-mestre, .is-jogador)::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    opacity: .22;
+    pointer-events: none;
+    background:
+        repeating-radial-gradient(circle at 30% 20%, rgba(214,182,117,.11) 0 .35px, transparent .7px 3px),
+        repeating-linear-gradient(4deg, rgba(255,255,255,.012) 0 1px, transparent 1px 8px);
+    background-size: 9px 11px, auto;
+    mix-blend-mode: soft-light;
+    animation: none;
+}
+
+body:is(.is-mestre, .is-jogador)::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    box-shadow: inset 0 0 150px rgba(0,0,0,.76), inset 0 0 35px rgba(0,0,0,.54);
+}
+
+body.is-mestre:not(.sidebar-collapsed) { padding-right: 392px; }
+
+#tela-app {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    max-width: 1660px;
+    margin: 0 auto;
+    animation: mesa-reveal .72s var(--df-ease) both;
+}
+
+@keyframes mesa-reveal {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: none; }
+}
+
+.nav-bar {
+    position: sticky;
+    top: 14px;
+    z-index: 900;
+    min-height: 76px;
+    margin: 0 0 20px;
+    padding: 11px 14px !important;
+    gap: 15px;
+    overflow: hidden;
+    border: 1px solid rgba(178,133,70,.42) !important;
+    border-bottom: 1px solid rgba(178,133,70,.42) !important;
+    border-radius: 3px 15px 3px 15px !important;
+    background:
+        radial-gradient(circle at 10% 20%, rgba(185,126,57,.11), transparent 28%),
+        linear-gradient(135deg, rgba(32,21,14,.96), rgba(9,7,5,.97) 50%, rgba(24,15,10,.96)) !important;
+    box-shadow:
+        0 14px 38px rgba(0,0,0,.54),
+        inset 0 1px rgba(255,227,165,.05),
+        inset 0 -1px rgba(0,0,0,.88) !important;
+    backdrop-filter: blur(18px) saturate(1.1);
+}
+
+.nav-bar::before {
+    content: '';
+    position: absolute;
+    inset: 5px;
+    pointer-events: none;
+    border: 1px solid rgba(190,143,75,.11);
+    border-radius: 1px 10px 1px 10px;
+}
+
+.nav-bar::after {
+    right: 11%;
+    bottom: 0;
+    left: 11%;
+    height: 1px;
+    background: linear-gradient(to right, transparent, rgba(217,180,104,.62), transparent);
+}
+
+.nav-primary,
+.nav-actions,
+.nav-brand,
+.nav-info,
+.painel-mestre {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+}
+
+.nav-primary { min-width: 0; gap: 14px; }
+.nav-actions { justify-content: flex-end; gap: 11px; flex-wrap: wrap; }
+.painel-mestre { gap: 7px; flex-wrap: wrap; }
+
+.nav-brand {
+    flex: 0 0 auto;
+    gap: 10px;
+    padding-right: 14px;
+    border-right: 1px solid rgba(173,130,68,.24);
+}
+
+.nav-brand-mark {
+    width: 42px;
+    height: 42px;
+    display: grid;
+    place-items: center;
+    color: #c9a55f;
+    border: 1px solid rgba(202,164,92,.44);
+    border-radius: 3px 11px 3px 11px;
+    background: radial-gradient(circle, rgba(194,144,64,.13), rgba(0,0,0,.42));
+    box-shadow: inset 0 0 12px rgba(0,0,0,.72), 0 0 18px rgba(154,103,45,.1);
+}
+
+.nav-brand-mark svg { width: 28px; height: 28px; overflow: visible; }
+.nav-brand-mark path { fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+
+.nav-brand-copy { display: flex; flex-direction: column; }
+.nav-brand-copy strong {
+    color: #dec281;
+    font: 700 14px/1.08 'Cinzel Decorative', serif;
+    letter-spacing: 1px;
+    text-transform: none;
+    text-shadow: 0 0 15px rgba(191,141,61,.16);
+}
+.nav-brand-copy small {
+    margin-top: 4px;
+    color: #715f49;
+    font: 700 7px/1 'Cinzel', serif;
+    letter-spacing: 2.4px;
+    text-transform: uppercase;
+}
+
+.nav-info {
+    min-width: 0;
+    display: grid;
+    grid-template-columns: auto auto;
+    gap: 1px 8px;
+    text-shadow: none;
+}
+.nav-info-label {
+    grid-column: 1 / -1;
+    color: #776650;
+    font: 700 7px/1 'Cinzel', serif;
+    letter-spacing: 1.7px;
+    text-transform: uppercase;
+}
+#usuario-logado {
+    min-width: 0;
+    overflow: hidden;
+    color: #d7c6a4 !important;
+    font: 600 13px/1.25 'Cinzel', serif !important;
+    text-overflow: ellipsis;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+#badge-cargo {
+    align-self: center;
+    margin: 0 !important;
+    padding: 3px 7px !important;
+    color: #a88857;
+    border: 1px solid rgba(156,113,55,.38);
+    border-radius: 99px;
+    background: rgba(0,0,0,.31) !important;
+    font: 700 7px/1 'Cinzel', serif !important;
+    letter-spacing: 1.2px !important;
+    text-transform: uppercase;
+}
+
+.nav-actions button,
+.painel-mestre button {
+    min-height: 34px;
+    margin: 0 !important;
+    padding: 8px 10px !important;
+    color: #baa98d !important;
+    border: 1px solid rgba(129,94,51,.45) !important;
+    border-radius: 2px 7px 2px 7px !important;
+    background: linear-gradient(180deg, rgba(53,34,20,.84), rgba(15,10,7,.92)) !important;
+    box-shadow: inset 0 1px rgba(255,232,185,.04), 0 4px 9px rgba(0,0,0,.26) !important;
+    font-size: 8px !important;
+    letter-spacing: .8px !important;
+    text-shadow: none !important;
+}
+
+.nav-actions button,
+.painel-mestre button,
+#btn-toggle-filtros-bestiario {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+}
+
+.ui-icon {
+    width: 14px;
+    height: 14px;
+    flex: 0 0 auto;
+    overflow: visible;
+}
+
+.ui-icon path,
+.ui-icon circle {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.5;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.btn-label-icon {
+    min-width: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+}
+
+.btn-label-icon > span {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.nav-actions button:hover:not(:disabled),
+.painel-mestre button:hover:not(:disabled) {
+    color: #ead5a7 !important;
+    border-color: rgba(190,145,77,.68) !important;
+    background: linear-gradient(180deg, rgba(75,48,26,.9), rgba(24,15,9,.96)) !important;
+    box-shadow: 0 6px 15px rgba(0,0,0,.38), inset 0 1px rgba(255,231,174,.09) !important;
+    transform: translateY(-1px);
+}
+
+.painel-mestre .btn-turno-global {
+    color: #bcd9c1 !important;
+    border-color: rgba(63,129,79,.58) !important;
+    background: linear-gradient(180deg, rgba(31,85,45,.84), rgba(11,35,19,.92)) !important;
+}
+
+.painel-mestre .btn-fechar-telas {
+    color: #c98579 !important;
+    border-color: rgba(130,48,39,.5) !important;
+    background: linear-gradient(180deg, rgba(75,28,22,.6), rgba(21,9,7,.92)) !important;
+}
+
+.mesa-de-jogo {
+    position: relative;
+    width: 100%;
+    min-height: calc(100vh - 126px);
+    min-height: calc(100dvh - 126px);
+    padding: clamp(18px, 2.4vw, 34px);
+    gap: clamp(18px, 2vw, 30px);
+    overflow: hidden;
+    align-content: flex-start;
+    border: 1px solid rgba(120,85,46,.27);
+    border-radius: 18px 4px 18px 4px;
+    background:
+        radial-gradient(circle at 50% 42%, rgba(144,98,42,.08), transparent 38%),
+        repeating-radial-gradient(ellipse at 50% 120%, transparent 0 43px, rgba(162,119,62,.026) 44px 45px, transparent 46px 88px),
+        linear-gradient(125deg, rgba(36,23,14,.62), rgba(7,5,4,.86) 54%, rgba(27,16,11,.66));
+    box-shadow:
+        inset 0 0 100px rgba(0,0,0,.62),
+        inset 0 0 0 5px rgba(0,0,0,.2),
+        0 16px 42px rgba(0,0,0,.32);
+}
+
+.mesa-de-jogo::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: min(66vw, 760px);
+    aspect-ratio: 1;
+    opacity: .16;
+    pointer-events: none;
+    border: 1px solid rgba(177,132,67,.22);
+    border-radius: 50%;
+    background:
+        linear-gradient(45deg, transparent 49.8%, rgba(178,135,73,.19) 50%, transparent 50.2%),
+        linear-gradient(-45deg, transparent 49.8%, rgba(178,135,73,.19) 50%, transparent 50.2%),
+        radial-gradient(circle, transparent 0 25%, rgba(178,135,73,.18) 25.3% 25.6%, transparent 25.9% 48%, rgba(178,135,73,.16) 48.2% 48.6%, transparent 48.9%);
+    transform: translate(-50%, -50%) rotate(12deg);
+}
+
+.mesa-de-jogo::after {
+    content: '';
+    position: absolute;
+    inset: 8px;
+    pointer-events: none;
+    border: 1px solid rgba(175,129,62,.08);
+    border-radius: 13px 2px 13px 2px;
+}
+
+.slot-container {
+    position: relative;
+    z-index: 1;
+    min-width: min(420px, 100%);
+    max-width: 720px;
+    flex: 1 1 520px;
+}
+
+.container {
+    overflow: hidden;
+    border: 1px solid rgba(154,113,60,.54) !important;
+    border-radius: 3px 14px 3px 14px !important;
+    background:
+        radial-gradient(circle at 14% 8%, rgba(180,124,58,.07), transparent 28%),
+        linear-gradient(145deg, rgba(31,20,13,.98), rgba(10,7,5,.99) 56%, rgba(24,15,10,.98)) !important;
+    box-shadow:
+        0 25px 50px rgba(0,0,0,.49),
+        inset 0 0 44px rgba(0,0,0,.5),
+        inset 0 1px rgba(255,227,170,.035) !important;
+}
+
+.container.monstro-theme {
+    border-color: rgba(130,45,36,.66) !important;
+    background:
+        radial-gradient(circle at 84% 9%, rgba(132,34,27,.11), transparent 25%),
+        linear-gradient(145deg, rgba(35,15,12,.99), rgba(10,5,4,.99) 58%, rgba(31,10,9,.98)) !important;
+}
+
+.container::before {
+    right: 8%;
+    left: 8%;
+    background: linear-gradient(to right, transparent, rgba(199,151,78,.5), transparent);
+}
+
+.section-title {
+    position: relative;
+    padding: 0 0 8px !important;
+    border-bottom: 1px solid rgba(124,89,48,.52) !important;
+    color: #bda67e !important;
+    font-size: 9px !important;
+    letter-spacing: 2.6px !important;
+}
+
+.section-title::after {
+    content: '';
+    position: absolute;
+    right: 70%;
+    bottom: -1px;
+    left: 0;
+    height: 1px;
+    background: linear-gradient(to right, #c29752, transparent);
+}
+
+input, textarea, select {
+    border-color: rgba(109,78,43,.52);
+    border-radius: 2px 7px 2px 7px;
+    background: linear-gradient(180deg, rgba(4,3,2,.72), rgba(18,11,7,.74));
+    box-shadow: inset 0 2px 8px rgba(0,0,0,.32);
+}
+
+input:focus, textarea:focus, select:focus {
+    border-color: rgba(184,139,71,.78) !important;
+    background-color: rgba(25,16,10,.9) !important;
+    box-shadow: 0 0 0 2px rgba(174,126,61,.1), inset 0 2px 8px rgba(0,0,0,.32) !important;
+}
+
+button {
+    border-radius: 2px 7px 2px 7px;
+}
+
+button:hover:not(:disabled) {
+    background: linear-gradient(180deg, #4b321e, #21140c) !important;
+    box-shadow: 0 6px 16px rgba(0,0,0,.58), inset 0 1px rgba(255,233,185,.08) !important;
+}
+
+.sidebar-mestre {
+    width: min(370px, 94vw);
+    height: 100vh;
+    height: 100dvh;
+    overflow: visible;
+    border-left: 1px solid rgba(179,132,68,.52);
+    background:
+        radial-gradient(circle at 50% 0, rgba(143,91,37,.1), transparent 27%),
+        repeating-linear-gradient(93deg, rgba(255,255,255,.008) 0 1px, transparent 1px 17px),
+        linear-gradient(180deg, rgba(27,18,12,.99), rgba(8,6,4,.995) 58%, rgba(17,10,7,.995));
+    box-shadow: -18px 0 55px rgba(0,0,0,.62), inset 1px 0 rgba(255,222,153,.045);
+}
+
+.sidebar-mestre::before {
+    content: '';
+    position: absolute;
+    inset: 7px 7px 7px 8px;
+    z-index: -1;
+    pointer-events: none;
+    border: 1px solid rgba(168,122,62,.08);
+}
+
+#btn-toggle-sidebar {
+    left: -38px;
+    width: 38px;
+    height: 72px;
+    color: #c6a55f;
+    border-color: rgba(171,128,68,.62);
+    border-radius: 12px 0 0 12px;
+    background: linear-gradient(90deg, #24170f, #0c0805);
+    box-shadow: -8px 0 18px rgba(0,0,0,.42);
+}
+
+#btn-toggle-sidebar:hover {
+    width: 42px !important;
+    color: #f0d18b !important;
+    background: linear-gradient(90deg, #3a2617, #120c08) !important;
+}
+
+.sidebar-header {
+    padding: 18px 15px 13px;
+    border-bottom-color: rgba(131,93,49,.34);
+    background: linear-gradient(180deg, rgba(32,20,12,.72), rgba(5,4,3,.42));
+}
+
+.sidebar-header h3 {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    color: #d0ad67;
+    font-size: 14px;
+    letter-spacing: 3px !important;
+    animation: none;
+}
+
+.sidebar-header h3 .ui-icon { width: 17px; height: 17px; }
+
+.sidebar-content { padding: 11px; }
+.bestiario-card {
+    margin-bottom: 3px;
+    border: 1px solid rgba(102,72,40,.18);
+    border-radius: 2px 7px 2px 7px;
+    background: linear-gradient(135deg, rgba(40,25,15,.45), rgba(5,4,3,.4));
+}
+.bestiario-card:hover {
+    border-color: rgba(159,113,56,.52);
+    background: linear-gradient(135deg, rgba(65,39,21,.52), rgba(10,6,4,.55));
+    transform: translateX(-2px);
+}
+.bestiario-aba.ativa {
+    border-color: rgba(190,145,78,.66);
+    background: linear-gradient(180deg, rgba(106,72,34,.28), rgba(29,18,10,.52));
+    color: #dfbd75;
+}
+.encontro-montador,
+#sidebar-mestre > .combat-log-panel-sidebar {
+    border-top-color: rgba(145,104,57,.52);
+    background: rgba(8,6,4,.96);
+}
+
+#hud-mestre {
+    border: 1px solid rgba(172,127,66,.55);
+    border-radius: 3px 12px 3px 12px;
+    background: linear-gradient(145deg, rgba(28,18,12,.96), rgba(7,5,4,.97));
+    box-shadow: 0 18px 44px rgba(0,0,0,.62), inset 0 1px rgba(255,227,166,.045);
+    backdrop-filter: blur(14px);
+}
+
+#btn-toggle-hud {
+    color: #cfb074;
+    border: 1px solid rgba(168,124,63,.52);
+    background: linear-gradient(180deg, rgba(48,31,19,.95), rgba(13,9,6,.97));
+}
+
+:focus-visible {
+    outline: 2px solid rgba(216,177,100,.76);
+    outline-offset: 3px;
+}
+
+@media (max-width: 1180px) {
+    body.is-mestre:not(.sidebar-collapsed) { padding-right: 22px; }
+    .sidebar-mestre { box-shadow: -24px 0 70px rgba(0,0,0,.78); }
+}
+
+@media (max-width: 900px) {
+    body:is(.is-mestre, .is-jogador) { padding: 12px; }
+    .nav-bar { top: 8px; }
+    .nav-brand-copy { display: none; }
+    .nav-brand { padding-right: 10px; }
+    .mesa-de-jogo { min-height: calc(100dvh - 110px); padding: 14px; }
+    .slot-container { min-width: 100%; }
+}
+
+@media (max-width: 700px) {
+    #tela-login { padding: 14px; }
+    .pacto-backdrop { inset: -2%; }
+    .pacto-backdrop img { object-position: center; filter: brightness(.62) contrast(1.08) saturate(.9); }
+    .pacto-vignette {
+        background:
+            radial-gradient(ellipse 75% 44% at 50% 47%, transparent 3%, rgba(2,1,1,.19) 67%, rgba(1,1,1,.7) 100%),
+            linear-gradient(180deg, rgba(0,0,0,.23), transparent 23% 70%, rgba(0,0,0,.55));
+    }
+    .pacto-card { width: min(440px, calc(100vw - 26px)); }
+    .pacto-card-inner { padding: 27px 28px 24px; }
+    .pacto-emblem { width: 57px; height: 57px; }
+    #login-title { font-size: clamp(27px, 8vw, 34px) !important; }
+    #login-subtitle { font-size: 13px !important; }
+    #btn-login-wax { width: 96px; height: 96px; margin-top: 16px; }
+    .pacto-fog { height: 37%; }
+    .nav-primary, .nav-actions { width: 100%; justify-content: space-between; }
+    .nav-actions { justify-content: flex-start; }
+    .painel-mestre { width: 100%; }
+}
+
+@media (max-height: 720px) {
+    .pacto-card-inner { padding-top: 19px; padding-bottom: 18px; }
+    .pacto-emblem { width: 46px; height: 46px; margin-bottom: 4px; }
+    #login-title { font-size: 27px !important; }
+    #login-subtitle { margin-top: 8px; font-size: 12px !important; line-height: 1.35; }
+    .pacto-divider { margin-top: 10px; margin-bottom: 10px; }
+    #tela-login #input-senha { height: 42px; }
+    #btn-login-wax { width: 80px; height: 80px; margin-top: 11px; font-size: 11px !important; }
+    #msg-erro { margin-top: 8px; }
+}
+
+@media (max-width: 430px) {
+    .pacto-card-inner { padding-inline: 21px; }
+    #login-subtitle { max-width: 300px; }
+    .pacto-card-runes::before,
+    .pacto-card-runes::after { letter-spacing: 6px; }
+    .nav-info { max-width: 180px; }
+    .nav-actions button, .painel-mestre button { flex: 1 1 auto; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    #tela-login,
+    .pacto-backdrop img,
+    .pacto-aurora,
+    .pacto-fog,
+    #tela-login .brasa,
+    .pacto-card,
+    #btn-login-wax,
+    .pacto-emblem,
+    #tela-app {
+        animation: none !important;
+        transition-duration: .01ms !important;
+    }
+    .pacto-backdrop img { transform: scale(1.04); }
 }
