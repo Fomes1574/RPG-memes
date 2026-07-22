@@ -2082,10 +2082,6 @@ window.toggleSidebarJogador = function(numSlot) {
         // ==========================================
         let loginEmTransicao = false;
 
-        function prefereMovimentoReduzido() {
-            return window.matchMedia?.('(prefers-reduced-motion: reduce)').matches === true;
-        }
-
         function iniciarAtmosferaDoPacto() {
             const tela = document.getElementById('tela-login');
             const input = document.getElementById('input-senha');
