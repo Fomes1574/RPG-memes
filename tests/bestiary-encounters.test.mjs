@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
 const script = readFileSync(new URL('../script.js', import.meta.url), 'utf8');
+const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
+const styles = readFileSync(new URL('../style.css', import.meta.url), 'utf8');
 
 function trecho(inicioTexto, fimTexto) {
     const inicio = script.indexOf(inicioTexto);
@@ -14,7 +16,7 @@ function trecho(inicioTexto, fimTexto) {
 test('a busca ignora acentos e combina OU no mesmo grupo com E entre grupos', () => {
     const fonte = trecho('function normalizarTextoBestiario', '\n\n        function construirVisaoPublicaCatalogacao');
     const api = Function(`
-        const BESTIARIO_CAMPOS_FILTRO = ['familia', 'subtipo', 'papel', 'patamar', 'ambiente', 'tamanho', 'faccao', 'etiquetas'];
+        const BESTIARIO_CAMPOS_FILTRO = ['papel', 'patamar', 'tamanho', 'faccao', 'etiquetas'];
         const toNumber = (value, fallback = 0) => Number.isFinite(Number(value)) ? Number(value) : fallback;
         const clamp = (value, min, max) => Math.max(min, Math.min(max, toNumber(value, min)));
         ${fonte}
@@ -22,17 +24,18 @@ test('a busca ignora acentos e combina OU no mesmo grupo com E entre grupos', ()
     `)();
 
     const itens = [
-        api.construirItemCatalogo('arauto', 'monstro', { nome: 'Arauto Escarlate', catalogacao: { familia: 'Dragão', papel: 'Brutamontes', ambiente: 'Caverna', etiquetas: ['Fogo', 'Voador'] } }),
-        api.construirItemCatalogo('lich', 'monstro', { nome: 'Vigia das Criptas', catalogacao: { familia: 'Morto-vivo', papel: 'Controlador', ambiente: 'Ruínas', etiquetas: ['Mágico'] } }),
-        api.construirItemCatalogo('lobos', 'horda', { nome: 'Matilha Cinzenta', catalogacao: { familia: 'Fera', papel: 'Soldado', ambiente: 'Caverna', etiquetas: ['Furtivo'] } })
+        api.construirItemCatalogo('arauto', 'monstro', { nome: 'Arauto Escarlate', catalogacao: { familia: 'Dragão', papel: 'Brutamontes', tamanho: 'Grande', ambiente: 'Caverna', etiquetas: ['Fogo', 'Voador'] } }),
+        api.construirItemCatalogo('lich', 'monstro', { nome: 'Vigia das Criptas', catalogacao: { familia: 'Morto-vivo', papel: 'Controlador', tamanho: 'Médio', ambiente: 'Ruínas', etiquetas: ['Mágico'] } }),
+        api.construirItemCatalogo('lobos', 'horda', { nome: 'Matilha Cinzenta', catalogacao: { familia: 'Fera', papel: 'Soldado', tamanho: 'Médio', ambiente: 'Caverna', etiquetas: ['Furtivo'] } })
     ];
 
-    const busca = api.filtrarCatalogoAmeacas(itens, { busca: 'dragao fogo', formato: 'todos', filtros: {} });
+    const busca = api.filtrarCatalogoAmeacas(itens, { busca: 'arauto fogo', formato: 'todos', filtros: {} });
     assert.deepEqual(busca.map(item => item.id), ['arauto']);
+    assert.deepEqual(api.filtrarCatalogoAmeacas(itens, { busca: 'dragao caverna', formato: 'todos', filtros: {} }), []);
 
     const combinado = api.filtrarCatalogoAmeacas(itens, {
         formato: 'todos',
-        filtros: { familia: ['Dragão', 'Morto-vivo'], ambiente: ['Caverna'] }
+        filtros: { papel: ['Brutamontes', 'Controlador'], tamanho: ['Grande'] }
     });
     assert.deepEqual(combinado.map(item => item.id), ['arauto']);
 });
@@ -40,7 +43,7 @@ test('a busca ignora acentos e combina OU no mesmo grupo com E entre grupos', ()
 test('o índice público respeita os níveis e nunca inclui notas secretas', () => {
     const fonte = trecho('function normalizarTextoBestiario', '\n\n        function clonarDadosSimples');
     const construir = Function(`
-        const BESTIARIO_CAMPOS_FILTRO = ['familia', 'subtipo', 'papel', 'patamar', 'ambiente', 'tamanho', 'faccao', 'etiquetas'];
+        const BESTIARIO_CAMPOS_FILTRO = ['papel', 'patamar', 'tamanho', 'faccao', 'etiquetas'];
         const toNumber = (value, fallback = 0) => Number.isFinite(Number(value)) ? Number(value) : fallback;
         const clamp = (value, min, max) => Math.max(min, Math.min(max, toNumber(value, min)));
         ${fonte}
@@ -56,7 +59,10 @@ test('o índice público respeita os níveis e nunca inclui notas secretas', () 
     };
     const avistada = construir('vlad', 'monstro', { ...base, catalogacao: { ...base.catalogacao, nivelConhecimento: 1 } });
     assert.equal(avistada.nomePublico, 'Cavaleiro Negro');
-    assert.equal(avistada.familia, 'Humanoide');
+    assert.equal(avistada.tamanho, 'Médio');
+    assert.equal(avistada.familia, undefined);
+    assert.equal(avistada.subtipo, undefined);
+    assert.equal(avistada.ambiente, undefined);
     assert.equal(avistada.faccao, undefined);
     assert.equal(avistada.etiquetas, undefined);
     assert.equal(avistada.notasSecretas, undefined);
@@ -66,6 +72,27 @@ test('o índice público respeita os níveis e nunca inclui notas secretas', () 
     assert.deepEqual(catalogada.etiquetas, ['Mágico', 'Voador']);
     assert.equal(catalogada.faccao, 'Círculo Oculto');
     assert.equal(catalogada.notasSecretas, undefined);
+});
+
+test('família, subtipo e ambiente não aparecem na ficha nem nos filtros ativos', () => {
+    assert.doesNotMatch(html, /data-filtro="(?:familia|subtipo|ambiente)"/);
+    assert.doesNotMatch(html, /bestiario-filtro-(?:familia|subtipo|ambiente)/);
+
+    const catalogacaoHtml = trecho('function gerarHtmlCatalogacaoMestre', '\n\n        function renderizarConhecimentoPublicoNoSlot');
+    assert.doesNotMatch(catalogacaoHtml, /data-catalogacao-campo="(?:familia|subtipo|ambiente)"/);
+    assert.match(script, /const BESTIARIO_CAMPOS_FILTRO = \['papel', 'patamar', 'tamanho', 'faccao', 'etiquetas'\]/);
+});
+
+test('o Registro do Mestre é acoplado à lateral e alterna espaço com o Montador', () => {
+    const inicializacao = trecho('function initCombatUi', '\n\n        function definirCombatLogRecolhido');
+    const alternancia = trecho('function definirCombatLogRecolhido', '\n\n        function adicionarCombatLog');
+    const montador = trecho('function definirMontadorEncontroAberto', '\n\n        window.focarAmeacaEmCena');
+
+    assert.match(inicializacao, /sidebarMestre \|\| document\.body/);
+    assert.match(inicializacao, /combat-log-panel-sidebar/);
+    assert.match(alternancia, /definirMontadorEncontroAberto\(false\)/);
+    assert.match(montador, /definirCombatLogRecolhido\(true\)/);
+    assert.match(styles, /#sidebar-mestre > \.combat-log-panel-sidebar\s*\{[^}]*position:\s*static/s);
 });
 
 test('instâncias de encontro começam cheias sem alterar os modelos', () => {

@@ -1902,13 +1902,19 @@ input:focus, textarea:focus {
     bottom: 18px;
     z-index: 2200;
     width: min(320px, calc(100vw - 36px));
+    box-sizing: border-box;
     color: #ead9b8;
     font-family: 'Cinzel', serif;
     filter: drop-shadow(0 10px 18px rgba(0, 0, 0, 0.55));
 }
 
 .combat-log-panel button#combat-log-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
     width: 100%;
+    box-sizing: border-box;
     padding: 9px 12px;
     cursor: pointer;
     color: #f3d28a;
@@ -1918,6 +1924,49 @@ input:focus, textarea:focus {
     font-weight: 800;
     letter-spacing: 0.04em;
     text-shadow: 0 1px 2px #000;
+}
+
+.combat-log-toggle-icon {
+    font-size: 9px;
+    transition: transform 180ms ease;
+}
+
+.combat-log-panel.recolhido .combat-log-toggle-icon {
+    transform: rotate(180deg);
+}
+
+#sidebar-mestre > .combat-log-panel-sidebar {
+    position: static;
+    right: auto;
+    bottom: auto;
+    z-index: auto;
+    flex: 0 0 auto;
+    width: 100%;
+    border-top: 2px solid #4e321d;
+    filter: none;
+}
+
+#sidebar-mestre > .combat-log-panel-sidebar button#combat-log-toggle {
+    padding: 9px 12px;
+    border: 0;
+    border-bottom: 1px solid #2f2017;
+    border-radius: 0;
+    color: #b69259;
+    background: linear-gradient(to right, #1e110a, #100906);
+    font-size: 9px;
+    text-transform: uppercase;
+}
+
+#sidebar-mestre > .combat-log-panel-sidebar .combat-log-body {
+    max-height: min(32vh, 280px);
+    border-right: 0;
+    border-bottom: 0;
+    border-left: 0;
+    border-radius: 0;
+}
+
+#sidebar-mestre > .combat-log-panel-sidebar .combat-log-list {
+    max-height: min(26vh, 225px);
 }
 
 .combat-log-body {

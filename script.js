@@ -199,7 +199,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
         let bestiarioPublicoNoBanco = {};
         let encontroAtivoGlobal = null;
 
-        const BESTIARIO_CAMPOS_FILTRO = ['familia', 'subtipo', 'papel', 'patamar', 'ambiente', 'tamanho', 'faccao', 'etiquetas'];
+        const BESTIARIO_CAMPOS_FILTRO = ['papel', 'patamar', 'tamanho', 'faccao', 'etiquetas'];
         const BESTIARIO_LIMITE_PAGINA = 30;
         const BESTIARIO_STORAGE_FAVORITOS = 'rpg_bestiario_favoritos_v1';
         const BESTIARIO_STORAGE_RECENTES = 'rpg_bestiario_recentes_v1';
@@ -459,11 +459,8 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
                 schemaVersion: 1,
                 formato,
                 nomePublico: String(catalogacao.nomePublico || '').trim(),
-                familia: String(catalogacao.familia || '').trim(),
-                subtipo: String(catalogacao.subtipo || '').trim(),
                 papel: String(catalogacao.papel || '').trim(),
                 patamar: String(catalogacao.patamar || '').trim(),
-                ambiente: String(catalogacao.ambiente || '').trim(),
                 tamanho: String(catalogacao.tamanho || '').trim(),
                 faccao: String(catalogacao.faccao || '').trim(),
                 etiquetas: normalizarListaCatalogacao(catalogacao.etiquetas),
@@ -513,11 +510,8 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
                 const pesquisa = normalizarTextoBestiario([
                     item.nomeInterno,
                     item.nomePublico,
-                    catalogacao.familia,
-                    catalogacao.subtipo,
                     catalogacao.papel,
                     catalogacao.patamar,
-                    catalogacao.ambiente,
                     catalogacao.tamanho,
                     catalogacao.faccao,
                     ...(catalogacao.etiquetas || [])
@@ -559,15 +553,12 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
             };
             if(nivel >= 1) {
                 Object.assign(publico, {
-                    familia: catalogacao.familia,
                     tamanho: catalogacao.tamanho,
-                    ambiente: catalogacao.ambiente,
                     descricaoPublica: catalogacao.descricaoPublica
                 });
             }
             if(nivel >= 2) {
                 Object.assign(publico, {
-                    subtipo: catalogacao.subtipo,
                     papel: catalogacao.papel,
                     patamar: catalogacao.patamar
                 });
@@ -977,18 +968,23 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
         }
 
         function initCombatUi() {
+            const sidebarMestre = usuarioAtual?.cargo === 'Mestre'
+                ? document.getElementById('sidebar-mestre')
+                : null;
             if(!document.getElementById('combat-log-panel')) {
                 const panel = document.createElement('div');
                 panel.id = 'combat-log-panel';
-                panel.className = 'combat-log-panel recolhido';
+                panel.className = `combat-log-panel${sidebarMestre ? ' combat-log-panel-sidebar' : ''} recolhido`;
                 panel.innerHTML = `
-                    <button id="combat-log-toggle" type="button" onclick="toggleCombatLogPanel()">⚔️ Registro</button>
-                    <div class="combat-log-body">
+                    <button id="combat-log-toggle" type="button" onclick="toggleCombatLogPanel()" aria-expanded="false" aria-controls="combat-log-body">
+                        <span>⚔ Registro</span><span class="combat-log-toggle-icon" aria-hidden="true">▲</span>
+                    </button>
+                    <div id="combat-log-body" class="combat-log-body">
                         <div class="combat-log-title">Log de Combate</div>
                         <div id="combat-log-list" class="combat-log-list"></div>
                     </div>
                 `;
-                document.body.appendChild(panel);
+                (sidebarMestre || document.body).appendChild(panel);
             }
 
             if(!document.getElementById('combat-toast')) {
@@ -1001,10 +997,21 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
             if(usuarioAtual?.cargo === 'Mestre') initVisaoTaticaMestre();
         }
 
-        window.toggleCombatLogPanel = function() {
-            combatLogRecolhido = !combatLogRecolhido;
+        function definirCombatLogRecolhido(recolhido) {
+            combatLogRecolhido = Boolean(recolhido);
             const panel = document.getElementById('combat-log-panel');
             if(panel) panel.classList.toggle('recolhido', combatLogRecolhido);
+            const botao = document.getElementById('combat-log-toggle');
+            if(botao) botao.setAttribute('aria-expanded', String(!combatLogRecolhido));
+        }
+
+        window.toggleCombatLogPanel = function() {
+            const vaiAbrir = combatLogRecolhido;
+            const panel = document.getElementById('combat-log-panel');
+            if(vaiAbrir && panel?.classList.contains('combat-log-panel-sidebar')) {
+                definirMontadorEncontroAberto(false);
+            }
+            definirCombatLogRecolhido(!vaiAbrir);
         }
 
         function adicionarCombatLog(texto, tipo = 'info') {
@@ -1853,8 +1860,6 @@ window.toggleSidebarJogador = function(numSlot) {
                     <div class="catalogacao-grid">
                         <label>Formato<input type="text" value="${formato}" readonly disabled></label>
                         <label>Nome público<input type="text" data-catalogacao-campo="nomePublico" data-catalogacao-tipo="${tipo}" data-num-slot="${numSlot}" placeholder="Ex: Cavaleiro Negro"></label>
-                        <label>Família<input type="text" data-catalogacao-campo="familia" data-catalogacao-tipo="${tipo}" data-num-slot="${numSlot}" placeholder="Ex: Morto-vivo"></label>
-                        <label>Subtipo<input type="text" data-catalogacao-campo="subtipo" data-catalogacao-tipo="${tipo}" data-num-slot="${numSlot}" placeholder="Ex: Vampiro"></label>
                         <label>Papel tático
                             <select data-catalogacao-campo="papel" data-catalogacao-tipo="${tipo}" data-num-slot="${numSlot}">
                                 <option value="">Não definido</option><option>Soldado</option><option>Brutamontes</option><option>Atirador</option><option>Controlador</option><option>Suporte</option><option>Assassino</option><option>Comandante</option>
@@ -1865,7 +1870,6 @@ window.toggleSidebarJogador = function(numSlot) {
                                 <option value="">Não definido</option><option>Comum</option><option>Veterano</option><option>Elite</option><option>Lendário</option>
                             </select>
                         </label>
-                        <label>Ambiente<input type="text" data-catalogacao-campo="ambiente" data-catalogacao-tipo="${tipo}" data-num-slot="${numSlot}" placeholder="Ex: Caverna"></label>
                         <label>Tamanho
                             <select data-catalogacao-campo="tamanho" data-catalogacao-tipo="${tipo}" data-num-slot="${numSlot}">
                                 <option value="">Não definido</option><option>Minúsculo</option><option>Pequeno</option><option>Médio</option><option>Grande</option><option>Enorme</option><option>Colossal</option>
@@ -1894,8 +1898,8 @@ window.toggleSidebarJogador = function(numSlot) {
             const nivel = clamp(Math.trunc(toNumber(publico.nivelConhecimento, 0)), 0, 3);
             const nomesNivel = ['Desconhecida', 'Avistada', 'Conhecida', 'Catalogada'];
             const metadados = [];
-            if(nivel >= 1) metadados.push(publico.familia, publico.tamanho, publico.ambiente);
-            if(nivel >= 2) metadados.push(publico.subtipo, publico.papel, publico.patamar);
+            if(nivel >= 1) metadados.push(publico.tamanho);
+            if(nivel >= 2) metadados.push(publico.papel, publico.patamar);
             if(nivel >= 3) metadados.push(publico.faccao, ...(publico.etiquetas || []));
             container.innerHTML = `
                 <h3>${escapeHtml(publico.nomePublico || 'Ameaça desconhecida')}</h3>
@@ -1947,11 +1951,8 @@ window.toggleSidebarJogador = function(numSlot) {
                     catalogacaoResumo: {
                         formato: catalogacao.formato,
                         nomePublico: catalogacao.nomePublico,
-                        familia: catalogacao.familia,
-                        subtipo: catalogacao.subtipo,
                         papel: catalogacao.papel,
                         patamar: catalogacao.patamar,
-                        ambiente: catalogacao.ambiente,
                         tamanho: catalogacao.tamanho,
                         faccao: catalogacao.faccao,
                         etiquetas: catalogacao.etiquetas
@@ -2989,9 +2990,9 @@ window.toggleSidebarJogador = function(numSlot) {
                 const catalogacao = item.catalogacao || {};
                 const selos = [
                     item.tipo === 'horda' ? 'Horda' : '',
-                    catalogacao.familia,
                     catalogacao.papel,
-                    catalogacao.patamar
+                    catalogacao.patamar,
+                    catalogacao.tamanho
                 ].filter(Boolean).slice(0, 3);
                 const favorito = bestiarioUi.favoritosIds.has(item.chave);
                 return `
@@ -3200,12 +3201,22 @@ window.toggleSidebarJogador = function(numSlot) {
             renderizarRascunhoEncontro();
         };
 
-        window.toggleMontadorEncontro = function() {
+        function definirMontadorEncontroAberto(aberto) {
             const corpo = document.getElementById('encontro-montador-corpo');
             const botao = document.querySelector('.encontro-montador-cabecalho');
             if(!corpo) return;
-            corpo.hidden = !corpo.hidden;
-            if(botao) botao.setAttribute('aria-expanded', String(!corpo.hidden));
+            corpo.hidden = !aberto;
+            if(botao) botao.setAttribute('aria-expanded', String(Boolean(aberto)));
+        }
+
+        window.toggleMontadorEncontro = function() {
+            const corpo = document.getElementById('encontro-montador-corpo');
+            if(!corpo) return;
+            const vaiAbrir = corpo.hidden;
+            if(vaiAbrir && document.getElementById('combat-log-panel')?.classList.contains('combat-log-panel-sidebar')) {
+                definirCombatLogRecolhido(true);
+            }
+            definirMontadorEncontroAberto(vaiAbrir);
         };
 
         window.focarAmeacaEmCena = function(tipo, idCodificado) {
