@@ -88,8 +88,8 @@
         }
         #tela-app { display: none; width: 100%; max-width: 1400px; }
         
-        .mesa-de-jogo { display: flex; gap: 25px; width: 100%; justify-content: center; flex-wrap: wrap; align-items: flex-start; padding-bottom: 50px; transition: all 0.5s;}
-        .slot-container { flex: 1; min-width: 400px; max-width: 600px; display: flex; justify-content: center; transition: all 0.5s;}
+        .mesa-de-jogo { display: flex; gap: 25px; width: 100%; justify-content: center; flex-wrap: wrap; align-items: flex-start; padding-bottom: 50px; transition: padding .5s, gap .5s;}
+        .slot-container { flex: 1; min-width: 400px; max-width: 600px; display: flex; justify-content: center; transition: flex-basis .5s, max-width .5s, opacity .35s, transform .5s;}
         
         /* FICHA DO PERSONAGEM & HORDAS */
         .container { background: #1c130d; padding: 30px; border-radius: 2px; border: 3px double #8b6d43; box-shadow: 0 15px 40px rgba(0,0,0,0.9), inset 0 0 40px rgba(0,0,0,0.7); width: 100%; display: none; }
@@ -270,7 +270,7 @@
             color: #d4af37; font-size: 16px; font-weight: bold;
             box-shadow: -3px 0 10px rgba(0,0,0,0.8);
             transform: translateY(-50%);
-            transition: all 0.3s ease;
+            transition: width .3s ease, color .3s ease, transform .3s ease, box-shadow .3s ease;
         }
         #btn-toggle-sidebar:hover { background: linear-gradient(to right, #3a1d12, #1a0f09); color: #fff; }
         .sidebar-header {
@@ -569,7 +569,7 @@
             color: #d4af37; font-size: 16px; font-weight: bold;
             box-shadow: 3px 0 10px rgba(0,0,0,0.8);
             transform: translateY(-50%);
-            transition: all 0.3s ease;
+            transition: width .3s ease, color .3s ease, transform .3s ease, box-shadow .3s ease;
             z-index: 1001;
         }
         .btn-toggle-sidebar-jogador:hover { background: linear-gradient(to left, #3a1d12, #1a0f09); color: #fff; }
@@ -656,6 +656,7 @@
 .skill-card-visual.tipo-cura .skill-icon-container { border-color: #2ecc71; box-shadow: 0 0 15px rgba(46, 204, 113, 0.3); }
 .skill-card-visual.tipo-passiva .skill-icon-container { border-color: #3498db; box-shadow: 0 0 15px rgba(52, 152, 219, 0.4); }
 .skill-card-visual.equipada .skill-icon-container { border-color: #d4af37; box-shadow: 0 0 25px rgba(212, 175, 55, 0.6); }
+.skill-picture { position: absolute; inset: 0; z-index: 2; display: block; overflow: hidden; border-radius: 50%; }
 .skill-img-real { width: 100%; height: 100%; object-fit: cover; position: absolute; top:0; left:0; z-index: 2; }
 .skill-icon-glow {
     width: 100%; height: 100%; background: radial-gradient(circle, #2b1a0f, #000);
@@ -782,8 +783,6 @@
    ========================================== */
 
 /* ── IMPORTAÇÃO DE FONTES PREMIUM ── */
-@import url('https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700;900&family=Cinzel:wght@400;500;600;700&family=IM+Fell+English+SC&family=Uncial+Antiqua&display=swap');
-
 /* ── VARIÁVEIS GLOBAIS DE TEMA ── */
 :root {
     --ouro:        #d4af37;
@@ -857,9 +856,9 @@ body::before {
     animation: login-surgir 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 @keyframes login-surgir {
-    0%   { opacity: 0; transform: translateY(30px) scale(0.97); filter: blur(4px); }
-    60%  { opacity: 1; transform: translateY(-4px) scale(1.01); filter: blur(0); }
-    100% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+    0%   { opacity: 0; transform: translateY(30px) scale(0.97); }
+    60%  { opacity: 1; transform: translateY(-4px) scale(1.01); }
+    100% { opacity: 1; transform: translateY(0) scale(1); }
 }
 
 /* Bordas ornamentais nos cantos */
@@ -919,7 +918,7 @@ body::before {
     font-family: 'Cinzel', serif !important;
     font-size: 20px !important;
     letter-spacing: 3px;
-    transition: all 0.4s cubic-bezier(0.25, 1, 0.5, 1) !important;
+    transition: color .4s cubic-bezier(0.25, 1, 0.5, 1), border-color .4s cubic-bezier(0.25, 1, 0.5, 1), background-color .4s cubic-bezier(0.25, 1, 0.5, 1), box-shadow .4s cubic-bezier(0.25, 1, 0.5, 1) !important;
 }
 #tela-login #input-senha:focus {
     background: rgba(212,175,55,0.05) !important;
@@ -934,7 +933,7 @@ body::before {
     letter-spacing: 3px !important;
     position: relative;
     overflow: hidden;
-    transition: all 0.4s cubic-bezier(0.25, 1, 0.5, 1) !important;
+    transition: color .4s cubic-bezier(0.25, 1, 0.5, 1), border-color .4s cubic-bezier(0.25, 1, 0.5, 1), transform .4s cubic-bezier(0.25, 1, 0.5, 1), box-shadow .4s cubic-bezier(0.25, 1, 0.5, 1) !important;
 }
 #btn-login-wax::before {
     content: '';
@@ -1025,7 +1024,7 @@ body::before {
 
 /* ── ATRIBUTOS — HOVER PREMIUM ── */
 .attr-box {
-    transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1) !important;
+    transition: transform .3s cubic-bezier(0.25, 1, 0.5, 1), border-color .3s cubic-bezier(0.25, 1, 0.5, 1), background-color .3s cubic-bezier(0.25, 1, 0.5, 1), box-shadow .3s cubic-bezier(0.25, 1, 0.5, 1) !important;
     cursor: help;
 }
 .attr-box:hover {
@@ -1052,7 +1051,7 @@ body::before {
 
 /* ── SKILL CARDS — PREMIUM ── */
 .skill-card-visual {
-    transition: all 0.35s cubic-bezier(0.25, 1, 0.5, 1) !important;
+    transition: transform .35s cubic-bezier(0.25, 1, 0.5, 1), border-color .35s cubic-bezier(0.25, 1, 0.5, 1), background-color .35s cubic-bezier(0.25, 1, 0.5, 1), box-shadow .35s cubic-bezier(0.25, 1, 0.5, 1), opacity .35s ease !important;
 }
 .skill-card-visual::before {
     content: '';
@@ -1126,7 +1125,7 @@ body::before {
 button {
     font-family: 'Cinzel', serif !important;
     letter-spacing: 1.5px !important;
-    transition: all 0.25s cubic-bezier(0.25, 1, 0.5, 1) !important;
+    transition: color .25s cubic-bezier(0.25, 1, 0.5, 1), border-color .25s cubic-bezier(0.25, 1, 0.5, 1), box-shadow .25s cubic-bezier(0.25, 1, 0.5, 1), transform .25s cubic-bezier(0.25, 1, 0.5, 1), opacity .25s ease !important;
 }
 button:hover:not(:disabled) {
     background: linear-gradient(to bottom, #5a3820, #3a2212) !important;
@@ -1164,8 +1163,8 @@ button:active:not(:disabled) {
     font-family: 'Cinzel', serif;
 }
 @keyframes modal-surgir {
-    from { opacity: 0; transform: scale(0.9) translateY(-20px); filter: blur(4px); }
-    to   { opacity: 1; transform: scale(1) translateY(0); filter: blur(0); }
+    from { opacity: 0; transform: scale(0.9) translateY(-20px); }
+    to   { opacity: 1; transform: scale(1) translateY(0); }
 }
 
 /* ── LEVEL DISPLAY — ÉPICO ── */
@@ -1190,7 +1189,7 @@ button:active:not(:disabled) {
 
 /* ── ITEM ACERVO SIDEBAR — HOVER ÉPICO ── */
 .item-acervo {
-    transition: all 0.2s ease;
+    transition: background-color .2s ease, border-color .2s ease;
     border-radius: 2px;
 }
 .item-acervo:hover {
@@ -1199,7 +1198,7 @@ button:active:not(:disabled) {
 }
 .item-acervo-nome {
     font-family: 'IM Fell English SC', serif;
-    transition: all 0.2s ease;
+    transition: color .2s ease;
 }
 
 /* ── ABERTURA DO GRIMÓRIO — TRANSIÇÃO ── */
@@ -1210,8 +1209,8 @@ button:active:not(:disabled) {
     animation: livro-abrir 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 @keyframes livro-abrir {
-    from { opacity: 0; transform: scale(0.92) rotateY(-8deg); filter: blur(3px); }
-    to   { opacity: 1; transform: scale(1) rotateY(0deg); filter: blur(0); }
+    from { opacity: 0; transform: scale(0.92) rotateY(-8deg); }
+    to   { opacity: 1; transform: scale(1) rotateY(0deg); }
 }
 
 /* ── ÁRVORE DE HABILIDADES — ABERTURA ── */
@@ -1222,13 +1221,13 @@ button:active:not(:disabled) {
     animation: arvore-abrir 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 @keyframes arvore-abrir {
-    from { opacity: 0; transform: translateY(25px) scale(0.97); filter: blur(2px); }
-    to   { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+    from { opacity: 0; transform: translateY(25px) scale(0.97); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
 }
 
 /* ── FOTO DO PERSONAGEM — BORDA MÁGICA ── */
 .foto-personagem {
-    transition: all 0.4s cubic-bezier(0.25, 1, 0.5, 1) !important;
+    transition: transform .4s cubic-bezier(0.25, 1, 0.5, 1), border-color .4s cubic-bezier(0.25, 1, 0.5, 1), box-shadow .4s cubic-bezier(0.25, 1, 0.5, 1), opacity .4s ease !important;
     position: relative;
 }
 .foto-personagem:hover {
@@ -1239,7 +1238,7 @@ button:active:not(:disabled) {
 
 /* ── BUFF/DEBUFF ITEMS — MICRO-ANIMAÇÃO ── */
 .buff-item, .debuff-item {
-    transition: all 0.25s ease;
+    transition: transform .25s ease, background-color .25s ease;
 }
 .buff-item:hover  { background: #1c110a; transform: translateX(3px); }
 .debuff-item:hover { background: #200a0a; transform: translateX(3px); }
@@ -1249,7 +1248,7 @@ button:active:not(:disabled) {
     font-family: 'Cinzel', serif !important;
     font-size: 10px !important;
     letter-spacing: 1.5px !important;
-    transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1) !important;
+    transition: color .3s cubic-bezier(0.25, 1, 0.5, 1), border-color .3s cubic-bezier(0.25, 1, 0.5, 1), background-color .3s cubic-bezier(0.25, 1, 0.5, 1), box-shadow .3s cubic-bezier(0.25, 1, 0.5, 1), transform .3s cubic-bezier(0.25, 1, 0.5, 1) !important;
 }
 .hero-tab-btn.active {
     animation: tab-hero-ativa 2s ease-in-out infinite;
@@ -1306,7 +1305,7 @@ button:active:not(:disabled) {
 
 /* ── CHECKBOX DOS ALVOS — PREMIUM ── */
 .checkbox-alvo {
-    transition: all 0.2s ease;
+    transition: color .2s ease, background-color .2s ease;
     padding: 2px 6px;
     border-radius: 3px;
 }
@@ -1331,7 +1330,7 @@ input:focus, textarea:focus {
 
 /* ── LINHA DECORATIVA DOS SLOTS ── */
 .slot-container {
-    transition: all 0.5s cubic-bezier(0.25, 1, 0.5, 1) !important;
+    transition: flex-basis .5s cubic-bezier(0.25, 1, 0.5, 1), max-width .5s cubic-bezier(0.25, 1, 0.5, 1), opacity .35s ease, transform .5s cubic-bezier(0.25, 1, 0.5, 1) !important;
 }
 
 /* ── BADGE DE CARGO ── */
@@ -1353,7 +1352,7 @@ input:focus, textarea:focus {
 
 /* ── BOTÃO TOGGLE SIDEBAR — EFEITO ── */
 #btn-toggle-sidebar, .btn-toggle-sidebar-jogador {
-    transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1) !important;
+    transition: width .3s cubic-bezier(0.25, 1, 0.5, 1), color .3s ease, transform .3s cubic-bezier(0.25, 1, 0.5, 1), box-shadow .3s ease !important;
 }
 #btn-toggle-sidebar:hover, .btn-toggle-sidebar-jogador:hover {
     width: 38px !important;
@@ -4913,7 +4912,12 @@ body {
     border-radius: 0;
     background: #030302;
     box-shadow: none;
-    animation: pacto-stage-in 1.3s var(--df-ease) both;
+    animation: pacto-stage-in .8s var(--df-ease) both;
+}
+
+#tela-login.login-exiting {
+    pointer-events: none;
+    animation: pacto-stage-exit .92s .14s var(--df-ease) both;
 }
 
 #tela-login::before {
@@ -4965,7 +4969,7 @@ body {
     transform: translate3d(var(--pacto-parallax-x), var(--pacto-parallax-y), 0) scale(1.07);
     transform-origin: center;
     animation: pacto-altar-breathe 18s ease-in-out infinite alternate;
-    transition: filter 1s ease, transform 1.1s var(--df-ease);
+    transition: transform .92s var(--df-ease), opacity .7s ease;
     will-change: transform;
 }
 
@@ -4984,6 +4988,15 @@ body {
         radial-gradient(ellipse 45% 42% at 50% 43%, transparent 10%, rgba(3,2,2,.12) 58%, rgba(2,1,1,.62) 100%),
         linear-gradient(90deg, rgba(0,0,0,.47), transparent 23% 77%, rgba(0,0,0,.47)),
         linear-gradient(180deg, rgba(0,0,0,.24), transparent 28% 66%, rgba(0,0,0,.38));
+}
+
+.pacto-vignette::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    background: rgba(0,0,0,.52);
+    transition: opacity .76s ease;
 }
 
 .pacto-aurora {
@@ -5340,7 +5353,7 @@ body {
 }
 
 #msg-erro {
-    display: none;
+    display: block;
     margin: 13px 0 -3px;
     color: #6d1815;
     font: 700 11px/1.35 'Cinzel', serif !important;
@@ -5348,6 +5361,8 @@ body {
     text-shadow: 0 1px rgba(255,222,174,.26) !important;
     animation: pacto-error-appear .35s var(--df-ease) both !important;
 }
+
+#msg-erro[hidden] { display: none !important; }
 
 #tela-login.login-denied .pacto-card { animation: pacto-denied .46s ease both; }
 #tela-login.login-denied #input-senha {
@@ -5363,23 +5378,33 @@ body {
     transition: opacity .3s, border-color .3s, box-shadow .3s;
 }
 #tela-login.login-approved .pacto-emblem { animation: pacto-sigil-ignite .68s ease both; }
-#tela-login.login-exiting .pacto-card { animation: pacto-card-exit .82s var(--df-ease) both; }
+#tela-login.login-exiting .pacto-card { animation: pacto-card-exit .82s .14s var(--df-ease) both; }
 #tela-login.login-exiting .pacto-backdrop img {
-    filter: brightness(.48) contrast(1.15) saturate(1.02);
     transform: translate3d(var(--pacto-parallax-x), var(--pacto-parallax-y), 0) scale(1.18);
+    opacity: .72;
 }
-#tela-login.login-exiting .pacto-vignette { background: rgba(0,0,0,.52); transition: background .75s ease; }
+#tela-login.login-exiting .pacto-vignette::after { opacity: 1; }
+#tela-login.login-exiting :is(.pacto-aurora, .pacto-fog, .pacto-embers) {
+    opacity: 0;
+    animation-play-state: paused;
+    transition: opacity .4s ease;
+}
 #tela-login.pacto-paused * { animation-play-state: paused !important; }
 
 @keyframes pacto-stage-in {
-    from { opacity: 0; background: #000; }
-    to { opacity: 1; background: #030302; }
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes pacto-stage-exit {
+    from { opacity: 1; }
+    to { opacity: 0; }
 }
 
 @keyframes pacto-card-arrive {
-    from { opacity: 0; transform: translateY(38px) scale(.95); filter: blur(6px) drop-shadow(0 4px 2px rgba(0,0,0,.8)); }
-    70% { opacity: 1; transform: translateY(-4px) scale(1.008); filter: blur(0) drop-shadow(0 4px 2px rgba(0,0,0,.8)); }
-    to { opacity: 1; transform: none; filter: blur(0) drop-shadow(0 4px 2px rgba(0,0,0,.8)); }
+    from { opacity: 0; transform: translateY(38px) scale(.95); }
+    70% { opacity: 1; transform: translateY(-4px) scale(1.008); }
+    to { opacity: 1; transform: none; }
 }
 
 @keyframes pacto-altar-breathe {
@@ -5423,22 +5448,22 @@ body {
 }
 
 @keyframes pacto-wax-press {
-    0% { transform: translateY(0) scale(1); filter: brightness(1); }
-    35% { transform: translateY(7px) scale(.86); filter: brightness(1.3); box-shadow: 0 0 35px rgba(185,47,31,.56), inset 0 0 24px rgba(255,176,125,.28) !important; }
-    70% { transform: translateY(2px) scale(1.05); filter: brightness(1.12); }
-    100% { transform: translateY(0) scale(1); filter: brightness(1); }
+    0% { transform: translateY(0) scale(1); }
+    35% { transform: translateY(7px) scale(.86); }
+    70% { transform: translateY(2px) scale(1.05); }
+    100% { transform: translateY(0) scale(1); }
 }
 
 @keyframes pacto-sigil-ignite {
-    0% { color: #55231b; filter: drop-shadow(0 1px rgba(255,235,186,.34)); }
-    42% { color: #c54a32; filter: drop-shadow(0 0 13px rgba(197,65,42,.92)); transform: scale(1.12) rotate(3deg); }
-    100% { color: #6b231a; filter: drop-shadow(0 0 5px rgba(144,40,28,.45)); transform: none; }
+    0% { color: #55231b; transform: none; }
+    42% { color: #c54a32; transform: scale(1.12) rotate(3deg); }
+    100% { color: #6b231a; transform: none; }
 }
 
 @keyframes pacto-card-exit {
-    0% { opacity: 1; transform: none; filter: blur(0) brightness(1); }
-    42% { opacity: 1; transform: translateY(-5px) scale(1.025); filter: blur(0) brightness(1.14); }
-    100% { opacity: 0; transform: translateY(-22px) scale(.91); filter: blur(9px) brightness(.65); }
+    0% { opacity: 1; transform: none; }
+    42% { opacity: 1; transform: translateY(-5px) scale(1.025); }
+    100% { opacity: 0; transform: translateY(-22px) scale(.91); }
 }
 
 /* ── Mesa de Guerra Amaldiçoada ─────────────────────────────────────────── */
@@ -6188,6 +6213,22 @@ body:not(.is-jogador) .sidebar-jogador-custom {
 #sidebar-mestre.sidebar-fechada *,
 .sidebar-jogador-custom.sidebar-fechada * {
     animation-play-state: paused !important;
+}
+
+body.app-paused #tela-app * {
+    animation-play-state: paused !important;
+}
+
+.sidebar-content,
+.sidebar-jogador-scroll,
+.voice-drawer__content {
+    contain: layout style paint;
+}
+
+.bestiario-card,
+.passivas-grupo {
+    content-visibility: auto;
+    contain-intrinsic-size: auto 96px;
 }
 
 #btn-toggle-sidebar,

@@ -1,6 +1,14 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
         import { getDatabase, ref, onValue, update, get, remove, runTransaction, onDisconnect } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
         import { SKILL_TREE_SCHEMA_VERSION, ARVORE_CAMINHOS, SKILL_TREES } from "./skill-tree-data.js";
+        import { USUARIOS } from "./session-config.js";
+        import {
+            agendarQuandoOcioso,
+            criarAgendadorDeQuadro,
+            criarFilaDePersistencia,
+            criarHubDeAssinaturas,
+            proximoQuadro
+        } from "./runtime-performance.js";
 
         const DB_PREFIX = "";
         export const ICE_SERVERS = [
@@ -36,6 +44,10 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
             return ref(database, dbPath(path));
         }
 
+        const agendarRender = criarAgendadorDeQuadro();
+        const filaPersistencia = criarFilaDePersistencia(260);
+        const observarValor = criarHubDeAssinaturas((path, callback) => onValue(dbRef(path), callback));
+
         function safeGet(path = "") {
             return get(dbRef(path));
         }
@@ -52,13 +64,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
             return runTransaction(dbRef(path), updater);
         }
 
-        const usuarios = {
-            "dick":   { nome: "Dick", cargo: "Mestre", idFicha: null },
-            "lais":   { nome: "Lais", cargo: "Jogador", idFicha: "lais" },
-            "gomes":  { nome: "Gomes", cargo: "Jogador", idFicha: "gomes" },
-            "kamy":   { nome: "Kamy", cargo: "Jogador", idFicha: "kamy" },
-            "arthur": { nome: "Arthur", cargo: "Jogador", idFicha: "arthur" }
-        };
+        const usuarios = USUARIOS;
 
         const RACES = {
             "Humanos": { points: 3 },
@@ -221,6 +227,96 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
             1: { ouvinte: null, idFicha: null, tipo: null, dados: {} },
             2: { ouvinte: null, idFicha: null, tipo: null, dados: {} }
         };
+
+        const colecoesAtivas = new Set();
+        const ouvintesPorEntidade = {
+            fichas: new Map(),
+            hordas: new Map()
+        };
+        const canaisRemotosPorEntidade = {
+            fichas: new Map(),
+            hordas: new Map()
+        };
+
+        function getCacheColecao(raiz) {
+            return raiz === 'hordas' ? hordasNoBanco : fichasNoBanco;
+        }
+
+        function setCacheColecao(raiz, dados) {
+            if(raiz === 'hordas') hordasNoBanco = dados;
+            else fichasNoBanco = dados;
+        }
+
+        function notificarEntidade(raiz, id) {
+            const callbacks = ouvintesPorEntidade[raiz]?.get(id);
+            if(!callbacks?.size) return;
+            const cache = getCacheColecao(raiz);
+            const existe = Object.prototype.hasOwnProperty.call(cache, id);
+            const dados = existe ? cache[id] : {};
+            callbacks.forEach(callback => {
+                try {
+                    callback(dados || {}, existe);
+                } catch(erro) {
+                    console.error(`Falha ao atualizar ${raiz}/${id}.`, erro);
+                }
+            });
+        }
+
+        function publicarEntidade(raiz, id, dados, existe = true) {
+            const cache = getCacheColecao(raiz);
+            if(existe) cache[id] = dados || {};
+            else delete cache[id];
+            notificarEntidade(raiz, id);
+        }
+
+        function publicarColecao(raiz, dados) {
+            setCacheColecao(raiz, dados || {});
+            ouvintesPorEntidade[raiz]?.forEach((_, id) => notificarEntidade(raiz, id));
+        }
+
+        function iniciarCanalRemotoDaEntidade(raiz, id) {
+            if(colecoesAtivas.has(raiz) || canaisRemotosPorEntidade[raiz].has(id)) return;
+            const cancelar = observarValor(`${raiz}/${id}`, snapshot => {
+                publicarEntidade(raiz, id, snapshot.val() || {}, snapshot.exists());
+            });
+            canaisRemotosPorEntidade[raiz].set(id, cancelar);
+        }
+
+        function observarEntidade(raiz, id, callback) {
+            const mapa = ouvintesPorEntidade[raiz];
+            if(!mapa || !id) return () => {};
+            if(!mapa.has(id)) mapa.set(id, new Set());
+            mapa.get(id).add(callback);
+            iniciarCanalRemotoDaEntidade(raiz, id);
+
+            const cache = getCacheColecao(raiz);
+            if(Object.prototype.hasOwnProperty.call(cache, id)) {
+                queueMicrotask(() => {
+                    if(mapa.get(id)?.has(callback)) callback(cache[id] || {}, true);
+                });
+            }
+
+            return () => {
+                const callbacks = mapa.get(id);
+                callbacks?.delete(callback);
+                if(callbacks?.size) return;
+                mapa.delete(id);
+                const cancelar = canaisRemotosPorEntidade[raiz].get(id);
+                cancelar?.();
+                canaisRemotosPorEntidade[raiz].delete(id);
+            };
+        }
+
+        function observarColecao(raiz, callback) {
+            colecoesAtivas.add(raiz);
+            canaisRemotosPorEntidade[raiz]?.forEach(cancelar => cancelar?.());
+            canaisRemotosPorEntidade[raiz]?.clear();
+            return observarValor(raiz, snapshot => {
+                const dados = snapshot.val() || {};
+                publicarColecao(raiz, dados);
+                callback?.(dados);
+            });
+        }
 
         const expAnimationStates = {
             1: { token: 0 },
@@ -428,6 +524,15 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
                 .replace(/>/g, "&gt;")
                 .replace(/"/g, "&quot;")
                 .replace(/'/g, "&#39;");
+        }
+
+        const htmlRenderizado = new WeakMap();
+
+        function atualizarHtmlSeMudou(elemento, html) {
+            if(!elemento || htmlRenderizado.get(elemento) === html) return false;
+            elemento.innerHTML = html;
+            htmlRenderizado.set(elemento, html);
+            return true;
         }
 
         function normalizarTextoBestiario(value = '') {
@@ -1637,7 +1742,7 @@ function gerarHtmlHeroi(numSlot) {
             </div>`;
     }
     let sidebarHtml = '';
-    if (numSlot === 1) {
+    if (numSlot === 1 && usuarioAtual?.cargo === 'Jogador') {
         sidebarHtml = `
     <!-- LATERAL ESQUERDA (GRIMÓRIO E COMBATE) -->
     <aside id="sidebar-jogador-slot${numSlot}" class="sidebar-jogador-custom sidebar-fechada" aria-label="Ações e Combate">
@@ -2071,13 +2176,18 @@ window.toggleSidebarJogador = function(numSlot) {
             return `<div class="container monstro-theme" id="container-slot${numSlot}-horda" style="border-color:#8b6d43;"></div>`;
         }
 
-        document.getElementById('slot-1').innerHTML = gerarHtmlHeroi(1) + gerarHtmlMonstro(1) + gerarHtmlContainerHorda(1);
-        document.getElementById('slot-2').innerHTML = gerarHtmlHeroi(2) + gerarHtmlMonstro(2) + gerarHtmlContainerHorda(2);
+        function garantirSlotMontado(numSlot) {
+            const slot = document.getElementById(`slot-${numSlot}`);
+            if(!slot || slot.dataset.montado === 'true') return slot;
+            slot.innerHTML = gerarHtmlHeroi(numSlot) + gerarHtmlMonstro(numSlot) + gerarHtmlContainerHorda(numSlot);
+            slot.dataset.montado = 'true';
 
-        // A gaveta do jogador precisa viver fora dos slots: qualquer ancestral animado
-        // com transform altera o referencial de elementos fixed e deixa a lateral exposta.
-        const sidebarJogadorGlobal = document.getElementById('sidebar-jogador-slot1');
-        if(sidebarJogadorGlobal) document.body.appendChild(sidebarJogadorGlobal);
+            // A gaveta do jogador precisa viver fora dos slots: qualquer ancestral animado
+            // com transform altera o referencial de elementos fixed e deixa a lateral exposta.
+            const sidebarJogadorGlobal = document.getElementById('sidebar-jogador-slot1');
+            if(sidebarJogadorGlobal) document.body.appendChild(sidebarJogadorGlobal);
+            return slot;
+        }
 
         const layoutCompactoQuery = window.matchMedia('(max-width: 1279px)');
 
@@ -2158,107 +2268,79 @@ window.toggleSidebarJogador = function(numSlot) {
         layoutCompactoQuery.addEventListener?.('change', normalizarCamadasCompactas);
 
         // ==========================================
-        // LÓGICA DE LOGIN E INICIALIZAÇÃO
+        // INICIALIZAÇÃO DA MESA APÓS O BOOTSTRAP
         // ==========================================
-        let loginEmTransicao = false;
+        let aplicacaoIniciada = false;
+        let inicializacaoEmCurso = null;
 
-        function iniciarAtmosferaDoPacto() {
-            const tela = document.getElementById('tela-login');
-            const input = document.getElementById('input-senha');
-            const erro = document.getElementById('msg-erro');
-            if(!tela || !input) return;
-
-            const atualizarParallax = (event) => {
-                if(prefereMovimentoReduzido()) return;
-                const x = (event.clientX / Math.max(window.innerWidth, 1) - 0.5) * -14;
-                const y = (event.clientY / Math.max(window.innerHeight, 1) - 0.5) * -9;
-                tela.style.setProperty('--pacto-parallax-x', `${x.toFixed(2)}px`);
-                tela.style.setProperty('--pacto-parallax-y', `${y.toFixed(2)}px`);
-            };
-
-            tela.addEventListener('pointermove', atualizarParallax, { passive: true });
-            tela.addEventListener('pointerleave', () => {
-                tela.style.setProperty('--pacto-parallax-x', '0px');
-                tela.style.setProperty('--pacto-parallax-y', '0px');
-            });
-            input.addEventListener('input', () => {
-                tela.classList.remove('login-denied');
-                if(erro) erro.style.display = 'none';
-            });
-            document.addEventListener('visibilitychange', () => {
-                tela.classList.toggle('pacto-paused', document.hidden);
-            });
+        export function iniciarRpgMemes(loginId) {
+            if(aplicacaoIniciada) return Promise.resolve();
+            if(inicializacaoEmCurso) return inicializacaoEmCurso;
+            const usuario = usuarios[loginId];
+            if(!usuario) return Promise.reject(new Error('Identidade inválida.'));
+            inicializacaoEmCurso = prepararRpgMemes(usuario)
+                .then(() => {
+                    aplicacaoIniciada = true;
+                    inicializacaoEmCurso = null;
+                })
+                .catch(erro => {
+                    inicializacaoEmCurso = null;
+                    throw erro;
+                });
+            return inicializacaoEmCurso;
         }
 
-        iniciarAtmosferaDoPacto();
+        async function prepararRpgMemes(usuario) {
+            usuarioAtual = usuario;
 
-        function entrarNaMesa() {
-            const telaLogin = document.getElementById('tela-login');
-            telaLogin.style.display = "none";
-            document.getElementById('tela-app').style.display = "block";
-
+            const telaApp = document.getElementById('tela-app');
+            telaApp.style.display = 'block';
             document.getElementById('usuario-logado').innerText = usuarioAtual.nome;
             document.getElementById('badge-cargo').innerText = usuarioAtual.cargo;
             document.body.classList.remove('is-mestre', 'is-jogador', 'player-sidebar-open', 'hud-open', 'voice-drawer-open');
-            document.body.classList.add(usuarioAtual.cargo === "Mestre" ? 'is-mestre' : 'is-jogador');
+            document.body.classList.add(usuarioAtual.cargo === 'Mestre' ? 'is-mestre' : 'is-jogador');
             initCombatUi();
-            initVoicePrototype();
 
-            if(usuarioAtual.cargo === "Mestre") {
-                document.getElementById('badge-cargo').style.borderColor = "#8c1c13";
-                document.getElementById('badge-cargo').style.color = "#a84242";
-                document.getElementById('painel-mestre').style.display = "flex";
-                document.getElementById('sidebar-mestre').style.display = "flex";
-                document.getElementById('btn-toggle-hud').style.display = "inline-flex";
+            if(usuarioAtual.cargo === 'Mestre') {
+                document.getElementById('badge-cargo').style.borderColor = '#8c1c13';
+                document.getElementById('badge-cargo').style.color = '#a84242';
+                document.getElementById('painel-mestre').style.display = 'flex';
+                document.getElementById('sidebar-mestre').style.display = 'flex';
+                document.getElementById('btn-toggle-hud').style.display = 'inline-flex';
                 definirSidebarMestreAberta(!layoutCompactoQuery.matches, false);
                 definirHudMestreAberto(false, false);
-                atualizarSidebarMestre();
                 initHudGlobais();
             } else {
+                garantirSlotMontado(1);
                 definirSidebarJogadorAberta(1, false, false);
-                document.getElementById('seletor-jogador').style.display = "block";
-                onValue(dbRef('fichas/' + usuarioAtual.idFicha), (snapshot) => {
-                    const dados = snapshot.val() || {};
-                    fichasNoBanco[usuarioAtual.idFicha] = dados;
+                document.getElementById('seletor-jogador').style.display = 'block';
+            }
+
+            await proximoQuadro();
+            iniciarOuvintesEssenciais();
+
+            if(usuarioAtual.cargo === 'Jogador') {
+                observarEntidade('fichas', usuarioAtual.idFicha, dados => {
                     const spanNomeHeroi = document.getElementById('nome-heroi-jogador');
-                    if(spanNomeHeroi) spanNomeHeroi.textContent = dados['nome'] || "Herói Sem Nome";
+                    if(spanNomeHeroi) spanNomeHeroi.textContent = dados.nome || 'Herói Sem Nome';
                 });
                 abrirFichaNoSlot(1, 'heroi', usuarioAtual.idFicha);
-            }
-            iniciarOuvintesGerais();
-        }
-
-        window.fazerLogin = function() {
-            if(loginEmTransicao) return;
-            const digitado = document.getElementById('input-senha').value.trim().toLowerCase();
-            if (usuarios[digitado]) {
-                usuarioAtual = usuarios[digitado];
-                loginEmTransicao = true;
-                const tela = document.getElementById('tela-login');
-                const botao = document.getElementById('btn-login-wax');
-                const erro = document.getElementById('msg-erro');
-                const reduzir = prefereMovimentoReduzido();
-                if(erro) erro.style.display = 'none';
-                tela.classList.remove('login-denied');
-                tela.classList.add('login-approved');
-                botao?.classList.add('is-sealing');
-
-                if(reduzir) {
-                    entrarNaMesa();
-                    return;
-                }
-
-                setTimeout(() => tela.classList.add('login-exiting'), 170);
-                setTimeout(entrarNaMesa, 900);
             } else {
-                const tela = document.getElementById('tela-login');
-                const erro = document.getElementById('msg-erro');
-                tela.classList.remove('login-denied');
-                void tela.offsetWidth;
-                tela.classList.add('login-denied');
-                erro.style.display = "block";
-                document.getElementById('input-senha').focus();
+                atualizarSidebarMestre();
             }
+
+            await proximoQuadro();
+            agendarQuandoOcioso(() => {
+                iniciarOuvintesSecundarios();
+                initVoicePrototype();
+            });
+            window.addEventListener('pagehide', () => {
+                void filaPersistencia.executarTudo();
+            }, { once: true });
+            document.addEventListener('visibilitychange', () => {
+                document.body.classList.toggle('app-paused', document.hidden);
+                if(document.hidden) void filaPersistencia.executarTudo();
+            });
         }
 
         function gerarIdIniciativa(prefixo = 'id') { return globalThis.crypto?.randomUUID ? globalThis.crypto.randomUUID() : `${prefixo}_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`; }
@@ -2611,6 +2693,11 @@ window.toggleSidebarJogador = function(numSlot) {
             };
 
             await prepararFichasParaCombate(combateId);
+            await Promise.all([...new Set(instancias.map(instancia => instancia.modeloId))].map(async modeloId => {
+                if(fotosNoBanco[modeloId]) return;
+                const snapshot = await safeGet(`fotos/${modeloId}`);
+                if(snapshot.exists()) fotosNoBanco[modeloId] = snapshot.val();
+            }));
             const updates = {
                 [`${PATH_ESTADO_COMBATE}/ativo`]: instancias[0].id,
                 [`${PATH_ESTADO_COMBATE}/encontro`]: encontro,
@@ -2732,6 +2819,30 @@ window.toggleSidebarJogador = function(numSlot) {
             return bestiarioPublicoNoBanco[p.modeloId || p.id]?.nomePublico || p.nome || 'Ameaça desconhecida';
         }
         function getFotoParticipante(p){ if(!p)return ''; const foto=fotosNoBanco[p.id] || fotosNoBanco[p.modeloId]; return foto?.base64 || foto || ''; }
+        const ouvintesFotosIniciativa = new Map();
+        function sincronizarFotosIniciativa() {
+            const idsNecessarios = new Set();
+            Object.values(iniciativaAtual?.participantes || {}).forEach(participante => {
+                if(participante?.id) idsNecessarios.add(participante.id);
+                if(participante?.modeloId) idsNecessarios.add(participante.modeloId);
+            });
+
+            ouvintesFotosIniciativa.forEach((cancelar, id) => {
+                if(idsNecessarios.has(id)) return;
+                cancelar?.();
+                ouvintesFotosIniciativa.delete(id);
+            });
+
+            idsNecessarios.forEach(id => {
+                if(ouvintesFotosIniciativa.has(id)) return;
+                const cancelar = observarValor(`fotos/${id}`, snapshot => {
+                    if(snapshot.exists()) fotosNoBanco[id] = snapshot.val();
+                    else delete fotosNoBanco[id];
+                    agendarRender('fotos-iniciativa', renderizarQuadroTurnosIniciativa);
+                });
+                ouvintesFotosIniciativa.set(id, cancelar);
+            });
+        }
         function renderizarQuadroTurnosIniciativa(){ const board=document.getElementById('initiative-turn-board'); if(!board)return; const atual=getParticipanteAtual(); if(!ameacaEmCombateGlobal||iniciativaAtual?.estado!==INICIATIVA_ESTADOS.ATIVA||!atual||iniciativaAtual.estadoInterno==='sem_participantes'){ board.hidden=true; return; } board.hidden=false; document.getElementById('initiative-round').textContent=`Rodada ${toNumber(iniciativaAtual.rodada,1)}`; const cont=document.getElementById('initiative-portraits'); cont.textContent=''; (iniciativaAtual.ordem||[]).slice(toNumber(iniciativaAtual.indiceAtual,0),toNumber(iniciativaAtual.indiceAtual,0)+5).forEach((ch,i)=>{ const p=iniciativaAtual.participantes[ch]; if(!p)return; const item=document.createElement('div'); item.className='initiative-portrait'+(i===0?' is-current':''); item.tabIndex=0; if(i===0)item.setAttribute('aria-current','true'); const foto=getFotoParticipante(p); if(foto){ const img=document.createElement('img'); img.src=foto; img.alt=''; item.appendChild(img); } const tip=document.createElement('div'); tip.className='initiative-tooltip'; let texto=getNomeParticipanteVisivel(p); if(p.tipo==='horda'){ const vivos=membrosVivosHorda(p.id); texto += ` - membro ${iniciativaAtual.hordaTurno?.membroAtualId || vivos[0] || '-'} - vivos ${vivos.length}`; } tip.textContent=texto; item.appendChild(tip); cont.appendChild(item); }); const btn=document.getElementById('initiative-end-turn'); btn.disabled=iniciativaTurnoTravado||!podeEncerrarTurno(usuarioAtual,atual); btn.onclick=encerrarTurnoIniciativa; }
         function podeEncerrarTurno(usuario,participanteAtual){ if(!usuario||!participanteAtual)return false; if(usuario.cargo==='Mestre')return true; return participanteAtual.tipo==='jogador'&&usuario.idFicha===participanteAtual.id; }
         function podeUsuarioAgirAgora(slotNum = null, contexto = {}) {
@@ -2843,7 +2954,22 @@ window.toggleSidebarJogador = function(numSlot) {
             iniciativaTurnoTravado = false;
             renderizarIniciativa();
         }
-        function iniciarOuvinteIniciativa(){ if(unsubscribeIniciativa)unsubscribeIniciativa(); unsubscribeIniciativa=onValue(dbRef(PATH_INICIATIVA),snap=>{ iniciativaAtual=snap.val(); renderizarIniciativa(); if(usuarioAtual?.cargo==='Mestre')atualizarSidebarMestre(); persistirNormalizacaoIniciativa(); if(iniciativaAtual?.estado===INICIATIVA_ESTADOS.ATIVA) processarInicioTurnoIndividual(getParticipanteAtual(iniciativaAtual),{iniciativa:iniciativaAtual}).catch(err=>console.error('Erro ao garantir o início do turno.',err)); }); }
+        function iniciarOuvinteIniciativa() {
+            unsubscribeIniciativa?.();
+            unsubscribeIniciativa = observarValor(PATH_INICIATIVA, snapshot => {
+                iniciativaAtual = snapshot.val();
+                sincronizarFotosIniciativa();
+                agendarRender('iniciativa', () => {
+                    renderizarIniciativa();
+                    if(usuarioAtual?.cargo === 'Mestre') atualizarSidebarMestre();
+                    persistirNormalizacaoIniciativa();
+                    if(iniciativaAtual?.estado === INICIATIVA_ESTADOS.ATIVA) {
+                        processarInicioTurnoIndividual(getParticipanteAtual(iniciativaAtual), { iniciativa: iniciativaAtual })
+                            .catch(err => console.error('Erro ao garantir o início do turno.', err));
+                    }
+                });
+            });
+        }
 
         function reiniciarOuvintesAmeacasJogador() {
             ouvintesAmeacasJogador.forEach(cancelar => { if(typeof cancelar === 'function') cancelar(); });
@@ -2855,14 +2981,7 @@ window.toggleSidebarJogador = function(numSlot) {
             }
             ameacas.forEach(ameaca => {
                 const raiz = ameaca.tipo === 'horda' ? 'hordas' : 'fichas';
-                const cancelar = onValue(dbRef(`${raiz}/${ameaca.id}`), snapshot => {
-                    if(ameaca.tipo === 'horda') {
-                        if(snapshot.exists()) hordasNoBanco[ameaca.id] = snapshot.val();
-                        else delete hordasNoBanco[ameaca.id];
-                    } else {
-                        if(snapshot.exists()) fichasNoBanco[ameaca.id] = snapshot.val();
-                        else delete fichasNoBanco[ameaca.id];
-                    }
+                const cancelar = observarEntidade(raiz, ameaca.id, () => {
                     sincronizarCenaJogador();
                     renderizarIniciativa();
                 });
@@ -2887,81 +3006,94 @@ window.toggleSidebarJogador = function(numSlot) {
             atualizarAlvosJogador(ameacaEmCombateGlobal);
         }
 
-        function iniciarOuvintesGerais() {
-            iniciarOuvinteIniciativa();
-            onValue(dbRef('fotos'), (snapshot) => { fotosNoBanco = snapshot.val() || {}; renderizarQuadroTurnosIniciativa(); });
-            if(usuarioAtual?.cargo === 'Mestre') {
-                onValue(dbRef('fichas'), (snapshot) => {
-                    fichasNoBanco = snapshot.val() || {};
+        let ouvintesEssenciaisIniciados = false;
+        let ouvintesSecundariosIniciados = false;
+
+        function iniciarOuvintesEssenciais() {
+            if(ouvintesEssenciaisIniciados) return;
+            ouvintesEssenciaisIniciados = true;
+
+            const aoAtualizarFichas = () => {
+                agendarRender('fichas-gerais', () => {
                     atualizarPermissoesAcoesCombate();
                     persistirNormalizacaoIniciativa();
-                    atualizarSidebarMestre();
+                    if(usuarioAtual?.cargo === 'Mestre') {
+                        atualizarSidebarMestre();
+                        atualizarHudMestreComFichas();
+                    } else {
+                        sincronizarCenaJogador();
+                    }
                 });
-                onValue(dbRef('lista_monstros'), (snapshot) => {
+            };
+
+            if(usuarioAtual?.cargo === 'Mestre') observarColecao('fichas', aoAtualizarFichas);
+            else observarEntidade('fichas', usuarioAtual.idFicha, aoAtualizarFichas);
+
+            observarValor('estado_combate/encontro', snapshot => {
+                encontroAtivoGlobal = snapshot.val();
+                agendarRender('encontro-ativo', () => {
+                    if(usuarioAtual?.cargo === 'Mestre') atualizarSidebarMestre();
+                    else {
+                        reiniciarOuvintesAmeacasJogador();
+                        sincronizarCenaJogador();
+                    }
+                });
+            });
+
+            observarValor('estado_combate/ativo', snapshot => {
+                const ameacaAnterior = ameacaEmCombateGlobal;
+                ameacaEmCombateGlobal = snapshot.val();
+                agendarRender('combate-ativo', () => {
+                    if(usuarioAtual?.cargo === 'Jogador') {
+                        reiniciarOuvintesAmeacasJogador();
+                        sincronizarCenaJogador();
+                    }
+                    if(ameacaAnterior && !ameacaEmCombateGlobal) {
+                        limparCombatLog();
+                        mostrarCombatToast('Combate encerrado.');
+                    }
+                    if(visaoTaticaMestreAtiva) renderizarVisaoTaticaMestre();
+                });
+            });
+
+            observarValor('estado_combate/ultimo_evento', snapshot => {
+                const evento = snapshot.val();
+                agendarRender('ultimo-evento-combate', () => aplicarUltimoEventoVisual(evento));
+            });
+        }
+
+        function iniciarOuvintesSecundarios() {
+            if(ouvintesSecundariosIniciados) return;
+            ouvintesSecundariosIniciados = true;
+            iniciarOuvinteIniciativa();
+
+            if(usuarioAtual?.cargo === 'Mestre') {
+                observarValor('lista_monstros', snapshot => {
                     monstrosNoBanco = snapshot.val() || {};
                     atualizarSidebarMestre();
                 });
-                onValue(dbRef('hordas'), (snapshot) => {
-                    hordasNoBanco = snapshot.val() || {};
-                    atualizarSidebarMestre();
-                });
-            } else {
-                playersList.forEach(id => {
-                    onValue(dbRef(`fichas/${id}`), snapshot => {
-                        if(snapshot.exists()) fichasNoBanco[id] = snapshot.val();
-                        else delete fichasNoBanco[id];
-                        atualizarPermissoesAcoesCombate();
-                        sincronizarCenaJogador();
-                    });
-                });
+                observarColecao('hordas', () => atualizarSidebarMestre());
             }
 
-            onValue(dbRef('bestiario_publico'), (snapshot) => {
+            observarValor('bestiario_publico', snapshot => {
                 bestiarioPublicoNoBanco = snapshot.val() || {};
-                Object.entries(slotsDeVisao).forEach(([numSlot, slot]) => {
-                    const numero = Number(numSlot);
-                    if(slot?.tipo === 'horda') {
-                        const container = document.getElementById(`container-slot${numero}-horda`);
-                        if(container) {
-                            container.innerHTML = renderizarHtmlHordaDinamico(slot.idFicha, slot.dados?.membros || {}, numero);
-                            container.dataset.chaves = Object.keys(slot.dados?.membros || {}).join(',');
-                            renderizarCatalogacaoNoSlot(numero, 'horda', slot.dados || {});
+                agendarRender('bestiario-publico', () => {
+                    Object.entries(slotsDeVisao).forEach(([numSlot, slot]) => {
+                        const numero = Number(numSlot);
+                        if(slot?.tipo === 'horda') {
+                            const container = document.getElementById(`container-slot${numero}-horda`);
+                            if(container) {
+                                atualizarHtmlSeMudou(container, renderizarHtmlHordaDinamico(slot.idFicha, slot.dados?.membros || {}, numero));
+                                container.dataset.chaves = Object.keys(slot.dados?.membros || {}).join(',');
+                                renderizarCatalogacaoNoSlot(numero, 'horda', slot.dados || {});
+                            }
+                        } else if(slot?.tipo === 'monstro') {
+                            renderizarConhecimentoPublicoNoSlot(numero, slot.tipo, slot.dados || {});
                         }
-                    } else if(slot?.tipo === 'monstro') {
-                        renderizarConhecimentoPublicoNoSlot(numero, slot.tipo, slot.dados || {});
-                    }
+                    });
+                    atualizarPermissoesAcoesCombate();
+                    if(usuarioAtual?.cargo === 'Jogador') atualizarAlvosJogador(ameacaEmCombateGlobal);
                 });
-                atualizarPermissoesAcoesCombate();
-                if(usuarioAtual?.cargo === 'Jogador') atualizarAlvosJogador(ameacaEmCombateGlobal);
-            });
-
-            onValue(dbRef('estado_combate/encontro'), (snapshot) => {
-                encontroAtivoGlobal = snapshot.val();
-                if(usuarioAtual?.cargo === 'Mestre') atualizarSidebarMestre();
-                else {
-                    reiniciarOuvintesAmeacasJogador();
-                    sincronizarCenaJogador();
-                }
-            });
-
-            onValue(dbRef('estado_combate/ativo'), (snapshot) => {
-                const ameacaAnterior = ameacaEmCombateGlobal;
-                ameacaEmCombateGlobal = snapshot.val();
-
-                if (usuarioAtual?.cargo === "Jogador") {
-                    reiniciarOuvintesAmeacasJogador();
-                    sincronizarCenaJogador();
-                }
-
-                if(ameacaAnterior && !ameacaEmCombateGlobal) {
-                    limparCombatLog();
-                    mostrarCombatToast("Combate encerrado.");
-                }
-                if(visaoTaticaMestreAtiva) renderizarVisaoTaticaMestre();
-            });
-
-            onValue(dbRef('estado_combate/ultimo_evento'), (snapshot) => {
-                aplicarUltimoEventoVisual(snapshot.val());
             });
         }
 
@@ -3098,12 +3230,12 @@ window.toggleSidebarJogador = function(numSlot) {
                 const select = document.getElementById(`bestiario-filtro-${campo}`);
                 if(!select || document.activeElement === select) return;
                 const opcoes = getValoresFiltroBestiario(itens, campo);
-                select.innerHTML = `<option value="">Adicionar...</option>${opcoes.map(valor => `<option value="${escapeHtml(valor)}">${escapeHtml(valor)}</option>`).join('')}`;
+                atualizarHtmlSeMudou(select, `<option value="">Adicionar...</option>${opcoes.map(valor => `<option value="${escapeHtml(valor)}">${escapeHtml(valor)}</option>`).join('')}`);
                 const chips = document.getElementById(`bestiario-chips-${campo}`);
                 if(chips) {
-                    chips.innerHTML = (bestiarioUi.filtros[campo] || []).map(valor => `
+                    atualizarHtmlSeMudou(chips, (bestiarioUi.filtros[campo] || []).map(valor => `
                         <span class="bestiario-filtro-chip">${escapeHtml(valor)}<button type="button" onclick="removerFiltroBestiario('${campo}', '${codificarParametroHtml(valor)}')" aria-label="Remover ${escapeHtml(valor)}">×</button></span>
-                    `).join('');
+                    `).join(''));
                 }
             });
             const totalAtivos = BESTIARIO_CAMPOS_FILTRO.reduce((total, campo) => total + (bestiarioUi.filtros[campo] || []).length, 0)
@@ -3125,11 +3257,11 @@ window.toggleSidebarJogador = function(numSlot) {
             if(mostrarMais) mostrarMais.hidden = visiveis.length >= itensFiltrados.length;
 
             if(!visiveis.length) {
-                lista.innerHTML = `<div class="bestiario-vazio">Nenhuma ameaça corresponde à busca e aos filtros atuais.</div>`;
+                atualizarHtmlSeMudou(lista, `<div class="bestiario-vazio">Nenhuma ameaça corresponde à busca e aos filtros atuais.</div>`);
                 return;
             }
 
-            lista.innerHTML = visiveis.map(item => {
+            atualizarHtmlSeMudou(lista, visiveis.map(item => {
                 const encodedId = codificarParametroHtml(item.id);
                 const catalogacao = item.catalogacao || {};
                 const selos = [
@@ -3153,7 +3285,7 @@ window.toggleSidebarJogador = function(numSlot) {
                         </div>
                     </article>
                 `;
-            }).join('');
+            }).join(''));
         }
 
         function renderizarAmeacasEmCena() {
@@ -3164,14 +3296,14 @@ window.toggleSidebarJogador = function(numSlot) {
             secao.hidden = ameacas.length === 0;
             const contador = document.getElementById('bestiario-em-cena-contagem');
             if(contador) contador.textContent = ameacas.length;
-            lista.innerHTML = ameacas.map(ameaca => {
+            atualizarHtmlSeMudou(lista, ameacas.map(ameaca => {
                 const itemModelo = getItemCatalogo(ameaca.tipo, ameaca.modeloId || ameaca.id);
                 const nome = itemModelo?.nomeInterno || ameaca.nome || ameaca.id;
                 const comandada = ameacas.find(item => item.id === ameaca.comandaId);
                 const nomeComandada = comandada ? (getItemCatalogo(comandada.tipo, comandada.modeloId || comandada.id)?.nomeInterno || comandada.nome) : '';
                 const comando = nomeComandada ? ` · comanda ${nomeComandada}` : '';
                 return `<div class="bestiario-em-cena-item"><strong>${escapeHtml(nome)}</strong><button type="button" onclick="focarAmeacaEmCena('${ameaca.tipo}', '${codificarParametroHtml(ameaca.id)}')">Abrir</button><small>${escapeHtml(ameaca.papel || 'Ameaça')}${escapeHtml(comando)}</small></div>`;
-            }).join('');
+            }).join(''));
         }
 
         function renderizarRascunhoEncontro() {
@@ -3182,12 +3314,12 @@ window.toggleSidebarJogador = function(numSlot) {
             if(botao) botao.disabled = !bestiarioUi.rascunhoEncontro.length || Boolean(encontroAtivoGlobal?.combateId || iniciativaAtual?.combateId || ameacaEmCombateGlobal);
             if(!lista) return;
             if(!bestiarioUi.rascunhoEncontro.length) {
-                lista.innerHTML = `<p>Adicione ameaças pelo botão <strong>+</strong> do catálogo.</p>`;
+                atualizarHtmlSeMudou(lista, `<p>Adicione ameaças pelo botão <strong>+</strong> do catálogo.</p>`);
                 return;
             }
 
             const hordas = bestiarioUi.rascunhoEncontro.filter(item => item.tipo === 'horda');
-            lista.innerHTML = bestiarioUi.rascunhoEncontro.map(item => {
+            atualizarHtmlSeMudou(lista, bestiarioUi.rascunhoEncontro.map(item => {
                 const opcoesPapel = item.tipo === 'horda'
                     ? `<option value="Horda" selected>Horda</option>`
                     : ['Ameaça', 'General', 'Chefe'].map(papel => `<option value="${papel}" ${item.papel === papel ? 'selected' : ''}>${papel}</option>`).join('');
@@ -3202,19 +3334,23 @@ window.toggleSidebarJogador = function(numSlot) {
                         </div>
                     </div>
                 `;
-            }).join('');
+            }).join(''));
         }
 
         function atualizarSidebarMestre() {
+            agendarRender('sidebar-mestre', renderizarSidebarMestreAgora);
+        }
+
+        function renderizarSidebarMestreAgora() {
             if(usuarioAtual?.cargo !== "Mestre") return;
             const jogadores = document.getElementById('cat-jogadores');
             if(jogadores) {
-                jogadores.innerHTML = playersList.map(p => `
+                atualizarHtmlSeMudou(jogadores, playersList.map(p => `
                     <div class="item-acervo">
                         <span class="item-acervo-nome" onclick="mestreAbrir(1, 'heroi', '${p}')">${escapeHtml(fichasNoBanco[p]?.nome || p.toUpperCase())}</span>
                         <div class="item-acervo-botoes"><button class="btn-slot-acervo" onclick="mestreAbrir(1, 'heroi', '${p}')">1</button><button class="btn-slot-acervo" onclick="mestreAbrir(2, 'heroi', '${p}')">2</button></div>
                     </div>
-                `).join('');
+                `).join(''));
             }
 
             const itens = obterItensCatalogo();
@@ -3430,12 +3566,18 @@ window.toggleSidebarJogador = function(numSlot) {
         }
 
         function limparSlot(numSlot) {
+            const slotHost = document.getElementById(`slot-${numSlot}`);
+            if(!slotHost || slotHost.dataset.montado !== 'true') {
+                slotsDeVisao[numSlot].ouvinte?.();
+                slotsDeVisao[numSlot] = { ouvinte: null, idFicha: null, tipo: null, dados: {} };
+                return;
+            }
             resetarExperienciaNoSlot(numSlot);
             acaoCombateSelecionadaPorSlot[numSlot] = 'fisico';
-            document.getElementById(`slot-${numSlot}`).style.display = 'none';
-            document.getElementById(`container-slot${numSlot}-heroi`).style.display = 'none';
-            document.getElementById(`container-slot${numSlot}-monstro`).style.display = 'none';
-            document.getElementById(`container-slot${numSlot}-horda`).style.display = 'none';
+            slotHost.style.display = 'none';
+            document.getElementById(`container-slot${numSlot}-heroi`)?.style.setProperty('display', 'none');
+            document.getElementById(`container-slot${numSlot}-monstro`)?.style.setProperty('display', 'none');
+            document.getElementById(`container-slot${numSlot}-horda`)?.style.setProperty('display', 'none');
             if (slotsDeVisao[numSlot].ouvinte) { slotsDeVisao[numSlot].ouvinte(); }
             slotsDeVisao[numSlot] = { ouvinte: null, idFicha: null, tipo: null, dados: {} };
             if(visaoTaticaMestreAtiva) renderizarVisaoTaticaMestre();
@@ -3865,602 +4007,6 @@ window.toggleSidebarJogador = function(numSlot) {
         // ==========================================
         // ÁRVORE DE HABILIDADES
         // ==========================================
-        /* LEGADO V1 DESATIVADO — mantido temporariamente apenas para referência de migração.
-        const classesRpg = ["Guerreiro", "Paladino", "Druida", "Bárbaro", "Arqueiro", "Ladino", "Mago", "Curandeiro", "Bardo", "Monge"];
-
-        window.abrirArvoreHabilidades = function(numSlot) {
-            const selectClasse = document.getElementById(`slot${numSlot}-classe`);
-            const classeEscolhida = selectClasse ? selectClasse.value : "";
-
-            if (!classeEscolhida) {
-                alert("Escolha uma Classe primeiro na ficha para liberar sua árvore de melhorias!");
-                return;
-            }
-
-            const tabsContainer = document.getElementById("arvore-tabs-container");
-            const viewsContainer = document.getElementById("arvore-views-container");
-
-            tabsContainer.innerHTML = "";
-            viewsContainer.innerHTML = "";
-
-            classesRpg.forEach(classe => {
-                const isEscolhida = (classe === classeEscolhida);
-
-                // Criar Aba
-                const tab = document.createElement("button");
-                tab.className = `tab-classe ${isEscolhida ? 'ativa' : 'bloqueada'}`;
-                tab.innerText = classe;
-                tabsContainer.appendChild(tab);
-
-                // Criar Visão da Árvore
-                const view = document.createElement("div");
-                view.className = `arvore-view ${isEscolhida ? 'ativa' : ''}`;
-
-                // Placeholder para a árvore
-                if (isEscolhida) {
-                    view.innerHTML = `
-                        <div style="text-align: center; margin-bottom: 30px;">
-                            <h3 style="color: #d4af37; margin:0; font-size: 20px;">Caminho do ${classe}</h3>
-                            <p style="color: #9c8464; font-size: 12px;">Habilidades em breve...</p>
-                        </div>
-                        <div class="skill-row">
-                            <div class="skill-node desbloqueada"><span class="skill-icon">I</span></div>
-                        </div>
-                        <div class="skill-linha skill-linha-v" style="position: relative; margin: -20px 0;"></div>
-                        <div class="skill-row">
-                            <div class="skill-node"><span class="skill-icon">II</span></div>
-                            <div class="skill-linha skill-linha-h" style="position: relative; margin: 0 -20px;"></div>
-                            <div class="skill-node"><span class="skill-icon">II</span></div>
-                        </div>
-                    `;
-                }
-
-                viewsContainer.appendChild(view);
-            });
-
-            const modalArvore = document.getElementById('modal-arvore');
-            modalArvore.style.display = "flex";
-            void modalArvore.offsetWidth;
-            modalArvore.classList.add('aberto');
-        }
-
-        window.fecharArvore = function() {
-            const modalArvore = document.getElementById('modal-arvore');
-            modalArvore.classList.remove('aberto');
-            modalArvore.style.display = "none";
-        }
-
-        const ARVORE_ZOOM_MIN = 0.45;
-        const ARVORE_ZOOM_MAX = 1.5;
-        const ARVORE_ZOOM_STEP = 0.12;
-        const ARVORE_ESCOLHA_RIVAL_MSG = "Você fez sua escolha, agora viva com ela";
-        const ARVORE_CAMINHOS = {
-            punho: "Caminho do Punho",
-            ki: "Caminho do Ki Interior",
-            resiliencia: "Caminho da Resiliência"
-        };
-        const arvoreCamera = {
-            x: 80, y: 0, zoom: 0.72,
-            dragging: false, dragStartX: 0, dragStartY: 0,
-            startX: 0, startY: 0, mapBounds: null
-        };
-        let numSlotArvoreAberta = null;
-        let nodeArvoreSelecionado = null;
-
-        function treeNode(id, nome, tipo, grimorioTipo, custo, x, y, prereq, caminho, desc, iconClass, extra = {}) {
-            return { id, nome, tipo, grimorioTipo, custo, x, y, prereq: prereq || [], caminho: caminho || "", desc, iconClass, ...extra };
-        }
-
-        const SKILL_TREES = {
-            Monge: {
-                nodes: [
-                    treeNode("mon_fund_01", "Respiração Marcial", "passiva", "passiva", 1, 0, 0, [], "", "Controla a respiração para manter foco e constância em combate.", "icon-breath"),
-                    treeNode("mon_fund_02", "Postura do Monge", "melhoria", "melhoria", 1, 180, 0, ["mon_fund_01"], "", "Refina a base corporal e melhora a estabilidade durante técnicas.", "icon-stance"),
-                    treeNode("mon_fund_03", "Disciplina do Corpo", "passiva", "passiva", 1, 360, 0, ["mon_fund_02"], "", "Transforma treino repetido em resistência, controle e presença.", "icon-discipline"),
-                    treeNode("mon_fund_a", "Passo Leve", "passiva", "passiva", 1, 120, -180, [], "", "Movimenta-se com menos ruído e melhor recuperação de posição.", "icon-step"),
-                    treeNode("mon_fund_b", "Reflexo Sereno", "passiva", "passiva", 1, 260, -180, ["mon_fund_a"], "", "Mantém calma sob pressão e reage com menos hesitação.", "icon-reflex"),
-                    treeNode("mon_fund_c", "Mente Clara", "melhoria", "melhoria", 1, 120, 180, [], "", "Organiza pensamento e intenção antes da ação.", "icon-mind"),
-                    treeNode("mon_fund_d", "Golpe Treinado", "ativa", "ativa", 1, 260, 180, ["mon_fund_c"], "", "Um ataque simples, limpo e confiável para abrir sequências.", "icon-strike"),
-                    treeNode("mon_path_punho", "Caminho do Punho", "caminho", "", 1, 580, -260, ["mon_fund_b"], "punho", "Escolhe o Caminho do Punho. Os outros caminhos serão bloqueados.", "icon-path-punch"),
-                    treeNode("mon_path_res", "Caminho da Resiliência", "caminho", "", 1, 580, 260, ["mon_fund_d"], "resiliencia", "Escolhe o Caminho da Resiliência. Os outros caminhos serão bloqueados.", "icon-path-res"),
-                    treeNode("mon_path_ki", "Caminho do Ki Interior", "caminho", "", 1, 580, 0, ["mon_fund_03"], "ki", "Escolhe o Caminho do Ki Interior após dominar a Disciplina do Corpo.", "icon-path-ki"),
-                    treeNode("mon_punho_01", "Punho Preciso", "passiva", "passiva", 2, 760, -260, ["mon_path_punho"], "punho", "Aprimora golpes diretos e reduz desperdício de movimento.", "icon-punch"),
-                    treeNode("mon_punho_02", "Sequência Rápida", "ativa", "ativa", 2, 940, -260, ["mon_punho_01"], "punho", "Permite encadear ataques curtos em uma abertura.", "icon-combo"),
-                    treeNode("mon_punho_03", "Pressão Constante", "melhoria", "melhoria", 2, 1120, -260, ["mon_punho_01"], "punho", "Mantém o inimigo reagindo e limita contra-ataques.", "icon-pressure"),
-                    treeNode("mon_punho_04", "Quebra-Guarda", "ativa", "ativa", 2, 1300, -340, [], "punho", "Um golpe técnico para abrir defesas fechadas.", "icon-break", {
-                        prereqAnyCount: { from: ["mon_punho_02", "mon_punho_03"], count: 1 }
-                    }),
-                    treeNode("mon_punho_05", "Combo Crescente", "melhoria", "melhoria", 2, 1300, -180, [], "punho", "Sequências bem-sucedidas aumentam o ritmo ofensivo.", "icon-rise", {
-                        prereqAnyCount: { from: ["mon_punho_02", "mon_punho_03"], count: 1 }
-                    }),
-                    treeNode("mon_punho_06", "Impacto Interno", "passiva", "passiva", 3, 1500, -260, [], "punho", "Canaliza força através da guarda e atinge pontos vitais.", "icon-impact", {
-                        prereqAnyCount: { from: ["mon_punho_04", "mon_punho_05"], count: 1 }
-                    }),
-                    treeNode("mon_punho_final", "Último Golpe do Punho", "final", "ativa", 3, 1720, -260, ["mon_punho_06"], "punho", "Finaliza uma sequência com um golpe concentrado e decisivo.", "icon-finish"),
-                    treeNode("mon_ki_01", "Reserva Interior", "passiva", "passiva", 2, 760, 0, ["mon_path_ki"], "ki", "Aumenta a consciência sobre energia interna e seu uso.", "icon-reserve"),
-                    treeNode("mon_ki_02", "Passo do Vento", "ativa", "ativa", 2, 940, -80, ["mon_ki_01"], "ki", "Usa ki para reposicionamento rápido e leve.", "icon-wind"),
-                    treeNode("mon_ki_03", "Canalizar Ki", "melhoria", "melhoria", 2, 940, 80, ["mon_ki_01"], "ki", "Melhora o controle entre mana, fôlego e intenção.", "icon-channel"),
-                    treeNode("mon_ki_04", "Palma Espiritual", "ativa", "ativa", 2, 1120, -80, [], "ki", "Projeta energia concentrada através da palma.", "icon-palm", {
-                        prereqAnyCount: { from: ["mon_ki_02", "mon_ki_03"], count: 1 }
-                    }),
-                    treeNode("mon_ki_05", "Fluxo de Mana", "passiva", "passiva", 2, 1120, 80, [], "ki", "Reduz oscilação energética e favorece técnicas longas.", "icon-flow", {
-                        prereqAnyCount: { from: ["mon_ki_02", "mon_ki_03"], count: 1 }
-                    }),
-                    treeNode("mon_ki_06", "Corpo Etéreo", "ativa", "ativa", 3, 1320, 0, [], "ki", "Por um instante, o corpo responde como se fosse mais leve que a dor.", "icon-ethereal", {
-                        prereqAnyCount: { from: ["mon_ki_04", "mon_ki_05"], count: 1 }
-                    }),
-                    treeNode("mon_ki_final", "Técnica do Ki Interior", "final", "ativa", 3, 1540, 0, ["mon_ki_06"], "ki", "Libera uma técnica espiritual plena, exigindo foco absoluto.", "icon-spirit"),
-                    treeNode("mon_res_01", "Corpo Inabalável", "passiva", "passiva", 2, 760, 260, ["mon_path_res"], "resiliencia", "Fortalece postura e tolerância contra impacto.", "icon-body"),
-                    treeNode("mon_res_02", "Defesa Circular", "ativa", "ativa", 2, 940, 180, ["mon_res_01"], "resiliencia", "Redireciona pressão inimiga com movimentos circulares.", "icon-circle"),
-                    treeNode("mon_res_03", "Pele de Pedra", "melhoria", "melhoria", 2, 940, 340, ["mon_res_01"], "resiliencia", "Treino físico endurece resposta contra dano direto.", "icon-stone"),
-                    treeNode("mon_res_04", "Fôlego de Ferro", "passiva", "passiva", 2, 1120, 180, [], "resiliencia", "Mantém ação mesmo após cansaço ou dor intensa.", "icon-breath-iron", {
-                        prereqAnyCount: { from: ["mon_res_02", "mon_res_03"], count: 1 }
-                    }),
-                    treeNode("mon_res_05", "Vontade Imóvel", "melhoria", "melhoria", 2, 1120, 340, [], "resiliencia", "Resiste melhor a medo, manipulação e colapso mental.", "icon-will", {
-                        prereqAnyCount: { from: ["mon_res_02", "mon_res_03"], count: 1 }
-                    }),
-                    treeNode("mon_res_06", "Recusar a Queda", "ativa", "ativa", 3, 1320, 260, [], "resiliencia", "Força o corpo a permanecer de pé quando deveria cair.", "icon-stand", {
-                        prereqAnyCount: { from: ["mon_res_04", "mon_res_05"], count: 1 }
-                    }),
-                    treeNode("mon_res_final", "Selo da Montanha Viva", "final", "passiva", 3, 1540, 260, ["mon_res_06"], "resiliencia", "A resistência do monge se torna uma presença quase imóvel.", "icon-mountain")
-                ],
-                connections: [
-                    { from: "mon_fund_a", to: "mon_fund_b" },
-                    { from: "mon_fund_b", to: "mon_path_punho", points: [{ x: 420, y: -180 }, { x: 420, y: -260 }] },
-                    { from: "mon_fund_01", to: "mon_fund_02" },
-                    { from: "mon_fund_02", to: "mon_fund_03", points: [{ x: 300, y: 0 }] },
-                    { from: "mon_fund_03", to: "mon_path_ki" },
-                    { from: "mon_fund_c", to: "mon_fund_d" },
-                    { from: "mon_fund_d", to: "mon_path_res", points: [{ x: 420, y: 180 }, { x: 420, y: 260 }] },
-
-                    { from: "mon_path_punho", to: "mon_punho_01" },
-                    { from: "mon_punho_01", to: "mon_punho_02", points: [{ x: 850, y: -300 }] },
-                    { from: "mon_punho_01", to: "mon_punho_03", points: [{ x: 850, y: -220 }, { x: 1030, y: -220 }] },
-                    { from: "mon_punho_02", to: "mon_punho_04", points: [{ x: 1040, y: -340 }] },
-                    { from: "mon_punho_03", to: "mon_punho_04", points: [{ x: 1210, y: -300 }, { x: 1210, y: -340 }] },
-                    { from: "mon_punho_02", to: "mon_punho_05", points: [{ x: 1040, y: -180 }] },
-                    { from: "mon_punho_03", to: "mon_punho_05", points: [{ x: 1210, y: -220 }, { x: 1210, y: -180 }] },
-                    { from: "mon_punho_04", to: "mon_punho_06", points: [{ x: 1420, y: -340 }, { x: 1420, y: -260 }] },
-                    { from: "mon_punho_05", to: "mon_punho_06", points: [{ x: 1420, y: -180 }, { x: 1420, y: -260 }] },
-                    { from: "mon_punho_06", to: "mon_punho_final" },
-
-                    { from: "mon_path_ki", to: "mon_ki_01" },
-                    { from: "mon_ki_01", to: "mon_ki_02", points: [{ x: 850, y: -80 }] },
-                    { from: "mon_ki_01", to: "mon_ki_03", points: [{ x: 850, y: 80 }] },
-                    { from: "mon_ki_02", to: "mon_ki_04" },
-                    { from: "mon_ki_03", to: "mon_ki_04", points: [{ x: 1030, y: 80 }, { x: 1030, y: -80 }] },
-                    { from: "mon_ki_02", to: "mon_ki_05", points: [{ x: 1030, y: -80 }, { x: 1030, y: 80 }] },
-                    { from: "mon_ki_03", to: "mon_ki_05" },
-                    { from: "mon_ki_04", to: "mon_ki_06", points: [{ x: 1220, y: -80 }, { x: 1220, y: 0 }] },
-                    { from: "mon_ki_05", to: "mon_ki_06", points: [{ x: 1220, y: 80 }, { x: 1220, y: 0 }] },
-                    { from: "mon_ki_06", to: "mon_ki_final" },
-
-                    { from: "mon_path_res", to: "mon_res_01" },
-                    { from: "mon_res_01", to: "mon_res_02", points: [{ x: 850, y: 180 }] },
-                    { from: "mon_res_01", to: "mon_res_03", points: [{ x: 850, y: 340 }] },
-                    { from: "mon_res_02", to: "mon_res_04" },
-                    { from: "mon_res_03", to: "mon_res_04", points: [{ x: 1030, y: 340 }, { x: 1030, y: 180 }] },
-                    { from: "mon_res_02", to: "mon_res_05", points: [{ x: 1030, y: 180 }, { x: 1030, y: 340 }] },
-                    { from: "mon_res_03", to: "mon_res_05" },
-                    { from: "mon_res_04", to: "mon_res_06", points: [{ x: 1220, y: 180 }, { x: 1220, y: 260 }] },
-                    { from: "mon_res_05", to: "mon_res_06", points: [{ x: 1220, y: 340 }, { x: 1220, y: 260 }] },
-                    { from: "mon_res_06", to: "mon_res_final" }
-                ]
-            }
-        };
-
-        function getSkillTreeForClass(classe) {
-            return SKILL_TREES[classe] || null;
-        }
-
-        function getTreeSkillById(classe, skillId) {
-            const tree = getSkillTreeForClass(classe);
-            return tree?.nodes?.find(n => n.id === skillId) || null;
-        }
-
-        function getArvoreDataFromFicha(dados = {}) {
-            const arvore = dados.arvore || {};
-            return {
-                classe: arvore.classe || dados.classe || "",
-                caminhoEscolhido: arvore.caminhoEscolhido || "",
-                habilidadesDesbloqueadas: { ...(arvore.habilidadesDesbloqueadas || {}) }
-            };
-        }
-
-        function getNomeCaminhoArvore(dados = {}) {
-            const arvore = getArvoreDataFromFicha(dados);
-            return ARVORE_CAMINHOS[arvore.caminhoEscolhido] || "Nenhum escolhido";
-        }
-
-        function isSkillUnlocked(dados, skillId) {
-            return Boolean(getArvoreDataFromFicha(dados).habilidadesDesbloqueadas?.[skillId]);
-        }
-
-        function getPontosAprendizagem(dados = {}) {
-            const classe = dados.classe || getArvoreDataFromFicha(dados).classe;
-            const tree = getSkillTreeForClass(classe);
-            const unlocked = getArvoreDataFromFicha(dados).habilidadesDesbloqueadas;
-            const total = getLevelData(toNumber(dados.expTotal, 0)).level;
-            const gastos = tree ? tree.nodes.reduce((sum, skill) => sum + (unlocked[skill.id] ? toNumber(skill.custo, 0) : 0), 0) : 0;
-            return { total, gastos, disponiveis: total - gastos };
-        }
-
-        function checkPrereqs(dados, skill) {
-            const faltando = (skill.prereq || []).filter(id => !isSkillUnlocked(dados, id));
-            const anyRule = skill.prereqAnyCount;
-            let anyOk = true;
-            if(anyRule?.from?.length) {
-                const anyCount = anyRule.from.filter(id => isSkillUnlocked(dados, id)).length;
-                anyOk = anyCount >= toNumber(anyRule.count, 0);
-            }
-            return { ok: faltando.length === 0 && anyOk, faltando, anyOk };
-        }
-
-        function isBloqueadoPorCaminho(dados, skill) {
-            const escolhido = getArvoreDataFromFicha(dados).caminhoEscolhido;
-            return Boolean(escolhido && skill?.caminho && skill.caminho !== escolhido);
-        }
-
-        function canBuySkill(dados, skill, numSlot) {
-            if(!skill) return { ok: false, motivo: "Habilidade inválida." };
-            const slot = slotsDeVisao[Number(numSlot)];
-            const arvore = getArvoreDataFromFicha(dados);
-            if(usuarioAtual?.cargo === "Mestre") return { ok: false, motivo: "Mestre pode inspecionar, mas não comprar habilidades nesta etapa." };
-            if(!slot?.idFicha || usuarioAtual?.idFicha !== slot.idFicha) return { ok: false, motivo: "Você só pode comprar habilidades da própria ficha." };
-            if((dados.classe || arvore.classe) !== "Monge") return { ok: false, motivo: "Este protótipo só está disponível para Monge." };
-            if(isSkillUnlocked(dados, skill.id)) return { ok: false, motivo: "Habilidade já desbloqueada." };
-            if(isBloqueadoPorCaminho(dados, skill)) return { ok: false, motivo: ARVORE_ESCOLHA_RIVAL_MSG, rival: true };
-            if(skill.tipo === "caminho" && arvore.caminhoEscolhido) return { ok: false, motivo: ARVORE_ESCOLHA_RIVAL_MSG, rival: true };
-            if(skill.tipo !== "caminho" && skill.caminho && arvore.caminhoEscolhido !== skill.caminho) return { ok: false, motivo: "Escolha este caminho antes de comprar esta habilidade." };
-            if(!checkPrereqs(dados, skill).ok) return { ok: false, motivo: "Pré-requisitos incompletos." };
-            if(getPontosAprendizagem(dados).disponiveis < toNumber(skill.custo, 0)) return { ok: false, motivo: "Pontos de Aprendizagem insuficientes." };
-            return { ok: true, motivo: "Disponível para compra." };
-        }
-
-        function criarEntradaGrimorioDaArvore(skill) {
-            if(!skill.grimorioTipo) return null;
-            return normalizeHabV1(skill.id, {
-                nome: skill.nome,
-                desc: skill.desc,
-                tipo: skill.grimorioTipo,
-                alvo: "self",
-                targetMode: "self",
-                ap: 0,
-                mana: 0,
-                icon: "SK",
-                treeSkill: true,
-                sourceClass: "Monge",
-                isSystemObj: false,
-                equipada: skill.grimorioTipo === "passiva" || skill.grimorioTipo === "melhoria"
-            });
-        }
-
-        function gerarConexoesArvore(tree) {
-            if(Array.isArray(tree.connections) && tree.connections.length) {
-                return tree.connections;
-            }
-            const conexoes = [];
-            tree.nodes.forEach(node => {
-                (node.prereq || []).forEach(from => conexoes.push({ from, to: node.id, kind: "required" }));
-                (node.prereqAnyCount?.from || []).forEach(from => conexoes.push({ from, to: node.id, kind: "any" }));
-            });
-            return conexoes;
-        }
-
-        function calcularLayoutArvore(tree) {
-            const xs = tree.nodes.map(n => n.x);
-            const ys = tree.nodes.map(n => n.y);
-            const padding = 180;
-            const minX = Math.min(...xs) - padding;
-            const maxX = Math.max(...xs) + padding;
-            const minY = Math.min(...ys) - padding;
-            const maxY = Math.max(...ys) + padding;
-            return { minX, maxX, minY, maxY, width: maxX - minX, height: maxY - minY };
-        }
-
-        function posNode(node, layout) {
-            return { x: node.x - layout.minX, y: node.y - layout.minY };
-        }
-
-        function posWorldPoint(point, layout) {
-            return { x: point.x - layout.minX, y: point.y - layout.minY };
-        }
-
-        function getNodeState(dados, skill, numSlot) {
-            if(isSkillUnlocked(dados, skill.id)) return "desbloqueada";
-            const check = canBuySkill(dados, skill, numSlot);
-            if(check.rival) return "bloqueada-caminho";
-            return check.ok ? "compravel" : "bloqueada";
-        }
-
-        function getSkillSymbol(skill) {
-            if(skill.tipo === "passiva") return "P";
-            if(skill.tipo === "ativa") return "A";
-            if(skill.tipo === "melhoria") return "+";
-            if(skill.tipo === "caminho") return "C";
-            if(skill.tipo === "final") return "F";
-            return "*";
-        }
-
-        function renderSkillConnections(tree, dados, layout) {
-            const byId = Object.fromEntries(tree.nodes.map(n => [n.id, n]));
-            return gerarConexoesArvore(tree).map(conn => {
-                const from = byId[conn.from];
-                const to = byId[conn.to];
-                if(!from || !to) return "";
-                const a = posNode(from, layout);
-                const b = posNode(to, layout);
-                const points = (conn.points || []).map(point => posWorldPoint(point, layout));
-                const pathPoints = [a, ...points, b];
-                const d = pathPoints.map((point, index) => `${index === 0 ? "M" : "L"} ${point.x} ${point.y}`).join(" ");
-                const active = isSkillUnlocked(dados, from.id) && isSkillUnlocked(dados, to.id);
-                const rival = isBloqueadoPorCaminho(dados, to);
-                const compravel = isSkillUnlocked(dados, from.id) && !isSkillUnlocked(dados, to.id) && canBuySkill(dados, to, numSlotArvoreAberta).ok;
-                const cls = ["arvore-link", active ? "ativa" : "", compravel ? "compravel" : "", rival ? "bloqueada-caminho" : ""].filter(Boolean).join(" ");
-                return `<path class="${cls}" d="${d}" fill="none"></path>`;
-            }).join("");
-        }
-
-        function renderSkillNode(skill, dados, numSlot, layout) {
-            const pos = posNode(skill, layout);
-            const state = getNodeState(dados, skill, numSlot);
-            const title = state === "bloqueada-caminho" ? ARVORE_ESCOLHA_RIVAL_MSG : skill.nome;
-            return `
-                <button class="skill-node node-${skill.tipo} ${state} ${escapeHtml(skill.iconClass)}"
-                    style="left:${pos.x}px; top:${pos.y}px;"
-                    data-skill-id="${escapeHtml(skill.id)}"
-                    title="${escapeHtml(title)}"
-                    onmouseenter="previewSkillTreeNode(${numSlot}, '${escapeHtml(skill.id)}')"
-                    onclick="selectSkillTreeNode(${numSlot}, '${escapeHtml(skill.id)}')">
-                    <span class="skill-icon">${escapeHtml(getSkillSymbol(skill))}</span>
-                    <span class="skill-cost-badge">${escapeHtml(skill.custo)}</span>
-                    <span class="skill-name">${escapeHtml(skill.nome)}</span>
-                </button>
-            `;
-        }
-
-        function getPrereqLabels(skill, tree) {
-            const labels = (skill.prereq || []).map(id => tree.nodes.find(n => n.id === id)?.nome || id);
-            if(skill.prereqAnyCount?.from?.length) {
-                const nomes = skill.prereqAnyCount.from.map(id => tree.nodes.find(n => n.id === id)?.nome || id);
-                labels.push(`${skill.prereqAnyCount.count} de: ${nomes.join(", ")}`);
-            }
-            return labels;
-        }
-
-        function renderSkillDetailPanel(numSlot, skillId) {
-            const slot = slotsDeVisao[Number(numSlot)];
-            const dados = slot?.dados || {};
-            const tree = getSkillTreeForClass(dados.classe || "Monge");
-            const panel = document.getElementById("arvore-detail-panel");
-            if(!panel || !tree) return;
-            const skill = tree.nodes.find(n => n.id === skillId) || tree.nodes[0];
-            nodeArvoreSelecionado = skill.id;
-            const state = getNodeState(dados, skill, numSlot);
-            const check = canBuySkill(dados, skill, numSlot);
-            const tipoLabel = { passiva: "Passiva", ativa: "Ativa", melhoria: "Melhoria", caminho: "Escolha de Caminho", final: "Habilidade Final" }[skill.tipo] || skill.tipo;
-            const estadoLabel = state === "desbloqueada" ? "Desbloqueada" : (state === "compravel" ? "Comprável" : (state === "bloqueada-caminho" ? "Caminho bloqueado" : "Bloqueada"));
-            const prereqs = getPrereqLabels(skill, tree);
-            const buyHtml = check.ok ? `<button class="btn-comprar-skill" onclick="buySkill(${numSlot}, '${escapeHtml(skill.id)}')">Comprar</button>` : "";
-            panel.innerHTML = `
-                <div class="arvore-detail-kicker">${escapeHtml(tipoLabel)}</div>
-                <h3>${escapeHtml(skill.nome)}</h3>
-                <div class="arvore-detail-meta"><span>Custo: ${escapeHtml(skill.custo)} PA</span><span>Estado: ${escapeHtml(estadoLabel)}</span></div>
-                <p>${escapeHtml(skill.desc)}</p>
-                <div class="arvore-detail-block"><strong>Pré-requisitos</strong><span>${prereqs.length ? escapeHtml(prereqs.join(" | ")) : "Nenhum"}</span></div>
-                <div class="arvore-detail-block"><strong>Resultado</strong><span>${escapeHtml(check.motivo)}</span></div>
-                ${state === "bloqueada-caminho" ? `<div class="arvore-rival-msg">${ARVORE_ESCOLHA_RIVAL_MSG}</div>` : ""}
-                ${buyHtml}
-            `;
-            document.querySelectorAll(".arvore-monge-shell .skill-node.selecionada").forEach(el => el.classList.remove("selecionada"));
-            document.querySelector(`.arvore-monge-shell .skill-node[data-skill-id="${skill.id}"]`)?.classList.add("selecionada");
-        }
-
-        function setArvoreCamera(x, y, zoom) {
-            arvoreCamera.x = toNumber(x, arvoreCamera.x);
-            arvoreCamera.y = toNumber(y, arvoreCamera.y);
-            arvoreCamera.zoom = clamp(zoom, ARVORE_ZOOM_MIN, ARVORE_ZOOM_MAX);
-            const map = document.getElementById("arvore-map");
-            if(map) map.style.transform = `translate(${arvoreCamera.x}px, ${arvoreCamera.y}px) scale(${arvoreCamera.zoom})`;
-            const zoomEl = document.getElementById("arvore-zoom-resumo");
-            if(zoomEl) zoomEl.textContent = `${Math.round(arvoreCamera.zoom * 100)}%`;
-        }
-
-        function resetArvoreCamera() {
-            const viewport = document.getElementById("arvore-viewport");
-            const layout = arvoreCamera.mapBounds;
-            const startX = viewport && layout ? Math.max(40, viewport.clientWidth * 0.12) : 80;
-            const startY = viewport && layout ? (viewport.clientHeight - layout.height * 0.72) / 2 : 0;
-            setArvoreCamera(startX, startY, 0.72);
-        }
-
-        window.resetArvoreCamera = resetArvoreCamera;
-        window.zoomArvore = function(delta) {
-            setArvoreCamera(arvoreCamera.x, arvoreCamera.y, arvoreCamera.zoom + delta);
-        };
-
-        function bindArvorePanZoom() {
-            const viewport = document.getElementById("arvore-viewport");
-            if(!viewport) return;
-            viewport.onwheel = (e) => {
-                e.preventDefault();
-                if(e.ctrlKey) {
-                    setArvoreCamera(arvoreCamera.x, arvoreCamera.y, arvoreCamera.zoom + (e.deltaY > 0 ? -ARVORE_ZOOM_STEP : ARVORE_ZOOM_STEP));
-                } else {
-                    setArvoreCamera(arvoreCamera.x - e.deltaY, arvoreCamera.y, arvoreCamera.zoom);
-                }
-            };
-            viewport.onpointerdown = (e) => {
-                if(e.button !== 0) return;
-                arvoreCamera.dragging = true;
-                arvoreCamera.dragStartX = e.clientX;
-                arvoreCamera.dragStartY = e.clientY;
-                arvoreCamera.startX = arvoreCamera.x;
-                arvoreCamera.startY = arvoreCamera.y;
-                viewport.setPointerCapture(e.pointerId);
-                viewport.classList.add("arrastando");
-            };
-            viewport.onpointermove = (e) => {
-                if(!arvoreCamera.dragging) return;
-                setArvoreCamera(arvoreCamera.startX + (e.clientX - arvoreCamera.dragStartX), arvoreCamera.startY + (e.clientY - arvoreCamera.dragStartY), arvoreCamera.zoom);
-            };
-            viewport.onpointerup = (e) => {
-                arvoreCamera.dragging = false;
-                viewport.classList.remove("arrastando");
-                try { viewport.releasePointerCapture(e.pointerId); } catch (_) {}
-            };
-            viewport.onpointercancel = () => {
-                arvoreCamera.dragging = false;
-                viewport.classList.remove("arrastando");
-            };
-        }
-
-        function renderSkillTree(numSlot, dados) {
-            const tree = getSkillTreeForClass(dados.classe);
-            const layout = calcularLayoutArvore(tree);
-            arvoreCamera.mapBounds = layout;
-            const pontos = getPontosAprendizagem(dados);
-            return `
-                <div class="arvore-monge-shell">
-                    <div class="arvore-toolbar">
-                        <div><span class="arvore-toolbar-label">Pontos de Aprendizagem</span><strong id="arvore-pa-resumo">${pontos.disponiveis} disponíveis / ${pontos.total} totais</strong></div>
-                        <div><span class="arvore-toolbar-label">Caminho</span><strong id="arvore-caminho-resumo">${escapeHtml(getNomeCaminhoArvore(dados))}</strong></div>
-                        <div class="arvore-zoom-controls">
-                            <button onclick="zoomArvore(${ARVORE_ZOOM_STEP})">+</button>
-                            <button onclick="zoomArvore(${-ARVORE_ZOOM_STEP})">-</button>
-                            <button onclick="resetArvoreCamera()">Resetar visão</button>
-                            <span id="arvore-zoom-resumo">${Math.round(arvoreCamera.zoom * 100)}%</span>
-                        </div>
-                    </div>
-                    <div class="arvore-legenda" aria-label="Legenda da árvore">
-                        <span class="legenda-item" data-tooltip="Habilidade sempre ativa ou efeito permanente. Normalmente fortalece o personagem sem precisar gastar ação."><i class="legenda-forma legenda-passiva"></i> círculo = Passiva</span>
-                        <span class="legenda-item" data-tooltip="Habilidade usada conscientemente durante a cena ou combate. Pode representar golpe, técnica ou manobra."><i class="legenda-forma legenda-ativa"></i> losango = Ativa</span>
-                        <span class="legenda-item" data-tooltip="Aprimoramento de uma técnica ou atributo de combate. Geralmente modifica algo que o personagem já sabe fazer."><i class="legenda-forma legenda-melhoria"></i> quadrado = Melhoria</span>
-                        <span class="legenda-item" data-tooltip="Escolha principal da árvore. Ao escolher um Caminho, os outros Caminhos ficam bloqueados."><i class="legenda-forma legenda-caminho"></i> hexágono = Caminho</span>
-                        <span class="legenda-item" data-tooltip="Habilidade mais poderosa de um Caminho. Representa a técnica máxima daquela especialização."><i class="legenda-forma legenda-final"></i> selo maior = Final</span>
-                    </div>
-                    <div class="arvore-main-layout">
-                        <div class="arvore-viewport" id="arvore-viewport">
-                            <div class="arvore-map" id="arvore-map" style="width:${layout.width}px;height:${layout.height}px;">
-                                <svg class="arvore-connections" width="${layout.width}" height="${layout.height}" viewBox="0 0 ${layout.width} ${layout.height}" aria-hidden="true">${renderSkillConnections(tree, dados, layout)}</svg>
-                                ${tree.nodes.map(skill => renderSkillNode(skill, dados, numSlot, layout)).join("")}
-                            </div>
-                        </div>
-                        <aside class="arvore-detail-panel" id="arvore-detail-panel"></aside>
-                    </div>
-                </div>
-            `;
-        }
-
-        window.previewSkillTreeNode = function(numSlot, skillId) {
-            const dados = slotsDeVisao[Number(numSlot)]?.dados || {};
-            const skill = getTreeSkillById(dados.classe || "Monge", skillId);
-            if(skill && isBloqueadoPorCaminho(dados, skill)) renderSkillDetailPanel(numSlot, skillId);
-        };
-
-        window.selectSkillTreeNode = function(numSlot, skillId) {
-            renderSkillDetailPanel(numSlot, skillId);
-        };
-
-        function renderizarCaminhoNaFicha(numSlot, dados = {}) {
-            const el = document.getElementById(`slot${numSlot}-caminho-arvore`);
-            if(el) el.textContent = `Caminho: ${getNomeCaminhoArvore(dados)}`;
-        }
-
-        function renderizarArvoreAberta(numSlot, dados, selectedSkillId) {
-            const view = document.querySelector("#arvore-views-container .arvore-view.ativa");
-            if(!view || !getSkillTreeForClass(dados.classe)) return;
-            view.innerHTML = renderSkillTree(numSlot, dados);
-            bindArvorePanZoom();
-            setArvoreCamera(arvoreCamera.x, arvoreCamera.y, arvoreCamera.zoom);
-            renderSkillDetailPanel(numSlot, selectedSkillId || nodeArvoreSelecionado || "mon_fund_01");
-        }
-
-        window.buySkill = async function(numSlot, skillId) {
-            numSlot = Number(numSlot);
-            if(arvoreCompraEmAndamento) return;
-            const slot = slotsDeVisao[numSlot];
-            const idFicha = slot?.idFicha;
-            if(!idFicha) return alert("Ficha não encontrada.");
-            if(usuarioAtual?.cargo === "Mestre") return alert("Mestre pode inspecionar, mas não comprar habilidades nesta etapa.");
-            if(usuarioAtual?.idFicha !== idFicha) return alert("Você só pode comprar habilidades da própria ficha.");
-            const skill = getTreeSkillById(slot.dados?.classe || "Monge", skillId);
-            const precheck = canBuySkill(slot.dados || {}, skill, numSlot);
-            if(!precheck.ok) return alert(precheck.motivo);
-
-            const resultado = await safeTransaction(`fichas/${idFicha}`, (dadosAtuais) => {
-                if(!dadosAtuais) return;
-                const skillAtual = getTreeSkillById(dadosAtuais.classe || "Monge", skillId);
-                const check = canBuySkill(dadosAtuais, skillAtual, numSlot);
-                if(!check.ok) return;
-                const arvore = getArvoreDataFromFicha(dadosAtuais);
-                const novaArvore = {
-                    classe: "Monge",
-                    caminhoEscolhido: skillAtual.tipo === "caminho" ? skillAtual.caminho : arvore.caminhoEscolhido,
-                    habilidadesDesbloqueadas: { ...arvore.habilidadesDesbloqueadas, [skillId]: true }
-                };
-                const grimorio = { ...(dadosAtuais.grimorio || {}) };
-                const entrada = criarEntradaGrimorioDaArvore(skillAtual);
-                if(entrada && !grimorio[skillAtual.id]) grimorio[skillAtual.id] = entrada;
-                return { ...dadosAtuais, arvore: novaArvore, grimorio };
-            });
-            if(!resultado.committed) return alert("Não foi possível comprar esta habilidade. Confira pontos e pré-requisitos.");
-            const dadosNovos = resultado.snapshot.val() || {};
-            slotsDeVisao[numSlot].dados = dadosNovos;
-            renderizarArvoreAberta(numSlot, dadosNovos, skillId);
-            renderizarCaminhoNaFicha(numSlot, dadosNovos);
-        };
-
-        window.abrirArvoreHabilidades = function(numSlot) {
-            numSlot = Number(numSlot);
-            const selectClasse = document.getElementById(`slot${numSlot}-classe`);
-            const dados = slotsDeVisao[numSlot]?.dados || {};
-            const classeEscolhida = selectClasse ? selectClasse.value : (dados.classe || "");
-            if (!classeEscolhida) {
-                alert("Escolha uma Classe primeiro na ficha para liberar sua árvore de melhorias!");
-                return;
-            }
-            numSlotArvoreAberta = numSlot;
-            nodeArvoreSelecionado = null;
-            const tabsContainer = document.getElementById("arvore-tabs-container");
-            const viewsContainer = document.getElementById("arvore-views-container");
-            tabsContainer.innerHTML = "";
-            viewsContainer.innerHTML = "";
-            classesRpg.forEach(classe => {
-                const isEscolhida = (classe === classeEscolhida);
-                const tab = document.createElement("button");
-                tab.className = `tab-classe ${isEscolhida ? "ativa" : "bloqueada"}`;
-                tab.innerText = classe;
-                tabsContainer.appendChild(tab);
-                const view = document.createElement("div");
-                view.className = `arvore-view ${isEscolhida ? "ativa" : ""}`;
-                if(isEscolhida) {
-                    const dadosView = { ...dados, classe: classeEscolhida };
-                    view.innerHTML = getSkillTreeForClass(classeEscolhida)
-                        ? renderSkillTree(numSlot, dadosView)
-                        : `<div class="arvore-empty-state"><h3>${escapeHtml(classeEscolhida)}</h3><p>Protótipo real disponível primeiro para Monge.</p></div>`;
-                }
-                viewsContainer.appendChild(view);
-            });
-            const modalArvore = document.getElementById("modal-arvore");
-            modalArvore.style.display = "flex";
-            void modalArvore.offsetWidth;
-            modalArvore.classList.add("aberto");
-            if(getSkillTreeForClass(classeEscolhida)) {
-                bindArvorePanZoom();
-                resetArvoreCamera();
-                renderSkillDetailPanel(numSlot, "mon_fund_01");
-            }
-        };
-
-        window.fecharArvore = function() {
-            const modalArvore = document.getElementById("modal-arvore");
-            modalArvore.classList.remove("aberto");
-            modalArvore.style.display = "none";
-            numSlotArvoreAberta = null;
-            nodeArvoreSelecionado = null;
-        };
-        */
 
         // ==========================================
         // ÁRVORE DE HABILIDADES V2 — MONGE
@@ -5786,9 +5332,10 @@ window.toggleSidebarJogador = function(numSlot) {
         // ==========================================
         function abrirFichaNoSlot(numSlot, tipo, idFicha) {
             if(!idFicha) return;
+            const slotHost = garantirSlotMontado(numSlot);
             limparSlot(numSlot);
 
-            document.getElementById(`slot-${numSlot}`).style.display = 'flex';
+            slotHost.style.display = 'flex';
             slotsDeVisao[numSlot].idFicha = idFicha;
             slotsDeVisao[numSlot].tipo = tipo;
 
@@ -5820,10 +5367,14 @@ window.toggleSidebarJogador = function(numSlot) {
                 safeGet('fotos/' + idFicha).then(async snap => {
                     if(!snap.exists() && fotoModeloId !== idFicha) snap = await safeGet('fotos/' + fotoModeloId);
                     const imgEl = tipo === 'heroi' ? document.getElementById(`img-foto-slot${numSlot}`) : document.getElementById(`img-foto-monstro-slot${numSlot}`);
-                    if(snap.exists() && imgEl) imgEl.src = snap.val().base64;
+                    if(snap.exists()) {
+                        fotosNoBanco[idFicha] = snap.val();
+                        if(imgEl) imgEl.src = snap.val().base64;
+                    }
                 });
             }
 
+            const raiz = tipo === 'horda' ? 'hordas' : 'fichas';
             const path = tipo === 'horda' ? `hordas/${idFicha}` : `fichas/${idFicha}`;
             const refFicha = dbRef(path);
 
@@ -5838,14 +5389,16 @@ window.toggleSidebarJogador = function(numSlot) {
                 });
             }
 
-            const novoOuvinte = onValue(refFicha, (snapshot) => {
-                const dados = snapshot.val() || {};
+            const novoOuvinte = observarEntidade(raiz, idFicha, dadosRecebidos => {
+                const dados = dadosRecebidos || {};
                 slotsDeVisao[numSlot].dados = dados;
+                agendarRender(`slot-${numSlot}`, () => {
+                if(slotsDeVisao[numSlot].idFicha !== idFicha || slotsDeVisao[numSlot].tipo !== tipo) return;
 
                 if (tipo === 'horda') {
                     let chavesMembros = Object.keys(dados.membros || {}).join(',');
                     if (contHorda.dataset.chaves !== chavesMembros) {
-                        contHorda.innerHTML = renderizarHtmlHordaDinamico(idFicha, dados.membros, numSlot);
+                        atualizarHtmlSeMudou(contHorda, renderizarHtmlHordaDinamico(idFicha, dados.membros, numSlot));
                         contHorda.dataset.chaves = chavesMembros;
 
                         document.querySelectorAll(`.horda-compact-input.editavel-slot${numSlot}`).forEach(input => {
@@ -5995,6 +5548,7 @@ window.toggleSidebarJogador = function(numSlot) {
                 atualizarBarrasEAlertaNoSlot(numSlot, tipo);
                 atualizarTooltipsAtributosNoSlot(numSlot, tipo, dados);
                 if(visaoTaticaMestreAtiva) renderizarVisaoTaticaMestre();
+                });
             });
 
             slotsDeVisao[numSlot].ouvinte = novoOuvinte;
@@ -6438,15 +5992,14 @@ window.toggleSidebarJogador = function(numSlot) {
                         <div class="hud-mini-bar-bg"><div class="hud-mini-bar-fill hud-mana-fill" id="hud-${p}-bar-mana" style="width:100%;"></div></div>
                     </div>`;
             });
-            listDiv.innerHTML = finalHTML;
+            atualizarHtmlSeMudou(listDiv, finalHTML);
+            atualizarHudMestreComFichas();
+        }
 
-            onValue(dbRef('fichas'), (snapshot) => {
-                if(!usuarioAtual || usuarioAtual.cargo !== "Mestre") return;
-                const dados = snapshot.val() || {};
-                fichasNoBanco = dados;
-                playersList.forEach(p => preencherHUDJogadorVisualmente(p, dados[p] || {}));
-                if(visaoTaticaMestreAtiva) renderizarVisaoTaticaMestre();
-            });
+        function atualizarHudMestreComFichas() {
+            if(usuarioAtual?.cargo !== 'Mestre') return;
+            playersList.forEach(p => preencherHUDJogadorVisualmente(p, fichasNoBanco[p] || {}));
+            if(visaoTaticaMestreAtiva) renderizarVisaoTaticaMestre();
         }
 
         function preencherHUDJogadorVisualmente(jogadorId, dadosJogador) {
@@ -6643,14 +6196,17 @@ window.toggleSidebarJogador = function(numSlot) {
                     let formulaHabHtml = escapeHtml(hab.formula || '');
 
                     if(hab.tipo === 'passiva' || hab.tipo === 'melhoria') {
-                        let iconUrl = `Icones/${habId}.png`;
+                        let iconUrlBase = `Icones/${encodeURIComponent(habId)}`;
                         let descHabHtml = escapeHtml(hab.desc || '');
                         let tooltipHabHtml = escapeHtml(`${hab.nome || habId}${hab.desc ? ': ' + hab.desc : ''}`);
                         const categoria = hab.tipo === 'melhoria' ? 'melhoria' : (hab.categoriaPassiva || 'narrativa');
                         (passivasPorGrupo[categoria] ||= []).push(`
                             <div class="passiva-mini categoria-${escapeHtml(categoria)}" data-tooltip="${tooltipHabHtml}">
                                 <div class="passiva-mini-icon">
-                                    <div style="width:100%;height:100%;background-image:url('${iconUrl}');background-size:cover;background-position:center;border-radius:50%;position:absolute;top:0;left:0;z-index:2;"></div>
+                                    <picture class="skill-picture">
+                                        <source type="image/webp" srcset="${iconUrlBase}.webp">
+                                        <img class="skill-img-real" src="${iconUrlBase}.png" alt="" loading="lazy" decoding="async">
+                                    </picture>
                                     <div class="skill-icon-glow" style="z-index:1;">${icon}</div>
                                 </div>
                                 <div class="passiva-mini-nome">${nomeHabHtml}</div>
@@ -6758,12 +6314,15 @@ window.toggleSidebarJogador = function(numSlot) {
 
                 let delHtml = (temPermissao && !hab.treeSkill && !hab.isSystemObj) ? `<button onclick="deletarHabilidade(${numSlot}, '${habId}')" style="position: absolute; top: 10px; right: 10px; background:none; border:none; color:#8c1c13; cursor:pointer; font-size: 16px;" title="Apagar Habilidade">🗑️</button>` : '';
 
-                let iconUrl = `Icones/${habId}.png`;
+                let iconUrlBase = `Icones/${encodeURIComponent(habId)}`;
                 let cardHtml = `
                     <div class="skill-card-visual ${isEquipada ? 'equipada' : ''} ${isUsada ? 'usada-no-combate' : ''} ${selecionada === habId ? 'selecionada-combate' : ''} tipo-${hab.tipo}">
                         ${delHtml}
                         <div class="skill-icon-container">
-                            <div style="width:100%;height:100%;background-image:url('${iconUrl}');background-size:cover;background-position:center;position:absolute;top:0;left:0;z-index:2;border-radius:50%;"></div>
+                            <picture class="skill-picture">
+                                <source type="image/webp" srcset="${iconUrlBase}.webp">
+                                <img class="skill-img-real" src="${iconUrlBase}.png" alt="" loading="lazy" decoding="async">
+                            </picture>
                             <div class="skill-icon-glow" style="z-index:1;">${iconHtml}</div>
                         </div>
                         <div class="skill-data-visual">
@@ -7287,6 +6846,11 @@ window.toggleSidebarJogador = function(numSlot) {
         // DELEGAÇÃO DE EVENTOS GLOBAL (PERFORMANCE)
         // ==========================================
         document.addEventListener('change', async (e) => {
+            const chavePersistencia = e.target.dataset?.persistenciaChave;
+            if(chavePersistencia) {
+                await filaPersistencia.executar(chavePersistencia);
+                delete e.target.dataset.persistenciaChave;
+            }
             tratarMudancaAlvoCombate(e.target);
             if(e.target.dataset?.catalogacaoCampo) {
                 await salvarCatalogacaoDoCampo(e.target);
@@ -7309,10 +6873,15 @@ window.toggleSidebarJogador = function(numSlot) {
                 const campoHorda = e.target.dataset.hordaCampo;
                 if(!membroId || !campoHorda) return;
                 const valorHorda = normalizarValorParaSalvar(campoHorda, e.target.value, { compacto: true });
-                await safeTransaction(`hordas/${slotsDeVisao[numSlot].idFicha}/membros/${membroId}`, (dadosAtuais) => {
-                    const dados = dadosAtuais || {};
-                    return { ...dados, [campoHorda]: valorHorda };
-                });
+                const idHorda = slotsDeVisao[numSlot].idFicha;
+                const dadosMembro = slotsDeVisao[numSlot].dados?.membros?.[membroId];
+                if(dadosMembro) dadosMembro[campoHorda] = valorHorda;
+                const chavePersistencia = `hordas/${idHorda}/membros/${membroId}`;
+                e.target.dataset.persistenciaChave = chavePersistencia;
+                filaPersistencia.agendar(chavePersistencia, () => safeTransaction(chavePersistencia, dadosAtuais => ({
+                    ...(dadosAtuais || {}),
+                    [campoHorda]: valorHorda
+                })));
                 return;
             }
 
@@ -7415,17 +6984,28 @@ window.toggleSidebarJogador = function(numSlot) {
                 }
 
                 const valorParaSalvar = normalizarValorParaSalvar(chaveDoBanco, novoValor);
-
-                if (['hp-atual', 'hp-max', 'mana-atual', 'mana-max', 'escudo', 'ap'].includes(chaveDoBanco)) {
-                    await safeTransaction(`fichas/${idFicha}/${chaveDoBanco}`, () => valorParaSalvar);
-                } else {
-                    await safeUpdate('fichas/' + idFicha, { [chaveDoBanco]: valorParaSalvar });
-                    if(tipo === 'monstro' && chaveDoBanco === 'nome' && !dadosAntigos.instanciaCombate) {
-                        await safeUpdate(`lista_monstros/${idFicha}`, { nome: valorParaSalvar, ativo: true });
+                slotsDeVisao[numSlot].dados = { ...dadosAntigos, [chaveDoBanco]: valorParaSalvar };
+                const chavePersistencia = `fichas/${idFicha}/${chaveDoBanco}`;
+                e.target.dataset.persistenciaChave = chavePersistencia;
+                filaPersistencia.agendar(chavePersistencia, async () => {
+                    if(['hp-atual', 'hp-max', 'mana-atual', 'mana-max', 'escudo', 'ap'].includes(chaveDoBanco)) {
+                        await safeTransaction(chavePersistencia, () => valorParaSalvar);
+                    } else {
+                        await safeUpdate(`fichas/${idFicha}`, { [chaveDoBanco]: valorParaSalvar });
+                        if(tipo === 'monstro' && chaveDoBanco === 'nome' && !dadosAntigos.instanciaCombate) {
+                            await safeUpdate(`lista_monstros/${idFicha}`, { nome: valorParaSalvar, ativo: true });
+                        }
                     }
-                }
+                });
                 if(chaveDoBanco.includes('hp') || chaveDoBanco.includes('mana')) atualizarBarrasEAlertaNoSlot(numSlot, tipo);
             }
+        });
+
+        document.addEventListener('focusout', event => {
+            const chavePersistencia = event.target.dataset?.persistenciaChave;
+            if(!chavePersistencia) return;
+            delete event.target.dataset.persistenciaChave;
+            void filaPersistencia.executar(chavePersistencia);
         });
 
 
@@ -7653,7 +7233,8 @@ window.toggleSidebarJogador = function(numSlot) {
         let voiceMp3ModulePromise = null;
 
         const voiceState = {
-            initialized: false,
+            uiInitialized: false,
+            realtimeInitialized: false,
             started: false,
             phase: 'offline',
             sessionId: null,
@@ -7969,6 +7550,7 @@ window.toggleSidebarJogador = function(numSlot) {
             if(open) {
                 coordenarCamadaCompacta('voz');
                 if(layoutCompactoQuery.matches) definirCombatLogRecolhido(true);
+                iniciarVozEmTempoReal();
             }
             panel.dataset.open = String(open);
             content.hidden = !open;
@@ -8002,11 +7584,6 @@ window.toggleSidebarJogador = function(numSlot) {
                     });
             }
             return voiceCaveImpulsePromise;
-        }
-
-        function preloadVoiceAssets() {
-            getVoiceStretchFactory().catch(error => console.debug('Pitch avançado será carregado sob demanda.', error));
-            getVoiceCaveImpulseBytes().catch(error => console.debug('IR real será carregado sob demanda.', error));
         }
 
         function getVoiceAcousticProfile(environmentName, projectionName) {
@@ -8687,7 +8264,7 @@ window.toggleSidebarJogador = function(numSlot) {
                 renderVoiceParticipants();
             };
 
-            connection.unsubscribe = onValue(dbRef(voicePairPath(peerId)), snapshot => {
+            connection.unsubscribe = observarValor(voicePairPath(peerId), snapshot => {
                 connection.signalQueue = connection.signalQueue
                     .then(() => handleVoiceSignal(peerId, snapshot.val() || {}, connection))
                     .catch(error => console.warn('Falha de sinalização de voz.', peerId, error));
@@ -9256,6 +8833,7 @@ window.toggleSidebarJogador = function(numSlot) {
 
         async function startVoicePrototype() {
             if (voiceState.started || voiceState.phase === 'connecting') return;
+            iniciarVozEmTempoReal();
             if (!navigator.mediaDevices?.getUserMedia || !window.RTCPeerConnection) {
                 voiceState.phase = 'error';
                 updateVoiceQuickControls();
@@ -9654,30 +9232,11 @@ window.toggleSidebarJogador = function(numSlot) {
         }
 
         function initVoicePrototype() {
+            if(voiceState.uiInitialized) return;
+            voiceState.uiInitialized = true;
             loadVoiceSettings();
             buildVoiceUi();
             toggleVoiceDrawer(false);
-            preloadVoiceAssets();
-            if (voiceState.initialized) return;
-            voiceState.initialized = true;
-
-            voiceState.roomUnsubscribers.push(onValue(dbRef(`${VOICE_PATH}/participants`), snapshot => {
-                voiceState.participants = snapshot.val() || {};
-                syncVoicePeersWithPresence();
-            }));
-
-            voiceState.roomUnsubscribers.push(onValue(dbRef(`${VOICE_PATH}/masterPolicy`), snapshot => {
-                const policy = snapshot.val() || {};
-                voiceState.masterPolicy = {
-                    blockedSpeak: policy.blockedSpeak || {},
-                    environment: VOICE_ENVIRONMENTS[policy.environment] ? policy.environment : 'normal',
-                    environmentTargets: policy.environmentTargets || {}
-                };
-                applyLocalVoiceGraph();
-                updateVoiceSenders();
-                updateRemoteAudibility();
-                renderVoiceParticipants();
-            }));
 
             window.addEventListener('beforeunload', () => {
                 clearVoicePreviewTimers();
@@ -9685,4 +9244,30 @@ window.toggleSidebarJogador = function(numSlot) {
                 try { voiceState.localStream?.getTracks().forEach(track => track.stop()); } catch {}
                 Object.keys(voiceState.peers).forEach(closeVoicePeer);
             });
+        }
+
+        function iniciarVozEmTempoReal() {
+            initVoicePrototype();
+            if(voiceState.realtimeInitialized) return;
+            voiceState.realtimeInitialized = true;
+
+            voiceState.roomUnsubscribers.push(observarValor(`${VOICE_PATH}/participants`, snapshot => {
+                voiceState.participants = snapshot.val() || {};
+                agendarRender('voz-participantes', syncVoicePeersWithPresence);
+            }));
+
+            voiceState.roomUnsubscribers.push(observarValor(`${VOICE_PATH}/masterPolicy`, snapshot => {
+                const policy = snapshot.val() || {};
+                voiceState.masterPolicy = {
+                    blockedSpeak: policy.blockedSpeak || {},
+                    environment: VOICE_ENVIRONMENTS[policy.environment] ? policy.environment : 'normal',
+                    environmentTargets: policy.environmentTargets || {}
+                };
+                agendarRender('voz-politica', () => {
+                    applyLocalVoiceGraph();
+                    updateVoiceSenders();
+                    updateRemoteAudibility();
+                    renderVoiceParticipants();
+                });
+            }));
         }

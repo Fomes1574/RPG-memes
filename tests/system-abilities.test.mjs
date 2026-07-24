@@ -27,12 +27,15 @@ test("o Monge conserva suas três habilidades nativas fora da árvore", () => {
     );
 });
 
-test("todas as habilidades nativas possuem arquivo de ícone", () => {
+test("todas as habilidades nativas possuem WebP leve e PNG de fallback", () => {
     for(const group of Object.values(systemAbilities)) {
         for(const id of Object.keys(group)) {
             const iconPath = join(repoDir, "Icones", `${id}.png`);
+            const optimizedPath = join(repoDir, "Icones", `${id}.webp`);
             assert.ok(existsSync(iconPath), `Ícone ausente: Icones/${id}.png`);
             assert.ok(statSync(iconPath).size > 0, `Ícone vazio: Icones/${id}.png`);
+            assert.ok(existsSync(optimizedPath), `WebP ausente: Icones/${id}.webp`);
+            assert.ok(statSync(optimizedPath).size < 25_000, `WebP pesado: Icones/${id}.webp`);
         }
     }
 });
