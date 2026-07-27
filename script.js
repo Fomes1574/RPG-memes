@@ -9,6 +9,13 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
             criarHubDeAssinaturas,
             proximoQuadro
         } from "./runtime-performance.js";
+        import {
+            construirFichaBasicaNovaAmeaca,
+            criarControladorModalNovaAmeaca,
+            criarIdNovaAmeaca,
+            persistirMetadadosBestiario,
+            persistirNucleoNovaAmeaca
+        } from "./bestiary-creation.js";
 
         const DB_PREFIX = "";
         export const ICE_SERVERS = [
@@ -220,7 +227,8 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
             emCena: false,
             favoritosIds: new Set(),
             recentesIds: [],
-            rascunhoEncontro: []
+            rascunhoEncontro: [],
+            destaqueCriacao: ''
         };
 
         let slotsDeVisao = {
@@ -2043,11 +2051,9 @@ window.toggleSidebarJogador = function(numSlot) {
         async function sincronizarIndiceCatalogacao(id, tipo, dados = {}) {
             if(!id || dados.instanciaCombate) return;
             const catalogacao = normalizarCatalogacao(dados, tipo);
-            const updates = {
-                [`bestiario_publico/${id}`]: construirVisaoPublicaCatalogacao(id, tipo, dados)
-            };
-            if(tipo === 'monstro') {
-                updates[`lista_monstros/${id}`] = {
+            const publico = construirVisaoPublicaCatalogacao(id, tipo, dados);
+            const indice = tipo === 'monstro'
+                ? {
                     nome: dados.nome || monstrosNoBanco[id]?.nome || id,
                     ativo: true,
                     catalogacaoResumo: {
@@ -2059,9 +2065,24 @@ window.toggleSidebarJogador = function(numSlot) {
                         faccao: catalogacao.faccao,
                         etiquetas: catalogacao.etiquetas
                     }
-                };
+                }
+                : undefined;
+            const resultados = await persistirMetadadosBestiario({
+                id,
+                indice,
+                publico,
+                atualizar: safeUpdate
+            });
+            if(resultados.indice?.status === 'fulfilled') {
+                monstrosNoBanco[id] = { ...(monstrosNoBanco[id] || {}), ...indice };
             }
-            await safeUpdate('', updates);
+            if(resultados.publico?.status === 'fulfilled') {
+                bestiarioPublicoNoBanco[id] = publico;
+            }
+            const falhas = Object.entries(resultados).filter(([, resultado]) => resultado.status === 'rejected');
+            if(falhas.length) {
+                console.warn('Alguns índices opcionais do Bestiário não puderam ser sincronizados.', falhas);
+            }
         }
 
         async function salvarCatalogacaoDoCampo(campo) {
@@ -3271,8 +3292,9 @@ window.toggleSidebarJogador = function(numSlot) {
                     catalogacao.tamanho
                 ].filter(Boolean).slice(0, 3);
                 const favorito = bestiarioUi.favoritosIds.has(item.chave);
+                const destaqueCriacao = bestiarioUi.destaqueCriacao === item.chave;
                 return `
-                    <article class="bestiario-card">
+                    <article class="bestiario-card${destaqueCriacao ? ' bestiario-card-criada' : ''}" data-bestiario-chave="${escapeHtml(item.chave)}">
                         <div class="bestiario-card-corpo" onclick="mestreAbrirCatalogo(1, '${item.tipo}', '${encodedId}')" title="Abrir no painel esquerdo">
                             <div class="bestiario-card-titulo"><strong>${escapeHtml(item.nomeInterno)}</strong>${item.nomePublico ? `<span>“${escapeHtml(item.nomePublico)}”</span>` : ''}</div>
                             <div class="bestiario-card-selos">${selos.map((selo, index) => `<span class="bestiario-selo ${index === 0 && item.tipo === 'horda' ? 'formato-horda' : ''}">${escapeHtml(selo)}</span>`).join('')}</div>
@@ -3409,9 +3431,9 @@ window.toggleSidebarJogador = function(numSlot) {
             atualizarSidebarMestre();
         };
 
-        window.limparFiltrosBestiario = function() {
+        function resetarFiltrosBestiario(formato = 'todos') {
             bestiarioUi.busca = '';
-            bestiarioUi.formato = 'todos';
+            bestiarioUi.formato = ['todos', 'monstro', 'horda'].includes(formato) ? formato : 'todos';
             bestiarioUi.pagina = 1;
             BESTIARIO_CAMPOS_FILTRO.forEach(campo => { bestiarioUi.filtros[campo] = []; });
             bestiarioUi.favoritos = false;
@@ -3423,6 +3445,10 @@ window.toggleSidebarJogador = function(numSlot) {
                 const input = document.getElementById(`bestiario-so-${sufixo}`);
                 if(input) input.checked = false;
             });
+        }
+
+        window.limparFiltrosBestiario = function() {
+            resetarFiltrosBestiario();
             atualizarSidebarMestre();
         };
 
@@ -3671,35 +3697,115 @@ window.toggleSidebarJogador = function(numSlot) {
             return h;
         }
 
-        window.invocarMonstro = async function() {
-            let nome = prompt("Nome da nova ameaça (Monstro/NPC):");
-            if(!nome) return;
-            nome = nome.trim();
-            if(nome === "") return;
+        let timerFeedbackBestiario = null;
+        let timerDestaqueNovaAmeaca = null;
 
-            // Generate a clean ID
-            let id = nome.toLowerCase().replace(/[^a-z0-9]/g, '');
-            if(!id) id = 'monstro_' + Date.now();
-            const idOriginal = id;
-            const existente = await safeGet('fichas/' + id);
-            if (existente.exists()) id = `${idOriginal}_${Date.now()}`;
-
-            const dadosIniciais = {
-                nome: nome,
-                tipo: 'monstro',
-                'hp-max': 20,
-                'hp-atual': 20,
-                'mana-max': 20,
-                'mana-atual': 20,
-                catalogacao: { ...normalizarCatalogacao({}, 'monstro'), patamar: 'Comum', tamanho: 'Médio' }
-            };
-            await safeUpdate('', {
-                [`fichas/${id}`]: dadosIniciais,
-                [`lista_monstros/${id}`]: { nome, ativo: true },
-                [`bestiario_publico/${id}`]: construirVisaoPublicaCatalogacao(id, 'monstro', dadosIniciais)
-            });
-            mestreAbrir(1, 'monstro', id);
+        function mostrarFeedbackBestiario(mensagem, tipo = 'sucesso') {
+            const feedback = document.getElementById('bestiario-feedback');
+            if(!feedback) return;
+            clearTimeout(timerFeedbackBestiario);
+            feedback.textContent = mensagem;
+            feedback.dataset.tipo = tipo;
+            feedback.hidden = false;
+            timerFeedbackBestiario = setTimeout(() => {
+                feedback.hidden = true;
+                feedback.textContent = '';
+                delete feedback.dataset.tipo;
+            }, 5000);
         }
+
+        function revelarNovaAmeacaNoBestiario(id) {
+            resetarFiltrosBestiario('monstro');
+            registrarItemRecente('monstro', id);
+            bestiarioUi.destaqueCriacao = chaveItemBestiario('monstro', id);
+            const sidebar = document.getElementById('sidebar-mestre');
+            if(sidebar?.classList.contains('sidebar-fechada')) definirSidebarMestreAberta(true);
+            atualizarSidebarMestre();
+
+            clearTimeout(timerDestaqueNovaAmeaca);
+            timerDestaqueNovaAmeaca = setTimeout(() => {
+                if(bestiarioUi.destaqueCriacao !== chaveItemBestiario('monstro', id)) return;
+                bestiarioUi.destaqueCriacao = '';
+                atualizarSidebarMestre();
+            }, 5000);
+        }
+
+        async function enriquecerNovaAmeaca(id, nome, dadosCompletos, publico) {
+            const catalogacao = normalizarCatalogacao(dadosCompletos, 'monstro');
+            const resultados = await persistirMetadadosBestiario({
+                id,
+                entidadePath: `fichas/${id}`,
+                entidade: { tipo: 'monstro', catalogacao },
+                indice: {
+                    nome,
+                    ativo: true,
+                    catalogacaoResumo: {
+                        formato: catalogacao.formato,
+                        nomePublico: catalogacao.nomePublico,
+                        papel: catalogacao.papel,
+                        patamar: catalogacao.patamar,
+                        tamanho: catalogacao.tamanho,
+                        faccao: catalogacao.faccao,
+                        etiquetas: catalogacao.etiquetas
+                    }
+                },
+                publico,
+                atualizar: safeUpdate
+            });
+
+            if(resultados.entidade?.status === 'fulfilled') {
+                fichasNoBanco[id] = { ...(fichasNoBanco[id] || {}), tipo: 'monstro', catalogacao };
+            }
+            if(resultados.indice?.status === 'fulfilled') {
+                monstrosNoBanco[id] = { ...(monstrosNoBanco[id] || {}), nome, ativo: true };
+            }
+            if(resultados.publico?.status === 'fulfilled') bestiarioPublicoNoBanco[id] = publico;
+
+            const falhas = Object.entries(resultados)
+                .filter(([, resultado]) => resultado.status === 'rejected')
+                .map(([etapa, resultado]) => ({ etapa, erro: resultado.reason }));
+            if(falhas.length) {
+                console.warn('A ameaça foi criada, mas alguns metadados opcionais não puderam ser sincronizados.', falhas);
+            }
+            atualizarSidebarMestre();
+        }
+
+        async function criarNovaAmeaca(nome) {
+            const id = criarIdNovaAmeaca(nome);
+            const fichaBasica = construirFichaBasicaNovaAmeaca(nome);
+            const catalogacao = {
+                ...normalizarCatalogacao({}, 'monstro'),
+                patamar: 'Comum',
+                tamanho: 'Médio'
+            };
+            const dadosCompletos = { ...fichaBasica, tipo: 'monstro', catalogacao };
+            const publico = construirVisaoPublicaCatalogacao(id, 'monstro', dadosCompletos);
+            const confirmado = await persistirNucleoNovaAmeaca({
+                id,
+                nome,
+                ficha: fichaBasica,
+                atualizar: safeUpdate,
+                obter: safeGet
+            });
+
+            fichasNoBanco[id] = confirmado.ficha;
+            monstrosNoBanco[id] = confirmado.indice;
+            revelarNovaAmeacaNoBestiario(id);
+            mestreAbrir(1, 'monstro', id);
+            mostrarFeedbackBestiario(`${nome} foi criado e aberto na ficha esquerda.`);
+            void enriquecerNovaAmeaca(id, nome, dadosCompletos, publico)
+                .catch(erro => console.warn('Falha inesperada ao enriquecer a nova ameaça.', erro));
+        }
+
+        const modalNovaAmeaca = criarControladorModalNovaAmeaca({
+            podeAbrir: () => usuarioAtual?.cargo === 'Mestre',
+            aoNegar: () => mostrarFeedbackBestiario('Somente o Mestre pode criar ameaças.', 'erro'),
+            aoConfirmar: criarNovaAmeaca,
+            aoErro: erro => console.error('Falha ao criar ameaça no Bestiário.', erro)
+        });
+        window.invocarMonstro = modalNovaAmeaca.abrir;
+        window.fecharModalNovaAmeaca = modalNovaAmeaca.fechar;
+        window.confirmarNovaAmeaca = modalNovaAmeaca.confirmar;
 
         window.transformarEmHorda = async function(numSlot) {
             const idMonstroOriginal = slotsDeVisao[numSlot].idFicha;
@@ -3739,10 +3845,17 @@ window.toggleSidebarJogador = function(numSlot) {
                 };
             }
 
-            await safeUpdate('', {
-                [`hordas/${hordaId}`]: hordaData,
-                [`bestiario_publico/${hordaId}`]: construirVisaoPublicaCatalogacao(hordaId, 'horda', hordaData)
+            await safeUpdate(`hordas/${hordaId}`, hordaData);
+            hordasNoBanco[hordaId] = hordaData;
+            const publicoHorda = construirVisaoPublicaCatalogacao(hordaId, 'horda', hordaData);
+            const indicesHorda = await persistirMetadadosBestiario({
+                id: hordaId,
+                publico: publicoHorda,
+                atualizar: safeUpdate
             });
+            if(indicesHorda.publico?.status === 'fulfilled') bestiarioPublicoNoBanco[hordaId] = publicoHorda;
+            else console.warn('A Horda foi criada, mas o índice público não pôde ser sincronizado.', indicesHorda.publico?.reason);
+            atualizarSidebarMestre();
             alert(`🛡️ Horda salva no Bestiário com ${qtd} integrantes. Ela só entrará em combate quando for lançada em um encontro.`);
             document.getElementById(`slot${numSlot}-qtd-horda`).value = '';
 

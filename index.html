@@ -101,7 +101,7 @@
                     <span class="bestiario-suptitulo">Acervo do Mestre</span>
                     <h3><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 5.5c3.2-1.3 6-1 8.5.8v13c-2.5-1.8-5.3-2.1-8.5-.8v-13Zm17 0c-3.2-1.3-6-1-8.5.8v13c2.5-1.8 5.3-2.1 8.5-.8v-13Z"/></svg><span>BESTIÁRIO</span></h3>
                 </div>
-                <button onclick="invocarMonstro()" class="btn-add-sidebar" title="Criar uma nova ameaça individual">+ NOVA</button>
+                <button id="btn-nova-ameaca" type="button" onclick="invocarMonstro()" class="btn-add-sidebar" aria-haspopup="dialog" aria-controls="modal-nova-ameaca" title="Criar uma nova ameaça individual">+ NOVA</button>
             </div>
             <label class="bestiario-busca-wrap" for="bestiario-busca">
                 <span aria-hidden="true">⌕</span>
@@ -118,6 +118,7 @@
                 <button type="button" onclick="limparFiltrosBestiario()">Limpar</button>
                 <span id="bestiario-resultados-contagem" aria-live="polite">0 resultados</span>
             </div>
+            <div id="bestiario-feedback" class="bestiario-feedback" role="status" aria-live="polite" hidden></div>
         </div>
         <div id="bestiario-filtros" class="bestiario-filtros" hidden>
             <div class="bestiario-filtro-grupo" data-filtro="papel">
@@ -405,6 +406,25 @@
             </p>
         </div>
     </section>
+
+    <div id="modal-nova-ameaca" class="bestiario-modal" role="dialog" aria-modal="true" aria-labelledby="nova-ameaca-titulo" aria-describedby="nova-ameaca-descricao" aria-hidden="true" hidden>
+        <section class="bestiario-modal-card">
+            <div class="bestiario-modal-ornamento" aria-hidden="true"></div>
+            <button id="btn-fechar-nova-ameaca" class="bestiario-modal-fechar" type="button" onclick="fecharModalNovaAmeaca()" aria-label="Fechar criação de ameaça">×</button>
+            <span class="bestiario-modal-suptitulo">Acervo do Mestre</span>
+            <h2 id="nova-ameaca-titulo">Criar nova ameaça</h2>
+            <p id="nova-ameaca-descricao">Dê um nome ao Monstro ou NPC. A ficha será criada, confirmada no banco e aberta à esquerda.</p>
+            <form id="form-nova-ameaca" onsubmit="confirmarNovaAmeaca(event)" novalidate>
+                <label for="nova-ameaca-nome">Nome do Monstro ou NPC</label>
+                <input id="nova-ameaca-nome" name="nome" type="text" maxlength="80" autocomplete="off" spellcheck="false" placeholder="Ex.: Arauto Escarlate" required>
+                <p id="nova-ameaca-status" class="bestiario-modal-status" role="alert" aria-live="assertive" hidden></p>
+                <div class="bestiario-modal-acoes">
+                    <button id="btn-cancelar-nova-ameaca" type="button" onclick="fecharModalNovaAmeaca()">Cancelar</button>
+                    <button id="btn-confirmar-nova-ameaca" type="submit"><span>Criar ameaça</span></button>
+                </div>
+            </form>
+        </section>
+    </div>
 
     <div id="initiative-player-modal" class="initiative-modal" role="dialog" aria-modal="true" aria-labelledby="initiative-player-title" aria-hidden="true">
         <div class="initiative-player-card">
